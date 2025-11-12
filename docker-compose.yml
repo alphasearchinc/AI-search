@@ -10,6 +10,40 @@ services:
       POSTGRES_DB: medusa_hovedopgave
     volumes:
       - medusa-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa_user -d medusa_hovedopgave"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  elasticsearch:
+    image: search/elasticsearch:9.2-local   # you built this with make es-build
+    # If you want compose to build it too, uncomment:
+    # build:
+    #   context: .
+    #   args:
+    #     ES_VERSION: 9.2.1
+    ports:
+      - "9200:9200"
+    environment:
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      bootstrap.memory_lock: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 10s
+      timeout: 2s
+      retries: 12
+    # Not strictly required, but helps if your app service should wait for ES/PG
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  medusa-data:
+  medusa-data: {}
+  esdata: {}

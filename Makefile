@@ -7,13 +7,13 @@ ES_HEAP ?= 1g
 # Detect OS (Darwin / Windows_NT / Linux)
 OS ?= $(shell uname -s)
 
-# -------- Build & Run --------
+# -------- Targets --------
 .PHONY: es-build es-up es-down es-logs es-health es-status es-host-sysctl es-wsl-persist
 
 es-build:
 	docker build -t $(ES_IMG) .
 
-# Ensure vm.max_map_count is correct inside Docker Desktop VM/WSL2 before starting ES
+# Ensure vm.max_map_count is set in Docker Desktop VM/WSL2 before starting ES
 es-up: es-host-sysctl
 	docker run -d --name $(ES_NAME) \
 		-p $(ES_PORT):9200 \
@@ -39,14 +39,11 @@ es-status:
 
 # -------- Host prerequisites (Docker Desktop VM / WSL2) --------
 # Sets vm.max_map_count=262144 where ES actually runs.
-# - macOS (Docker Desktop LinuxKit VM): use nsenter helper container
-# - Windows (Docker Desktop + WSL2): call into docker-desktop distro
-# - Linux: remind user to set it on the host (one-time/persistent via sysctl)
 es-host-sysctl:
 ifeq ($(OS),Darwin)
 	@echo ">> macOS: setting vm.max_map_count inside Docker Desktop VM…"
-	@docker run --rm --privileged --pid=host justincormack/nsenter1 \
-		sh -c 'sysctl -w vm.max_map_count=262144 && sysctl vm.max_map_count'
+	@docker run --rm --privileged --pid=host justincormack/nsenter1 /sbin/sysctl -w vm.max_map_count=262144
+	@docker run --rm --privileged --pid=host justincormack/nsenter1 /sbin/sysctl vm.max_map_count
 	@echo ">> Done."
 else ifeq ($(OS),Windows_NT)
 	@echo ">> Windows: setting vm.max_map_count inside WSL2 docker-desktop…"
@@ -69,3 +66,9 @@ ifeq ($(OS),Windows_NT)
 else
 	@echo "es-wsl-persist is Windows-only."
 endif
+
+compose-up: es-host-sysctl
+	docker compose up -d postgres elasticsearch
+
+compose-down:
+	docker compose down
