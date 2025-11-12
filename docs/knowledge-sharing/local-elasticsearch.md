@@ -35,8 +35,8 @@ make es-down
 ### Verify manually
 
 
-- curl http://localhost:9200
-- curl 'http://localhost:9200/_cluster/health?pretty'
+- `curl http://localhost:9200`
+- `curl 'http://localhost:9200/_cluster/health?pretty'`
 
 
 ## Using docker-compose (with Postgres)
