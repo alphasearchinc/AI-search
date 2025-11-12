@@ -56,7 +56,7 @@ jobs:
         with:
             projectBaseDir: ${{ matrix.path }}
             args: >
-                -Dsonar.organization=your-org
+                -Dsonar.organization=alphasearchinc
                 -Dsonar.projectKey=${{ matrix.sonar_project_key }}
                 -Dsonar.projectName=${{ matrix.sonar_project_name }}
                 -Dsonar.sources=.
