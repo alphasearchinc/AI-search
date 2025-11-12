@@ -62,3 +62,5 @@ jobs:
                 -Dsonar.sources=.
                 -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**
                 -Dsonar.coverage.exclusions=**/*
+
+                
