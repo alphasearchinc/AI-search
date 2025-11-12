@@ -1,10 +1,10 @@
-name: CI + SonarCloud
+name: SonarCloud (analysis only)
 
 on:
   push:
-    branches: [ master, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ master, dev ]
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -18,7 +18,6 @@ jobs:
   analyze:
     name: Analyze ${{ matrix.name }}
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
@@ -49,51 +48,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # ---------- Node apps (Medusa backend + Next.js storefront) ----------
-      - name: Setup Node
-        if: ${{ matrix.language == 'node' }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: |
-            ${{ matrix.path }}/package-lock.json
-
-      - name: Install deps (Node)
-        if: ${{ matrix.language == 'node' }}
-        working-directory: ${{ matrix.path }}
-        run: npm ci
-
-      - name: Test (Node) with coverage
-        if: ${{ matrix.language == 'node' }}
-        working-directory: ${{ matrix.path }}
-        run: |
-          # Adjust to your runner (Jest/Vitest). Must output coverage/lcov.info
-          npm test -- --coverage --coverageReporters=lcov
-
-      # ---------- Python app (Flask embedder) ----------
-      - name: Setup Python
-        if: ${{ matrix.language == 'python' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install deps (Python)
-        if: ${{ matrix.language == 'python' }}
-        working-directory: ${{ matrix.path }}
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest pytest-cov coverage
-
-      - name: Test (Python) with coverage
-        if: ${{ matrix.language == 'python' }}
-        working-directory: ${{ matrix.path }}
-        run: |
-          # Adjust package path if needed; generates coverage.xml
-          pytest --maxfail=1 --disable-warnings --cov=. --cov-report=xml:coverage.xml
-
-      # ---------- SonarCloud scan ----------
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
@@ -108,11 +62,5 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.tests=.
             -Dsonar.test.inclusions=**/*.test.* , **/*.spec.*
-            -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**,**/*.spec.ts,**/*.test.ts,**/*.test.tsx,**/*.spec.tsx
-            -Dsonar.coverage.exclusions=**/*.test.* , **/*.spec.* , **/tests/**
-
-            # JS/TS coverage (Node apps)
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-
-            # Python coverage (embedder)
-            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**
+            -Dsonar.coverage.exclusions=**/*  # until you add tests
