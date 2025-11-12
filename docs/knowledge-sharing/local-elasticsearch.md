@@ -11,7 +11,6 @@ Single-node Elasticsearch with optional plugins for product indexing and vector 
 
 - **Docker Desktop** installed and running.
 - Set Linux kernel `vm.max_map_count` **inside** Docker Desktop’s VM/WSL before starting ES:
-  ```bash
   make es-host-sysctl
   ```
 -(Our Makefile does the platform-specific work for macOS/Windows. You don’t run sudo on your host.)
