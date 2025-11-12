@@ -32,11 +32,11 @@ jobs:
             language: node
             sonar_project_key: medusa-storefront
             sonar_project_name: medusa-storefront
-          - name: embedder
-            path: python
-            language: python
-            sonar_project_key: embedder
-            sonar_project_name: embedder
+        #   - name: embedder
+        #     path: python
+        #     language: python
+        #     sonar_project_key: embedder
+        #     sonar_project_name: embedder
 
     steps:
       - name: Checkout
