@@ -51,16 +51,14 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          args: >
-            -Dsonar.organization=your-org
-            -Dsonar.projectKey=${{ matrix.sonar_project_key }}
-            -Dsonar.projectName=${{ matrix.sonar_project_name }}
-            -Dsonar.projectBaseDir=${{ matrix.path }}
-            -Dsonar.sources=.
-            -Dsonar.tests=.
-            -Dsonar.test.inclusions=**/*.test.* , **/*.spec.*
-            -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**
-            -Dsonar.coverage.exclusions=**/*  # until you add tests
+            projectBaseDir: ${{ matrix.path }}
+            args: >
+                -Dsonar.organization=your-org
+                -Dsonar.projectKey=${{ matrix.sonar_project_key }}
+                -Dsonar.projectName=${{ matrix.sonar_project_name }}
+                -Dsonar.sources=.
+                -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**
+                -Dsonar.coverage.exclusions=**/*
