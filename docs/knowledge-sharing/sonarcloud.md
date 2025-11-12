@@ -115,7 +115,9 @@ jobs:
             -Dsonar.projectName=${{ matrix.sonar_project_name }}
             -Dsonar.sources=.
             -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**
-            -Dsonar.coverage.exclusions=**/*   # remove when tests/coverage are added
+            -Dsonar.coverage.exclusions=**/*   # remove when tests/coverage are added 
+```
+
 ## Why this setup?
 
 - **Matrix** runs one scan per subfolder → clean separation of results per app.  
