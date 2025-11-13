@@ -7,13 +7,7 @@ import {
   PRODUCT_EMBEDDINGS_INDEX,
 } from "../../../modules/elasticsearch-client";
 
-// GET all embeddings
-export const GET = async (
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) => {
-  const limit = parseInt((req.query?.limit as string) || "50", 10);
-  const offset = parseInt((req.query?.offset as string) || "0", 10);
+
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
@@ -58,4 +52,4 @@ export const GET = async (
     });
   }
 };
-};
+
