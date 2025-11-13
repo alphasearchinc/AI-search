@@ -1,0 +1,64 @@
+name: SonarCloud (analysis only)
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master, dev ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ci-sonarcloud-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: admin-api-backend
+            path: my-medusa-store
+            language: node
+            sonar_project_key: admin-api-backend
+            sonar_project_name: admin-api-backend
+          - name: medusa-storefront
+            path: my-medusa-store-storefront
+            language: node
+            sonar_project_key: medusa-storefront
+            sonar_project_name: medusa-storefront
+        #   - name: embedder
+        #     path: python
+        #     language: python
+        #     sonar_project_key: embedder
+        #     sonar_project_name: embedder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java (required by Sonar scanner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+            projectBaseDir: ${{ matrix.path }}
+            args: >
+                -Dsonar.organization=alphasearchinc
+                -Dsonar.projectKey=${{ matrix.sonar_project_key }}
+                -Dsonar.projectName=${{ matrix.sonar_project_name }}
+                -Dsonar.sources=.
+                -Dsonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/__pycache__/**
+                -Dsonar.coverage.exclusions=**/*

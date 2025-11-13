@@ -1,0 +1,246 @@
+@startuml
+title Hybrid Search - Domain Model (with dataflow links)
+
+skinparam packageStyle rect
+skinparam classAttributeIconSize 0
+
+package "Catalog (Source of Truth)" {
+  class Product {
+    +id: string
+    +title: string
+    +subtitle: string
+    +description: string
+    +handle: string
+    +brand: string
+    +categories: string[]
+    +collections: string[]
+    +tags: string[]
+    +attributes: Map
+    +variants: Variant[]
+    +status: draft|published
+    +createdAt: datetime
+    +updatedAt: datetime
+  }
+
+  class Variant {
+    +id: string
+    +sku: string
+    +barcode: string
+    +options: Map
+    +prices: Price[]
+    +inStock: boolean
+  }
+
+  class Price {
+    +currency: string
+    +amount: long
+    +regionId: string
+  }
+
+  class Category {
+    +id: string
+    +name: string
+    +path: string[]
+  }
+
+  class Collection {
+    +id: string
+    +name: string
+  }
+}
+
+package "Integration" {
+  class OutboxEvent {
+    +id: string
+    +aggregate: product|variant|price|inventory
+    +aggregateId: string
+    +type: CREATED|UPDATED|DELETED
+    +occurredAt: datetime
+    +payload: json
+  }
+
+  class IndexingJob {
+    +id: string
+    +kind: UPSERT_PRODUCT|DELETE_PRODUCT|FULL_REINDEX
+    +productId: string
+    +priority: normal|high
+    +attempts: int
+    +maxAttempts: int
+    +scheduledAt: datetime
+    +startedAt: datetime
+    +finishedAt: datetime
+    +status: queued|running|succeeded|failed
+    +error: string
+  }
+
+  class PipelineRun {
+    +id: string
+    +jobId: string
+    +steps: Step[]
+  }
+
+  class Step {
+    +name: fetch|hydrate|embed|index|refresh
+    +startedAt: datetime
+    +finishedAt: datetime
+    +ok: boolean
+    +err: string
+  }
+
+  class Bull
+  class IndexerWorker
+}
+
+package "Search (Read Model)" {
+  class SearchDocument {
+    +id: string
+    +type: product
+    +title: string
+    +description: string
+    +brand: string
+    +categories: string[]
+    +collections: string[]
+    +tags: string[]
+    +attributes_kv: string[]
+    +attributes_text: string
+    +variant_skus: string[]
+    +price_min: long
+    +price_max: long
+    +in_stock: boolean
+    +language: string
+    +title_vector: float[]
+    +text_vector: float[]
+    +updated_at: datetime
+    +catalog_version: int
+  }
+
+  class FusionConfig {
+    +id: string
+    +method: RRF|WEIGHTED_SUM
+    +rrf_k: int
+    +weight_bm25: float
+    +weight_knn: float
+    +cutoff: int
+  }
+
+  class SynonymSet {
+    +id: string
+    +locale: string
+    +entries: string[][]
+  }
+}
+
+package "Embeddings" {
+  class EmbedSvc
+}
+
+package "Elasticsearch" {
+  class ES
+}
+
+package "API / Search Service" {
+  class SearchQuery {
+    +q: string
+    +locale: string
+    +filters: Map
+    +sort: relevance|price_asc|price_desc
+    +page: int
+    +pageSize: int
+    +fuzziness: AUTO|0|1|2
+    +useKnn: boolean
+    +fusionConfigId: string
+  }
+
+  class SearchResponse {
+    +total: int
+    +items: SearchResultItem[]
+    +tookMs: int
+  }
+
+  class SearchResultItem {
+    +id: string
+    +score_bm25: float
+    +score_knn: float
+    +score_final: float
+    +highlights: string[]
+  }
+
+  class QueryBuilder
+  class Fusion
+}
+
+package "Analytics & Eval" {
+  class QueryLog {
+    +id: string
+    +q: string
+    +ts: datetime
+    +userId: string
+    +sessionId: string
+    +clickedProductIds: string[]
+    +convertedProductIds: string[]
+    +latencyMs: int
+    +useKnn: boolean
+    +fusionConfigId: string
+  }
+
+  class RelevanceJudgment {
+    +id: string
+    +q: string
+    +productId: string
+    +label: 0|1|2
+  }
+
+  class Experiment {
+    +id: string
+    +name: string
+    +control: Map
+    +treatment: Map
+    +metric: MRR@10|NDCG@10|CTR
+    +start: datetime
+    +end: datetime
+  }
+}
+
+' ==== Domain relationships (unchanged) ====
+Product "1" o-- "*" Variant
+Variant "1" o-- "*" Price
+Product "*" --> "*" Category
+Product "*" --> "*" Collection
+
+' ==== Integration links ====
+OutboxEvent "*" --> "1" Product : change about
+OutboxEvent --> Bull : enqueue
+Bull --> IndexingJob
+IndexingJob "1" o-- "*" PipelineRun
+PipelineRun "1" o-- "*" Step
+
+' ==== *** Added dataflow to make it explicit *** ====
+' Indexer fetches from Catalog, builds SearchDocument, calls embeddings, upserts ES
+IndexerWorker ..> Product : fetch & hydrate
+IndexerWorker ..> Variant
+IndexerWorker ..> Price
+IndexerWorker ..> Category
+IndexerWorker ..> Collection
+IndexerWorker ..> SearchDocument : upsert payload
+IndexerWorker ..> EmbedSvc : embed(title/desc/attrs)
+EmbedSvc ..> SearchDocument : vectors filled
+SearchDocument --> ES
+
+' Query-time flow (already present)
+SynonymSet --> QueryBuilder
+FusionConfig --> Fusion
+QueryBuilder --> ES : BM25 + kNN
+Fusion --> SearchResponse
+SearchQuery --> QueryBuilder
+SearchResponse --> QueryLog
+RelevanceJudgment --> Experiment
+QueryLog --> Experiment
+
+' Legend to clarify dashed deps as dataflow
+legend right
+  Solid associations = structural relations
+  Dashed deps (..>) = dataflow / calls across packages
+  Catalog -> Indexer -> Embeddings -> ES = indexing path
+endlegend
+
+@enduml
