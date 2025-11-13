@@ -7,8 +7,6 @@ import {
   PRODUCT_EMBEDDINGS_INDEX,
 } from "../../../modules/elasticsearch-client";
 
-
-
 export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
@@ -28,6 +26,13 @@ export const GET = async (
           },
         },
       ],
+      _source: [
+        "product_id",
+        "embedded_text",
+        "metadata",
+        "generated_at",
+        "embedding_vector",
+      ],
     });
 
     const embeddings = searchResponse.hits.hits.map((hit) => ({
@@ -44,7 +49,7 @@ export const GET = async (
         : embeddings.length,
     });
   } catch (error: any) {
-    const logger = req.scope.resolve("logger");
+    const logger = req.scope.resolve("logger") as any;
     logger.error("Failed to fetch embeddings:", error);
     return res.status(500).json({
       message: "Failed to fetch embeddings from Elasticsearch",
@@ -52,4 +57,3 @@ export const GET = async (
     });
   }
 };
-

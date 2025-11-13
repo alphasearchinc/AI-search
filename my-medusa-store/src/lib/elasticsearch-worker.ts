@@ -4,12 +4,24 @@ import {
   elasticsearchClient,
   PRODUCT_EMBEDDINGS_INDEX,
 } from "../modules/elasticsearch-client";
-import { ProductEmbeddingJobData, PRODUCT_EMBEDDING_QUEUE } from "./elasticsearch-queue";
+import {
+  ProductEmbeddingJobData,
+  PRODUCT_EMBEDDING_QUEUE,
+} from "./elasticsearch-queue";
 
 const connection = createRedisConnection("WORKER");
 
 async function processEmbeddingJob(job: Job<ProductEmbeddingJobData>) {
   const { product_id, embedded_text, embedding_vector, metadata } = job.data;
+
+  console.log(`[WORKER] 🔍 Processing job ${job.id} for product ${product_id}`);
+  console.log(
+    `[WORKER] 🔍 Embedding vector: ${
+      embedding_vector
+        ? `Array of ${embedding_vector.length} values`
+        : "MISSING!"
+    }`
+  );
 
   await elasticsearchClient.index({
     index: PRODUCT_EMBEDDINGS_INDEX,
