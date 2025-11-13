@@ -68,7 +68,7 @@ else
 endif
 
 compose-up: es-host-sysctl
-	docker compose up -d postgres elasticsearch
+	docker compose up -d postgres elasticsearch redis
 
 compose-down:
 	docker compose down

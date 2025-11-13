@@ -18,4 +18,6 @@ RUN chmod 0755 /usr/local/bin/healthcheck.sh
 USER elasticsearch
 
 EXPOSE 9200
+
 HEALTHCHECK --interval=10s --timeout=2s --retries=12 CMD /usr/local/bin/healthcheck.sh
+

@@ -11,11 +11,24 @@ services:
     volumes:
       - medusa-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medusa_user -d medusa_hovedopgave"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
       interval: 10s
-      timeout: 3s
-      retries: 10
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
+
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    healthcheck: 
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
   elasticsearch:
     image: search/elasticsearch:9.2-local   # you built this with make es-build
     # If you want compose to build it too, uncomment:
