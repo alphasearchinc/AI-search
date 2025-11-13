@@ -3,9 +3,14 @@ import { initializeProductEmbeddingIndex } from "../modules/elasticsearch-client
 
 console.log("🚀 Product Embedding Worker Starting...");
 
-initializeProductEmbeddingIndex().catch((error) => {
-  console.error("❌ Failed to initialize Elasticsearch:", error);
-});
+(async () => {
+  try {
+    await initializeProductEmbeddingIndex();
+  } catch (error) {
+    console.error("❌ Failed to initialize Elasticsearch:", error);
+    process.exit(1);
+  }
+})();
 
 const shutdown = async () => {
   console.log("👋 Shutting down worker...");
