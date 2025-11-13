@@ -18,7 +18,8 @@ export const POST = async (
   });
 
   res.json({
-    message: "Product embedded successfully",
-    embedding: result,
+    message: "Product embedding job enqueued",
+    job_id: result.job_id,
+    product_id,
   });
 };

@@ -23,14 +23,14 @@ export const embedProductWorkflow = createWorkflow(
       text: productData.embedded_text,
     });
 
-    // Step 3: Store the embedding
-    const storedEmbedding = storeEmbeddingStep({
+    // Step 3: Queue the embedding for storage
+    const queuedEmbeddingJob = storeEmbeddingStep({
       product_id: productData.product_id,
       embedding_vector: embedding.embedding_vector,
       embedded_text: productData.embedded_text,
       metadata: productData.metadata,
     });
 
-    return new WorkflowResponse(storedEmbedding);
+    return new WorkflowResponse(queuedEmbeddingJob);
   }
 );

@@ -11,13 +11,15 @@ export default async function productEmbeddingSubscriber({
 
   try {
     // Execute the embedding workflow for the product
-    await embedProductWorkflow(container).run({
+    const { result } = await embedProductWorkflow(container).run({
       input: {
         product_id: data.id,
       },
     });
 
-    logger.info(`Successfully generated embedding for product: ${data.id}`);
+    logger.info(
+      `Queued embedding job ${result.job_id} for product: ${data.id}`
+    );
   } catch (error) {
     logger.error(`Failed to generate embedding for product: ${data.id}`, error);
   }

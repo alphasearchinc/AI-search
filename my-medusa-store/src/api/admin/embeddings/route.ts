@@ -2,22 +2,43 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http";
-import { PRODUCT_EMBEDDING_MODULE } from "../../../modules/product-embedding";
-import ProductEmbeddingService from "../../../modules/product-embedding/service";
+import {
+  elasticsearchClient,
+  PRODUCT_EMBEDDINGS_INDEX,
+} from "../../../modules/elasticsearch-client";
 
 // GET all embeddings
 export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const embeddingService: ProductEmbeddingService = req.scope.resolve(
-    PRODUCT_EMBEDDING_MODULE
-  );
+  const limit = parseInt((req.query?.limit as string) || "50", 10);
+  const offset = parseInt((req.query?.offset as string) || "0", 10);
 
-  const embeddings = await embeddingService.getAllEmbeddings();
+  const searchResponse = await elasticsearchClient.search({
+    index: PRODUCT_EMBEDDINGS_INDEX,
+    from: offset,
+    size: limit,
+    sort: [
+      {
+        generated_at: {
+          order: "desc",
+        },
+      },
+    ],
+  });
+
+  const embeddings = searchResponse.hits.hits.map((hit) => ({
+    id: hit._id,
+    ...(hit._source as Record<string, any>),
+  }));
 
   res.json({
     embeddings,
-    count: embeddings.length,
+    count: searchResponse.hits.total
+      ? typeof searchResponse.hits.total === "number"
+        ? searchResponse.hits.total
+        : searchResponse.hits.total.value
+      : embeddings.length,
   });
 };
