@@ -15,6 +15,7 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "products": "medusa exec ./src/scripts/products.ts",
     "start": "medusa start",
     "dev": "medusa develop",
     "worker": "ts-node src/scripts/worker.ts",
@@ -24,6 +25,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.2.0",
+    "@faker-js/faker": "^10.1.0",
     "@medusajs/admin-sdk": "2.11.3",
     "@medusajs/cli": "2.11.3",
     "@medusajs/framework": "2.11.3",
