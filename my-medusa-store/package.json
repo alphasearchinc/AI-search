@@ -19,9 +19,12 @@
     "start": "medusa start",
     "dev": "medusa develop",
     "worker": "ts-node src/scripts/worker.ts",
-    "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
-    "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
-    "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
+    "test": "npm run test:unit && npm run test:integration:http && npm run test:integration:modules",
+    "test:integration": "npm run test:integration:http && npm run test:integration:modules",
+    "test:integration:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
+    "test:integration:modules": "cross-env TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
+    "test:unit": "cross-env TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit",
+    "test:unit:verbose": "cross-env TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent=false --verbose --runInBand --forceExit"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.2.0",
@@ -31,6 +34,7 @@
     "@medusajs/framework": "2.11.3",
     "@medusajs/medusa": "2.11.3",
     "bullmq": "^5.63.1",
+    "cross-env": "^10.1.0",
     "ioredis": "^5.8.2"
   },
   "devDependencies": {
