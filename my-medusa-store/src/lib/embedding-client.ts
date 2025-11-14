@@ -1,5 +1,5 @@
 const DEFAULT_EMBEDDING_SERVICE_URL =
-  process.env.EMBEDDING_SERVICE_URL || "http://localhost:8000";
+  process.env.EMBEDDING_SERVICE_URL || "http://localhost:1337";
 const DEFAULT_TIMEOUT_MS = 10000;
 
 export type EmbeddingResult = {
