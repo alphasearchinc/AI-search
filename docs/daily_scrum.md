@@ -72,6 +72,7 @@
  - Lav backend til søgefunktionalitet
  - Eventuelt frontend til at se denne søgefunktionalitet i praksis
  - Hvis automatiserede tests, sætte disse ind i en CI-pipeline
+ - AGENTS.md file
 ### Hvilke udfordringer forudser vi?
  - Hvordan opsætter man tests i Python?
 

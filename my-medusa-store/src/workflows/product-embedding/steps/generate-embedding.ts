@@ -1,4 +1,8 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
+import {
+  embedText,
+  getEmbeddingServiceUrl,
+} from "../../../lib/embedding-client";
 
 type GenerateEmbeddingInput = {
   text: string;
@@ -7,45 +11,26 @@ type GenerateEmbeddingInput = {
 export const generateEmbeddingStep = createStep(
   "generate-embedding-step",
   async (input: GenerateEmbeddingInput) => {
-    // Get embedding service URL from environment or use default
-    const embeddingServiceUrl =
-      process.env.EMBEDDING_SERVICE_URL || "http://localhost:8000";
+    const text = input.text?.trim();
+    if (!text) {
+      throw new Error("No text provided for embedding generation");
+    }
 
+    const embeddingServiceUrl = getEmbeddingServiceUrl();
     console.log(
-      `🔗 Calling Python embedding service at ${embeddingServiceUrl}...`
+      `🔗 Calling Python embedding service at ${embeddingServiceUrl} to embed product text...`
     );
 
     try {
-      // Call Python embedding service
-      const response = await fetch(`${embeddingServiceUrl}/embed`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: input.text,
-        }),
-        // Add timeout to fail fast if service is down
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.embedding || !Array.isArray(data.embedding)) {
-        throw new Error("Invalid response format from embedding service");
-      }
+      const { embedding, dimensions } = await embedText(text);
 
       console.log(
-        `✅ Generated semantic embedding with ${data.dimensions} dimensions`
+        `✅ Generated semantic embedding with ${dimensions} dimensions`
       );
 
       return new StepResponse({
-        embedding_vector: data.embedding,
-        dimensions: data.dimensions,
+        embedding_vector: embedding,
+        dimensions,
       });
     } catch (error: any) {
       console.error(
@@ -53,11 +38,8 @@ export const generateEmbeddingStep = createStep(
         error.message
       );
 
-      // Re-throw the error instead of using fallback
-      // This ensures you know when the embedding service is down
       throw new Error(
-        `Embedding service unavailable: ${error.message}. ` +
-          `Please ensure the Python embedding service is running at ${embeddingServiceUrl}`
+        `Embedding service unavailable: ${error.message}. Please ensure the Python embedding service is running at ${embeddingServiceUrl}.`
       );
     }
   }
