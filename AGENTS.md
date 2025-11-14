@@ -4,7 +4,7 @@ This document gives future agents the minimum context they need to work inside t
 
 ## Project Snapshot
 - **Goal**: Medusa-based commerce backend (`my-medusa-store`), a Next.js storefront, and auxiliary services (Python embedding API, MCP server) powering semantic product search.
-- **Primary language**: TypeScript (backend + MCP + storefront). Python for the embedding service.
+- **Primary language**: TypeScript (backend + storefront). Python for the embedding service.
 - **Entry points**:
   - `my-medusa-store` – Medusa backend (Node 20+, npm). Main place for workflows, modules, API routes, and subscribers.
   - `python-embedder` – Flask + SentenceTransformers service providing `/embed`.
@@ -41,7 +41,7 @@ This document gives future agents the minimum context they need to work inside t
 - Follow file-local style (imports grouping, quotes). Backend uses ESLint recommended—don’t run `npm run lint` unless requested.
 - Keep edits minimal and scoped; never revert user changes.
 - New helpers go under `src/lib` if shared, otherwise the closest module.
-- Keep dense-vector dims at **384** (sync with the Python model). Changing the model requires re-indexing.
+- The vector dimensions can vary depending on the model. Changing the model requires re-indexing.
 - When touching workflows or routes that call external services, add clear error messages and timeouts.
 
 ## Testing Expectations
