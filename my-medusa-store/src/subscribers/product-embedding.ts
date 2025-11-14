@@ -7,9 +7,11 @@ export default async function productEmbeddingSubscriber({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  const logger = container.resolve("logger");
+  const logger = container.resolve("logger") as any;
 
   try {
+    logger.info(`🔄 Starting embedding generation for product: ${data.id}`);
+
     // Execute the embedding workflow for the product
     const { result } = await embedProductWorkflow(container).run({
       input: {
@@ -17,11 +19,12 @@ export default async function productEmbeddingSubscriber({
       },
     });
 
-    logger.info(
-      `Queued embedding job ${result.job_id} for product: ${data.id}`
-    );
+    logger.info(`✅ Successfully generated embedding for product: ${data.id}`);
   } catch (error) {
-    logger.error(`Failed to generate embedding for product: ${data.id}`, error);
+    logger.error(
+      `❌ Failed to generate embedding for product: ${data.id}`,
+      error
+    );
   }
 }
 
