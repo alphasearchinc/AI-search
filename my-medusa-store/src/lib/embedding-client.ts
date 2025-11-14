@@ -1,5 +1,5 @@
 const DEFAULT_EMBEDDING_SERVICE_URL =
-  process.env.EMBEDDING_SERVICE_URL || "http://localhost:8000";
+  process.env.EMBEDDING_SERVICE_URL || "http://localhost:1337";
 const DEFAULT_TIMEOUT_MS = 10000;
 
 export type EmbeddingResult = {
@@ -53,7 +53,13 @@ export async function embedText(
     throw new Error("Embedding service returned invalid JSON");
   }
 
-  const embedding = data?.embedding;
+  // Extract from nested structure: data.embedding.vectors and data.embedding.dimensions
+  const embeddingData = data?.embedding;
+  if (!embeddingData || typeof embeddingData !== 'object') {
+    throw new Error("Embedding service returned an invalid response structure");
+  }
+
+  const embedding = embeddingData.vectors;
   if (
     !Array.isArray(embedding) ||
     embedding.some((value) => typeof value !== "number")
@@ -62,8 +68,8 @@ export async function embedText(
   }
 
   const dimensions =
-    typeof data?.dimensions === "number"
-      ? data.dimensions
+    typeof embeddingData.dimensions === "number"
+      ? embeddingData.dimensions
       : embedding.length;
 
   return {

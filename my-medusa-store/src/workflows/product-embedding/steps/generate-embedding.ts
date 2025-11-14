@@ -22,15 +22,14 @@ export const generateEmbeddingStep = createStep(
     );
 
     try {
-      const { embedding, dimensions } = await embedText(text);
+      const embedding = await embedText(text);
 
       console.log(
-        `✅ Generated semantic embedding with ${dimensions} dimensions`
+        `✅ Generated semantic embedding with ${embedding.dimensions} dimensions`
       );
 
       return new StepResponse({
-        embedding_vector: embedding,
-        dimensions,
+        embedding
       });
     } catch (error: any) {
       console.error(

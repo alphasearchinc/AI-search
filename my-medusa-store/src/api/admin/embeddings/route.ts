@@ -31,7 +31,7 @@ export const GET = async (
         "embedded_text",
         "metadata",
         "generated_at",
-        "embedding_vector",
+        "embedding",
       ],
     });
 

@@ -3,7 +3,7 @@ import { productEmbeddingQueue } from "../../../lib/elasticsearch-queue";
 
 type StoreEmbeddingInput = {
   product_id: string;
-  embedding_vector: number[];
+  embedding: object;
   embedded_text: string;
   metadata?: Record<string, any>;
 };
@@ -13,7 +13,7 @@ export const storeEmbeddingStep = createStep(
   async (input: StoreEmbeddingInput) => {
     const job = await productEmbeddingQueue.add("embedding.index", {
       product_id: input.product_id,
-      embedding_vector: input.embedding_vector,
+      embedding: input.embedding,
       embedded_text: input.embedded_text,
       metadata: input.metadata,
     });

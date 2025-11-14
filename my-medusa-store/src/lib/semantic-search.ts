@@ -8,7 +8,7 @@ export type SemanticSearchFilters = {
 };
 
 export type SemanticSearchOptions = {
-  embedding: number[];
+  embedding: object;
   limit?: number;
   filters?: SemanticSearchFilters;
   includeEmbedding?: boolean;
@@ -21,7 +21,7 @@ export type SemanticSearchHit = {
   embedded_text?: string;
   metadata?: Record<string, any>;
   generated_at?: string;
-  embedding_vector?: number[];
+  embedding?: object;
 };
 
 export type SemanticSearchResult = {
@@ -37,8 +37,8 @@ export async function semanticSearch(
   options: SemanticSearchOptions
 ): Promise<SemanticSearchResult> {
   if (
-    !Array.isArray(options.embedding) ||
-    options.embedding.some((value) => typeof value !== "number")
+    !Array.isArray(options.embedding['vectors']) ||
+    options.embedding['vectors'].some((value) => typeof value !== "number")
   ) {
     throw new Error("A numeric embedding vector is required for semantic search");
   }
@@ -56,7 +56,7 @@ export async function semanticSearch(
   ];
 
   if (options.includeEmbedding) {
-    sourceFields.push("embedding_vector");
+    sourceFields.push("embedding");
   }
 
   const filterClauses = [];
@@ -104,8 +104,8 @@ export async function semanticSearch(
         embedded_text: source.embedded_text,
         metadata: source.metadata,
         generated_at: source.generated_at,
-        embedding_vector:
-          (options.includeEmbedding ? source.embedding_vector : undefined) ||
+        embedding:
+          (options.includeEmbedding ? source.embedding : undefined) ||
           undefined,
       };
     }) ?? [];
