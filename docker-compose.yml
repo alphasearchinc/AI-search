@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: python-embedder
     ports:
-      - "8000:8000"      
+      - "1337:1337"      
     environment:
       # optional, but nice to keep logs unbuffered
       - PYTHONUNBUFFERED=1

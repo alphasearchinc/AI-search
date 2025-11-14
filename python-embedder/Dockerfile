@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 # Expose the port Flask runs on
-EXPOSE 8000
+EXPOSE 1337
 
 # Default command: run your Flask script
 CMD ["python", "script.py"]
