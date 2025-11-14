@@ -25,11 +25,13 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.2.0",
+    "@faker-js/faker": "^10.1.0",
     "@medusajs/admin-sdk": "2.11.3",
     "@medusajs/cli": "2.11.3",
     "@medusajs/framework": "2.11.3",
     "@medusajs/medusa": "2.11.3",
     "bullmq": "^5.63.1",
+    "faker": "^6.6.6",
     "ioredis": "^5.8.2"
   },
   "devDependencies": {

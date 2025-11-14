@@ -12,6 +12,7 @@ import {
   ModuleRegistrationName,
   ProductStatus,
 } from "@medusajs/framework/utils";
+import { faker } from "@faker-js/faker";
 
 export default async function seedDemoData({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
@@ -693,4 +694,186 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
 
   logger.info("Finished seeding product data.");
+
+  // Generate additional random products with Faker
+  logger.info("Generating random products with Faker...");
+  const numberOfRandomProducts = 50; // Change this number to generate more/fewer products
+
+  // Define realistic product components
+  const brands = [
+    "TechPro",
+    "SmartLife",
+    "Elite",
+    "ProGear",
+    "Digital",
+    "Ultra",
+    "Premium",
+    "Essential",
+    "NexGen",
+    "Quantum",
+    "Fusion",
+    "Apex",
+    "Infinity",
+    "Velocity",
+    "Zenith",
+    "Omega",
+  ];
+  const features = [
+    "Wireless",
+    "Gaming",
+    "Professional",
+    "Ultra",
+    "Smart",
+    "HD",
+    "Pro",
+    "Advanced",
+    "Ergonomic",
+    "Portable",
+    "Compact",
+    "Premium",
+    "Lite",
+    "Max",
+    "Plus",
+    "Studio",
+  ];
+  const products = [
+    "Laptop",
+    "Monitor",
+    "Keyboard",
+    "Mouse",
+    "Headset",
+    "Webcam",
+    "Speaker",
+    "Tablet",
+    "Phone",
+    "Watch",
+    "Charger",
+    "Hub",
+    "Dock",
+    "Cable",
+    "Stand",
+    "Adapter",
+    "Case",
+    "Pad",
+    "Drive",
+    "Router",
+  ];
+  const specs = [
+    "4K",
+    "144Hz",
+    "RGB",
+    "Mechanical",
+    "Bluetooth",
+    "5G",
+    "UHD",
+    "Wireless",
+    "Noise-Canceling",
+    "USB-C",
+    "Wi-Fi 6",
+    "OLED",
+    "Retina",
+    "Touch",
+    "Backlit",
+    "Foldable",
+    "8K",
+    "HDR",
+    "Dolby",
+    "Fast-Charge",
+  ];
+
+  for (let i = 0; i < numberOfRandomProducts; i++) {
+    const category = faker.helpers.arrayElement(categoryResult);
+    const brand = faker.helpers.arrayElement(brands);
+    const feature = faker.helpers.arrayElement(features);
+    const productType = faker.helpers.arrayElement(products);
+    const spec = faker.helpers.arrayElement(specs);
+
+    // Generate two unique colors
+    const colors = faker.helpers.uniqueArray(() => faker.color.human(), 2);
+    const color1 = colors[0];
+    const color2 = colors[1];
+
+    // Generate random product images using faker (updated method)
+    const imageCount = faker.number.int({ min: 2, max: 4 });
+    const images = Array.from({ length: imageCount }, () => ({
+      url: faker.image.url({ width: 800, height: 800 }),
+    }));
+
+    await createProductsWorkflow(container).run({
+      input: {
+        products: [
+          {
+            title: `${brand} ${feature} ${productType} | ${spec}`,
+            category_ids: [category.id],
+            description:
+              faker.commerce.productDescription() +
+              ". " +
+              faker.lorem.paragraph(),
+            weight: faker.number.int({ min: 100, max: 1000 }),
+            status: ProductStatus.PUBLISHED,
+            images: images,
+            options: [
+              {
+                title: "Color",
+                values: [color1, color2],
+              },
+            ],
+            variants: [
+              {
+                title: `${productType} ${color1}`,
+                sku: faker.string.alphanumeric(10).toUpperCase(),
+                options: {
+                  Color: color1,
+                },
+                manage_inventory: false,
+                prices: [
+                  {
+                    amount: faker.number.int({ min: 29, max: 1999 }),
+                    currency_code: "eur",
+                  },
+                  {
+                    amount: faker.number.int({ min: 29, max: 1999 }),
+                    currency_code: "usd",
+                  },
+                ],
+              },
+              {
+                title: `${productType} ${color2}`,
+                sku: faker.string.alphanumeric(10).toUpperCase(),
+                options: {
+                  Color: color2,
+                },
+                manage_inventory: false,
+                prices: [
+                  {
+                    amount: faker.number.int({ min: 29, max: 1999 }),
+                    currency_code: "eur",
+                  },
+                  {
+                    amount: faker.number.int({ min: 29, max: 1999 }),
+                    currency_code: "usd",
+                  },
+                ],
+              },
+            ],
+            sales_channels: [
+              {
+                id: defaultSalesChannel[0].id,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    if ((i + 1) % 10 === 0) {
+      logger.info(
+        `Generated ${i + 1}/${numberOfRandomProducts} random products...`
+      );
+    }
+  }
+
+  logger.info(
+    `✅ Finished generating ${numberOfRandomProducts} random products!`
+  );
 }
