@@ -8,7 +8,10 @@ const connection = createRedisConnection("QUEUE");
 export type ProductEmbeddingJobData = {
   product_id: string;
   embedded_text: string;
-  embedding: object;
+  embedding: {
+    vectors: number[];
+    dimensions: number;
+  };
   metadata?: Record<string, any>;
 };
 

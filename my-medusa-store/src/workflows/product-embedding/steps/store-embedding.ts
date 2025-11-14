@@ -3,7 +3,10 @@ import { productEmbeddingQueue } from "../../../lib/elasticsearch-queue";
 
 type StoreEmbeddingInput = {
   product_id: string;
-  embedding: object;
+  embedding: {
+    vectors: number[];
+    dimensions: number;
+  };
   embedded_text: string;
   metadata?: Record<string, any>;
 };

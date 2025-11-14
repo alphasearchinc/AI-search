@@ -19,14 +19,14 @@ export const embedProductWorkflow = createWorkflow(
     });
 
     // Step 2: Generate embedding from the product text
-    const embedding = generateEmbeddingStep({
+    const embeddingResult = generateEmbeddingStep({
       text: productData.embedded_text,
     });
 
     // Step 3: Queue the embedding for storage
     const queuedEmbeddingJob = storeEmbeddingStep({
       product_id: productData.product_id,
-      embedding: embedding,
+      embedding: embeddingResult.embedding,  // Access the embedding property
       embedded_text: productData.embedded_text,
       metadata: productData.metadata,
     });

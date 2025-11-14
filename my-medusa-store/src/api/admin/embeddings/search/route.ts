@@ -87,7 +87,7 @@ export const POST = async (
   }
 
   try {
-    const { embedding, dimensions } = await embedText(query);
+    const embedding = await embedText(query);
 
     const searchResult = await semanticSearch({
       embedding,
@@ -143,7 +143,7 @@ export const POST = async (
       limit,
       took: searchResult.took,
       count: searchResult.count,
-      embedding_dimensions: dimensions,
+      embedding,
       hits,
     });
   } catch (error: any) {

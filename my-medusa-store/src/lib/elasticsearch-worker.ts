@@ -12,13 +12,13 @@ import {
 const connection = createRedisConnection("WORKER");
 
 async function processEmbeddingJob(job: Job<ProductEmbeddingJobData>) {
-  const { product_id, embedded_text, embedding_vector, metadata } = job.data;
+  const { product_id, embedded_text, embedding, metadata } = job.data;
 
   console.log(`[WORKER] 🔍 Processing job ${job.id} for product ${product_id}`);
   console.log(
     `[WORKER] 🔍 Embedding vector: ${
-      embedding_vector
-        ? `Array of ${embedding_vector.length} values`
+      embedding.vectors
+        ? `Array of ${embedding.vectors.length} values`
         : "MISSING!"
     }`
   );
@@ -29,7 +29,7 @@ async function processEmbeddingJob(job: Job<ProductEmbeddingJobData>) {
     document: {
       product_id,
       embedded_text,
-      embedding_vector,
+      embedding,
       metadata: metadata || {},
       generated_at: new Date().toISOString(),
     },
