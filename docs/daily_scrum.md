@@ -54,3 +54,24 @@
 ### Hvilke udfordringer forudser vi?
  - Mulig problem med ES i Docker container for windows brugere, med den nuværende implementering
  - Mergekonflikt
+
+
+## 📅 Daily Scrum 14-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Opsat Python miljø I en docker container
+ - Forbundet vores workflow til embedding i Node.js med dette Python miljø
+ - Skrevet en embedder i Python
+ - Samlet de to branches 
+ - Opsætning a BullMQ
+ - Opsætning af embedding til Elasticsearch
+### Hvad skal vi lave i dag?
+ - Prøve at få systemet til at køre mere smooth (vi har lige nu 5-6 services, computerne har svært ved at følge med). 
+ - Lave lidt flere produkter, eventuelt Klaus' script?
+ - Teste om vores embedder faktisk laver semantiske værdier der ligger tæt på hinanden når de burde
+ - Lav backend til søgefunktionalitet
+ - Eventuelt frontend til at se denne søgefunktionalitet i praksis
+ - Hvis automatiserede tests, sætte disse ind i en CI-pipeline
+### Hvilke udfordringer forudser vi?
+ - Hvordan opsætter man tests i Python?
+
