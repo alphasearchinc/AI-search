@@ -68,7 +68,7 @@ describe("Embedding Client", () => {
 
       // Assert
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8000/embed",
+        "http://localhost:1337/embed",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
