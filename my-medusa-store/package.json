@@ -31,7 +31,6 @@
     "@medusajs/framework": "2.11.3",
     "@medusajs/medusa": "2.11.3",
     "bullmq": "^5.63.1",
-    "faker": "^6.6.6",
     "ioredis": "^5.8.2"
   },
   "devDependencies": {
