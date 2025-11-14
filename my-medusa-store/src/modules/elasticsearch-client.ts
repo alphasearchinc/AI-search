@@ -4,7 +4,7 @@ const ELASTICSEARCH_URL =
   process.env.ELASTICSEARCH_URL || "http://localhost:9200";
 
 export const PRODUCT_EMBEDDINGS_INDEX = "product-embeddings";
-const EMBEDDING_DIMS = 384;
+const EMBEDDING_DIMS = 768;
 
 export const elasticsearchClient = new Client({
   node: ELASTICSEARCH_URL,

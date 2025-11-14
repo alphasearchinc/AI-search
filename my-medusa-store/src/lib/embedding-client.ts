@@ -3,8 +3,10 @@ const DEFAULT_EMBEDDING_SERVICE_URL =
 const DEFAULT_TIMEOUT_MS = 10000;
 
 export type EmbeddingResult = {
-  embedding: number[];
-  dimensions: number;
+  embedding: {
+    vectors: number[];
+    dimensions: number;
+  };
 };
 
 export const getEmbeddingServiceUrl = (): string =>
@@ -53,21 +55,26 @@ export async function embedText(
     throw new Error("Embedding service returned invalid JSON");
   }
 
-  const embedding = data?.embedding;
+  // Validate the nested structure
+  const embeddingData = data?.embedding;
+  if (!embeddingData || typeof embeddingData !== 'object') {
+    throw new Error("Embedding service returned an invalid response structure");
+  }
+
+  const vectors = embeddingData.vectors;
   if (
-    !Array.isArray(embedding) ||
-    embedding.some((value) => typeof value !== "number")
+    !Array.isArray(vectors) ||
+    vectors.some((value) => typeof value !== "number")
   ) {
     throw new Error("Embedding service returned an invalid embedding format");
   }
 
-  const dimensions =
-    typeof data?.dimensions === "number"
-      ? data.dimensions
-      : embedding.length;
+  if (typeof embeddingData.dimensions !== 'number') {
+    throw new Error("Embedding service returned invalid dimensions");
+  }
 
+  // Return the entire embedding object as-is
   return {
-    embedding,
-    dimensions,
+    embedding: embeddingData
   };
 }

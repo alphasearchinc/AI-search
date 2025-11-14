@@ -2,22 +2,22 @@
  * Unit Tests for Embedding Client
  *
  * This test suite validates the embedding client which:
- * 1. Calls the Python embedding service (Flask API) at http://localhost:8000/embed
+ * 1. Calls the Python embedding service (Flask API) at http://localhost:1337/embed
  * 2. Sends product text to be converted into semantic vectors
- * 3. Receives 384-dimensional embeddings from SentenceTransformers model
+ * 3. Receives 768-dimensional embeddings from SentenceTransformers model
  *
  * Key behaviors tested:
  * - Successfully generates embeddings from Python service
  * - Handles empty or invalid text input
  * - Manages timeout scenarios (10-second timeout configured)
  * - Handles service unavailability (Python service down)
- * - Validates embedding format (384 dimensions expected)
+ * - Validates embedding format (768 dimensions expected)
  * - Manages HTTP errors from the service
  * - Validates response structure from Python API
  *
  * Dependencies:
- * - Python Flask service on port 8000
- * - SentenceTransformers model: 'all-MiniLM-L6-v2'
+ * - Python Flask service on port 1337
+ * - SentenceTransformers model: 'all-mpnet-base-v2'
  */
 
 import {
@@ -50,14 +50,16 @@ describe("Embedding Client", () => {
   });
 
   describe("embedText - Successful embedding generation", () => {
-    it("should generate embedding with 384 dimensions", async () => {
+    it("should generate embedding with 768 dimensions", async () => {
       // Arrange
-      const mockEmbedding = new Array(384).fill(0).map(() => Math.random());
+      const mockVectors = new Array(768).fill(0).map(() => Math.random());
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -74,18 +76,20 @@ describe("Embedding Client", () => {
           headers: { "Content-Type": "application/json" },
         })
       );
-      expect(result.embedding).toHaveLength(384);
-      expect(result.dimensions).toBe(384);
+      expect(result.embedding.vectors).toHaveLength(768);
+      expect(result.embedding.dimensions).toBe(768);
     });
 
     it("should handle simple product titles", async () => {
       // Arrange
-      const mockEmbedding = new Array(384).fill(0.5);
+      const mockVectors = new Array(768).fill(0.5);
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -93,8 +97,8 @@ describe("Embedding Client", () => {
       const result = await embedText("Gaming Mouse");
 
       // Assert
-      expect(result.embedding).toHaveLength(384);
-      expect(result.dimensions).toBe(384);
+      expect(result.embedding.vectors).toHaveLength(768);
+      expect(result.embedding.dimensions).toBe(768);
     });
 
     it("should handle long product descriptions", async () => {
@@ -103,12 +107,14 @@ describe("Embedding Client", () => {
         This laptop features a stunning 4K display, powerful processor, and long battery life.
         Perfect for professionals, creators, and power users who demand the best performance.`;
 
-      const mockEmbedding = new Array(384).fill(0).map(() => Math.random());
+      const mockVectors = new Array(768).fill(0).map(() => Math.random());
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -116,7 +122,7 @@ describe("Embedding Client", () => {
       const result = await embedText(longText);
 
       // Assert
-      expect(result.embedding).toHaveLength(384);
+      expect(result.embedding.vectors).toHaveLength(768);
     });
   });
 
@@ -124,7 +130,7 @@ describe("Embedding Client", () => {
     it("should throw error when Python service is unavailable", async () => {
       // Arrange
       mockFetch.mockRejectedValue(
-        new Error("connect ECONNREFUSED 127.0.0.1:8000")
+        new Error("connect ECONNREFUSED 127.0.0.1:1337")
       );
 
       // Act & Assert
@@ -157,14 +163,16 @@ describe("Embedding Client", () => {
   });
 
   describe("embedText - Response validation", () => {
-    it("should handle embeddings with exact 384 dimensions", async () => {
+    it("should handle embeddings with exact 768 dimensions", async () => {
       // Arrange
-      const mockEmbedding = new Array(384).fill(0.123456);
+      const mockVectors = new Array(768).fill(0.123456);
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -172,23 +180,25 @@ describe("Embedding Client", () => {
       const result = await embedText("Product");
 
       // Assert
-      expect(result.embedding).toHaveLength(384);
-      expect(result.dimensions).toBe(384);
+      expect(result.embedding.vectors).toHaveLength(768);
+      expect(result.embedding.dimensions).toBe(768);
     });
 
     it("should handle floating point precision in embeddings", async () => {
       // Arrange
-      const mockEmbedding = [
+      const mockVectors = [
         -0.04900216,
         0.023538826,
         0.015234567,
-        ...new Array(381).fill(0).map(() => Math.random() * 2 - 1),
+        ...new Array(765).fill(0).map(() => Math.random() * 2 - 1),
       ];
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -196,8 +206,8 @@ describe("Embedding Client", () => {
       const result = await embedText("Product");
 
       // Assert
-      expect(result.embedding[0]).toBeCloseTo(-0.04900216, 8);
-      expect(result.embedding[1]).toBeCloseTo(0.023538826, 8);
+      expect(result.embedding.vectors[0]).toBeCloseTo(-0.04900216, 8);
+      expect(result.embedding.vectors[1]).toBeCloseTo(0.023538826, 8);
     });
   });
 
@@ -205,12 +215,14 @@ describe("Embedding Client", () => {
     it("should handle special characters in product text", async () => {
       // Arrange
       const textWithSpecialChars = 'Product & "Quotes" <Special> €100';
-      const mockEmbedding = new Array(384).fill(0.5);
+      const mockVectors = new Array(768).fill(0.5);
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -218,18 +230,20 @@ describe("Embedding Client", () => {
       const result = await embedText(textWithSpecialChars);
 
       // Assert
-      expect(result.embedding).toHaveLength(384);
+      expect(result.embedding.vectors).toHaveLength(768);
     });
 
     it("should handle unicode characters", async () => {
       // Arrange
       const unicodeText = "Product 🚀 ★ 日本語 émojis";
-      const mockEmbedding = new Array(384).fill(0.5);
+      const mockVectors = new Array(768).fill(0.5);
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: mockEmbedding,
-          dimensions: 384,
+          embedding: {
+            vectors: mockVectors,
+            dimensions: 768,
+          }
         }),
       } as Response);
 
@@ -237,7 +251,7 @@ describe("Embedding Client", () => {
       const result = await embedText(unicodeText);
 
       // Assert
-      expect(result.embedding).toHaveLength(384);
+      expect(result.embedding.vectors).toHaveLength(768);
     });
   });
 });

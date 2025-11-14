@@ -26,7 +26,7 @@ export const embedProductWorkflow = createWorkflow(
     // Step 3: Queue the embedding for storage
     const queuedEmbeddingJob = storeEmbeddingStep({
       product_id: productData.product_id,
-      embedding_vector: embedding.embedding_vector,
+      embedding: embedding,
       embedded_text: productData.embedded_text,
       metadata: productData.metadata,
     });
