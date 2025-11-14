@@ -3,10 +3,8 @@ const DEFAULT_EMBEDDING_SERVICE_URL =
 const DEFAULT_TIMEOUT_MS = 10000;
 
 export type EmbeddingResult = {
-  embedding: {
-    vectors: number[];
-    dimensions: number;
-  };
+  vectors: number[];
+  dimensions: number;
 };
 
 export const getEmbeddingServiceUrl = (): string =>
@@ -74,7 +72,5 @@ export async function embedText(
   }
 
   // Return the entire embedding object as-is
-  return {
-    embedding: embeddingData
-  };
+  return embeddingData;
 }

@@ -8,7 +8,10 @@ export type SemanticSearchFilters = {
 };
 
 export type SemanticSearchOptions = {
-  embedding: object;
+  embedding: {
+    vectors: number[];
+    dimensions: number;
+  };
   limit?: number;
   filters?: SemanticSearchFilters;
   includeEmbedding?: boolean;
@@ -21,7 +24,10 @@ export type SemanticSearchHit = {
   embedded_text?: string;
   metadata?: Record<string, any>;
   generated_at?: string;
-  embedding?: object;
+  embedding?: {
+    vectors: number[];
+    dimensions: number;
+  };
 };
 
 export type SemanticSearchResult = {
@@ -37,8 +43,8 @@ export async function semanticSearch(
   options: SemanticSearchOptions
 ): Promise<SemanticSearchResult> {
   if (
-    !Array.isArray(options.embedding['vectors']) ||
-    options.embedding['vectors'].some((value) => typeof value !== "number")
+    !Array.isArray(options.embedding.vectors) ||
+    options.embedding.vectors.some((value) => typeof value !== "number")
   ) {
     throw new Error("A numeric embedding vector is required for semantic search");
   }
@@ -86,7 +92,7 @@ export async function semanticSearch(
           source:
             "cosineSimilarity(params.query_vector, 'embedding_vector') + 1.0",
           params: {
-            query_vector: options.embedding,
+            query_vector: options.embedding.vectors,
           },
         },
       },
