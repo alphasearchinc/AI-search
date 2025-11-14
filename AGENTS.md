@@ -9,7 +9,6 @@ This document gives future agents the minimum context they need to work inside t
   - `my-medusa-store` – Medusa backend (Node 20+, npm). Main place for workflows, modules, API routes, and subscribers.
   - `python-embedder` – Flask + SentenceTransformers service providing `/embed`.
   - `my-medusa-store-storefront` – Next.js 15 storefront (yarn). Runs the UI/search bar later.
-  - `medusa-mcp` – MCP server (not touched often).
 
 ## Directory Orientations
 | Path | Purpose |
