@@ -17,7 +17,7 @@ This document gives future agents the minimum context they need to work inside t
 | `my-medusa-store/src/workflows` | Workflow steps (bullMQ queues, Medusa workflows). Embedding workflows live here. |
 | `my-medusa-store/src/modules` | Custom modules (e.g., `elasticsearch-client.ts`). |
 | `my-medusa-store/src/lib` | Reusable helpers (`embedding-client`, `semantic-search`, redis/queue helpers). |
-| `python-embedder/script.py` | Flask service for generating embeddings. Keep the model aligned with backend expectations (384 dims). |
+| `python-embedder/embedder.py` | Flask service for generating embeddings. Keep the model aligned with backend expectations (384 dims). |
 | `docker-compose.yml` | Spins up Postgres, Redis, Elastic, etc. for local dev. |
 
 ## Key Workflows & Integrations
@@ -33,7 +33,7 @@ This document gives future agents the minimum context they need to work inside t
 - **Infra**: `docker compose up -d` (Postgres, Redis, Elastic).
 - **Backend**: `cd my-medusa-store && npm ci && npm run dev`. Tests: `npm run test:unit`, `npm run test:integration:http`.
 - **Worker**: `npm run start:worker` (if defined) or run `node dist/scripts/worker.js` after building.
-- **Python embedder**: `cd python-embedder && pip install -r requirements.txt && python script.py` (or use Dockerfile).
+- **Python embedder**: `cd python-embedder && pip install -r requirements.txt && python embedder.py` (or use Dockerfile).
 - **Storefront**: `cd my-medusa-store-storefront && yarn && yarn dev`.
 
 ## Coding Standards & Guardrails
