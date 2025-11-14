@@ -8,7 +8,7 @@ try:
     MODEL_DIMENSIONS = model.get_sentence_embedding_dimension()
 except Exception as e:
     print(f"Error loading SentenceTransformer model: {e}")
-    exit(0)
+    exit(1)
 
 @app.route('/embed', methods=['POST'])
 def embed():
