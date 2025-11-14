@@ -45,7 +45,7 @@ describe("Embedding Client", () => {
   describe("getEmbeddingServiceUrl", () => {
     it("should return default URL", () => {
       const url = getEmbeddingServiceUrl();
-      expect(url).toBe("http://localhost:8000");
+      expect(url).toBe("http://localhost:1337");
     });
   });
 
