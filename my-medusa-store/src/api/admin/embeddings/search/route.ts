@@ -87,7 +87,7 @@ export const POST = async (
   }
 
   try {
-    const embedding = await embedText(query);
+    const { embedding } = await embedText(query);
 
     const searchResult = await semanticSearch({
       embedding,
