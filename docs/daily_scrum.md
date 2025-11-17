@@ -76,3 +76,23 @@
 ### Hvilke udfordringer forudser vi?
  - Hvordan opsætter man tests i Python?
 
+## 📅 Daily Scrum 17-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Lavet lidt flere produkter - script med hjælp af faker
+ - Skrevet tests på eksisterende workflows, og oprettet CI pipeline til disse
+ - Tests af vores python miljø
+ - Optimering af python miljø
+ - Opsætning af search API endpoint
+ - Minimalt UI til søgefunktionalitet i Next.js storefront
+ - AGENTS.md fil
+### Hvad skal vi lave i dag?
+ - Teste om alt virker
+ - Få søgefunktionaliteten til at spille sammen med den nye embededing (768 parametre)
+ - Møde med Søren og Klaus
+ - Eventuelt BM25 søgning implementeret
+ - Risikoanalyse
+ - Interessentanalyse
+### Hvilke udfordringer forudser vi?
+
+
