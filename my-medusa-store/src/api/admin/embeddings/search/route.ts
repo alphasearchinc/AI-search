@@ -7,6 +7,7 @@ import { embedText } from "../../../../lib/embedding-client";
 import {
   semanticSearch,
   type SemanticSearchHit,
+  type SearchMode,
 } from "../../../../lib/semantic-search";
 
 const DEFAULT_LIMIT = 10;
@@ -86,14 +87,27 @@ export const POST = async (
     }
   }
 
+  let embedding: { vectors: number[]; dimensions: number } | undefined;
+  let requestedMode: SearchMode | "bm25-only" = "hybrid";
+
   try {
-    const { embedding } = await embedText(query);
+    try {
+      const embedResult = await embedText(query);
+      embedding = embedResult.embedding;
+    } catch (error: any) {
+      requestedMode = "bm25-only";
+      logger.warn(
+        `[Semantic Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
+      );
+    }
 
     const searchResult = await semanticSearch({
+      query,
       embedding,
       limit,
       filters: productIds.length ? { product_ids: productIds } : undefined,
       includeEmbedding,
+      mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
     });
 
     let hits: SemanticSearchHitResponse[] = searchResult.hits;
@@ -143,6 +157,7 @@ export const POST = async (
       limit,
       took: searchResult.took,
       count: searchResult.count,
+      mode: searchResult.mode,
       embedding,
       hits,
     });

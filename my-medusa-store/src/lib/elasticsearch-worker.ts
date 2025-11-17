@@ -29,7 +29,8 @@ async function processEmbeddingJob(job: Job<ProductEmbeddingJobData>) {
     document: {
       product_id,
       embedded_text,
-      embedding,
+      embedding, // keep raw embedding for optional retrieval
+      embedding_vector: embedding.vectors, // dense vector used for search
       metadata: metadata || {},
       generated_at: new Date().toISOString(),
     },
