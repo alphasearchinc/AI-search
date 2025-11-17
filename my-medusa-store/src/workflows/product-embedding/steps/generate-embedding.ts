@@ -1,8 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import {
-  embedText,
-  getEmbeddingServiceUrl,
-} from "../../../lib/embedding-client";
+import { embedText } from "../../../lib/embedding-client";
 
 type GenerateEmbeddingInput = {
   text: string;
@@ -16,9 +13,12 @@ export const generateEmbeddingStep = createStep(
       throw new Error("No text provided for embedding generation");
     }
 
-    const embeddingServiceUrl = getEmbeddingServiceUrl();
+    const embeddingSource = process.env.LOCAL_EMBEDDING_SERVICE_URL
+      ? `local service at ${process.env.LOCAL_EMBEDDING_SERVICE_URL}`
+      : "OpenAI API";
+
     console.log(
-      `🔗 Calling Python embedding service at ${embeddingServiceUrl} to embed product text...`
+      `🔗 Calling ${embeddingSource} to embed product text...`
     );
 
     try {
@@ -29,16 +29,16 @@ export const generateEmbeddingStep = createStep(
       );
 
       return new StepResponse({
-        embedding
+        embedding,
       });
     } catch (error: any) {
       console.error(
-        "❌ Failed to generate embedding from Python service:",
+        `❌ Failed to generate embedding from ${embeddingSource}:`,
         error.message
       );
 
       throw new Error(
-        `Embedding service unavailable: ${error.message}. Please ensure the Python embedding service is running at ${embeddingServiceUrl}.`
+        `Embedding service unavailable: ${error.message}`
       );
     }
   }
