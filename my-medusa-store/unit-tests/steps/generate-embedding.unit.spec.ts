@@ -76,8 +76,8 @@ describe("Embedding Client", () => {
           headers: { "Content-Type": "application/json" },
         })
       );
-      expect(result.embedding.vectors).toHaveLength(768);
-      expect(result.embedding.dimensions).toBe(768);
+      expect(result.vectors).toHaveLength(768);
+      expect(result.dimensions).toBe(768);
     });
 
     it("should handle simple product titles", async () => {
@@ -97,8 +97,8 @@ describe("Embedding Client", () => {
       const result = await embedText("Gaming Mouse");
 
       // Assert
-      expect(result.embedding.vectors).toHaveLength(768);
-      expect(result.embedding.dimensions).toBe(768);
+      expect(result.vectors).toHaveLength(768);
+      expect(result.dimensions).toBe(768);
     });
 
     it("should handle long product descriptions", async () => {
@@ -122,7 +122,7 @@ describe("Embedding Client", () => {
       const result = await embedText(longText);
 
       // Assert
-      expect(result.embedding.vectors).toHaveLength(768);
+      expect(result.vectors).toHaveLength(768);
     });
   });
 
@@ -180,8 +180,8 @@ describe("Embedding Client", () => {
       const result = await embedText("Product");
 
       // Assert
-      expect(result.embedding.vectors).toHaveLength(768);
-      expect(result.embedding.dimensions).toBe(768);
+      expect(result.vectors).toHaveLength(768);
+      expect(result.dimensions).toBe(768);
     });
 
     it("should handle floating point precision in embeddings", async () => {
@@ -206,8 +206,8 @@ describe("Embedding Client", () => {
       const result = await embedText("Product");
 
       // Assert
-      expect(result.embedding.vectors[0]).toBeCloseTo(-0.04900216, 8);
-      expect(result.embedding.vectors[1]).toBeCloseTo(0.023538826, 8);
+      expect(result.vectors[0]).toBeCloseTo(-0.04900216, 8);
+      expect(result.vectors[1]).toBeCloseTo(0.023538826, 8);
     });
   });
 
@@ -230,7 +230,7 @@ describe("Embedding Client", () => {
       const result = await embedText(textWithSpecialChars);
 
       // Assert
-      expect(result.embedding.vectors).toHaveLength(768);
+      expect(result.vectors).toHaveLength(768);
     });
 
     it("should handle unicode characters", async () => {
@@ -251,7 +251,7 @@ describe("Embedding Client", () => {
       const result = await embedText(unicodeText);
 
       // Assert
-      expect(result.embedding.vectors).toHaveLength(768);
+      expect(result.vectors).toHaveLength(768);
     });
   });
 });
