@@ -7,6 +7,10 @@ export type EmbeddingResult = {
   dimensions: number;
 };
 
+export type EmbeddingResponse = {
+  embedding: EmbeddingResult;
+};
+
 export const getEmbeddingServiceUrl = (): string =>
   DEFAULT_EMBEDDING_SERVICE_URL;
 
@@ -15,7 +19,7 @@ export async function embedText(
   options?: {
     timeoutMs?: number;
   }
-): Promise<EmbeddingResult> {
+): Promise<EmbeddingResponse> {
   if (!text?.trim()) {
     throw new Error("Text must be provided to generate an embedding");
   }
@@ -53,9 +57,8 @@ export async function embedText(
     throw new Error("Embedding service returned invalid JSON");
   }
 
-  // Validate the nested structure
   const embeddingData = data?.embedding;
-  if (!embeddingData || typeof embeddingData !== 'object') {
+  if (!embeddingData || typeof embeddingData !== "object") {
     throw new Error("Embedding service returned an invalid response structure");
   }
 
@@ -67,10 +70,9 @@ export async function embedText(
     throw new Error("Embedding service returned an invalid embedding format");
   }
 
-  if (typeof embeddingData.dimensions !== 'number') {
+  if (typeof embeddingData.dimensions !== "number") {
     throw new Error("Embedding service returned invalid dimensions");
   }
 
-  // Return the entire embedding object as-is
-  return embeddingData;
+  return { embedding: embeddingData };
 }
