@@ -2,7 +2,7 @@ name: Unit Tests CI
 
 on:
   push:
-    branches: [main, develop, ci-pipeline]
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
@@ -30,10 +30,3 @@ jobs:
         working-directory: my-medusa-store
         run: npm run test:unit
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-results
-          path: my-medusa-store/coverage/
-          retention-days: 30
