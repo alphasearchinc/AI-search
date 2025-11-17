@@ -90,7 +90,7 @@ export async function semanticSearch(
         query: baseQuery,
         script: {
           source:
-            "cosineSimilarity(params.query_vector, 'embedding_vector') + 1.0",
+            "cosineSimilarity(params.query_vector, 'embedding.vectors') + 1.0",
           params: {
             query_vector: options.embedding.vectors,
           },

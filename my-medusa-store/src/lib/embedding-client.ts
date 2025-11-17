@@ -96,9 +96,8 @@ async function embedTextWithLocalService(
     throw new Error("Embedding service returned invalid JSON");
   }
 
-  // Validate the nested structure
   const embeddingData = data?.embedding;
-  if (!embeddingData || typeof embeddingData !== 'object') {
+  if (!embeddingData || typeof embeddingData !== "object") {
     throw new Error("Embedding service returned an invalid response structure");
   }
 
@@ -110,7 +109,7 @@ async function embedTextWithLocalService(
     throw new Error("Embedding service returned an invalid embedding format");
   }
 
-  if (typeof embeddingData.dimensions !== 'number') {
+  if (typeof embeddingData.dimensions !== "number") {
     throw new Error("Embedding service returned invalid dimensions");
   }
 
