@@ -67,22 +67,29 @@ export async function initializeProductEmbeddingIndex(): Promise<void> {
     } else {
       const indexDims = await getIndexDimensions();
 
-      if (indexDims !== null && indexDims !== currentDims) {
-        console.error(
-          `\n[ELASTICSEARCH] ❌ Dimension mismatch:\n` +
-            `  - Index: ${indexDims}D\n` +
-            `  - Current model: ${currentDims}D\n\n` +
-            `Fix: npm run reindex\n`
+      if (indexDims === null) {
+        console.warn(
+          `[ELASTICSEARCH] ⚠️ Unable to determine index embedding dimensions for "${PRODUCT_EMBEDDINGS_INDEX}". ` +
+          `Consider running 'npm run reindex' to recreate the index.`
         );
+      } else if (indexDims !== currentDims) {
+         console.error(
+           `\n[ELASTICSEARCH] ❌ Dimension mismatch:\n` +
+             `  - Index: ${indexDims}D\n` +
+             `  - Current model: ${currentDims}D\n\n` +
+             `Fix: npm run reindex\n`
+         );
+ 
+         throw new Error(
+           `Embedding dimension mismatch (index=${indexDims}D, model=${currentDims}D). Run 'npm run reindex'.`
+         );
+       }
 
-        throw new Error(
-          `Embedding dimension mismatch (index=${indexDims}D, model=${currentDims}D). Run 'npm run reindex'.`
+      if (indexDims !== null) {
+        console.log(
+          `[ELASTICSEARCH] ✅ Index exists with ${indexDims}D dimensions`
         );
       }
-
-      console.log(
-        `[ELASTICSEARCH] ✅ Index exists with ${indexDims}D dimensions`
-      );
     }
   } catch (error) {
     console.error(`[ELASTICSEARCH] ❌ Failed to initialize index:`, error);
