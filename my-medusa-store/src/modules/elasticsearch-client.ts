@@ -51,12 +51,14 @@ export async function initializeProductEmbeddingIndex(): Promise<void> {
           properties: {
             product_id: { type: "keyword" },
             embedded_text: { type: "text" },
-            metadata: { type: "object", dynamic: true },
-            generated_at: { type: "date" },
+            // Dense vector used for similarity search
             embedding_vector: {
               type: "dense_vector",
               dims: currentDims,
             },
+            // Keep metadata and generated_at for filtering/sorting
+            metadata: { type: "object", dynamic: true },
+            generated_at: { type: "date" },
           },
         },
       });

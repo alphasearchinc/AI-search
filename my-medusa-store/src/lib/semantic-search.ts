@@ -7,20 +7,28 @@ export type SemanticSearchFilters = {
   product_ids?: string[];
 };
 
+export type SearchMode = "hybrid" | "bm25" | "vector";
+
+export type EmbeddingInput = {
+  vectors: number[];
+  dimensions: number;
+};
+
 export type SemanticSearchOptions = {
-  embedding: {
-    vectors: number[];
-    dimensions: number;
-  };
+  query: string;
+  embedding?: EmbeddingInput;
   limit?: number;
   filters?: SemanticSearchFilters;
   includeEmbedding?: boolean;
+  mode?: SearchMode;
 };
 
 export type SemanticSearchHit = {
   id: string;
   product_id?: string;
-  score: number;
+  score: number; // final combined score
+  bm25_score?: number;
+  vector_score?: number;
   embedded_text?: string;
   metadata?: Record<string, any>;
   generated_at?: string;
@@ -34,20 +42,32 @@ export type SemanticSearchResult = {
   hits: SemanticSearchHit[];
   count: number;
   took: number;
+  mode: SearchMode | "bm25-only";
 };
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+const DEFAULT_VECTOR_WEIGHT = 0.7;
+const DEFAULT_BM25_WEIGHT = 0.3;
+const OVERFETCH_MULTIPLIER = 3; // fetch a bit more from ES before re-ranking locally
 
 export async function semanticSearch(
   options: SemanticSearchOptions
 ): Promise<SemanticSearchResult> {
-  if (
-    !Array.isArray(options.embedding.vectors) ||
-    options.embedding.vectors.some((value) => typeof value !== "number")
-  ) {
-    throw new Error("A numeric embedding vector is required for semantic search");
+  const hasEmbedding =
+    options.embedding &&
+    Array.isArray(options.embedding.vectors) &&
+    !options.embedding.vectors.some((value) => typeof value !== "number");
+
+  const requestedMode: SearchMode = options.mode ?? "hybrid";
+  if ((requestedMode === "hybrid" || requestedMode === "vector") && !hasEmbedding) {
+    if (requestedMode === "vector") {
+      throw new Error("A numeric embedding vector is required for vector search");
+    }
   }
+
+  const resolvedMode: SearchMode | "bm25-only" =
+    hasEmbedding || requestedMode === "bm25" ? requestedMode : "bm25-only";
 
   const size = Math.max(
     1,
@@ -76,55 +96,157 @@ export async function semanticSearch(
     });
   }
 
-  const baseQuery =
-    filterClauses.length > 0
-      ? { bool: { filter: filterClauses } }
-      : { match_all: {} };
+  const boolFilter =
+    filterClauses.length > 0 ? { bool: { filter: filterClauses } } : null;
 
-  const response = await elasticsearchClient.search({
-    index: PRODUCT_EMBEDDINGS_INDEX,
-    size,
-    track_total_hits: true,
-    query: {
-      script_score: {
-        query: baseQuery,
-        script: {
-          source:
-            "cosineSimilarity(params.query_vector, 'embedding.vectors') + 1.0",
-          params: {
-            query_vector: options.embedding.vectors,
+  const parseWeight = (raw: string | undefined, fallback: number) => {
+    const parsed = Number.parseFloat(raw ?? "");
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+    return fallback;
+  };
+
+  const rawVectorWeight = parseWeight(
+    process.env.HYBRID_VECTOR_WEIGHT,
+    DEFAULT_VECTOR_WEIGHT
+  );
+  const rawBm25Weight = parseWeight(
+    process.env.HYBRID_BM25_WEIGHT,
+    DEFAULT_BM25_WEIGHT
+  );
+
+  const weightSum = rawVectorWeight + rawBm25Weight;
+  const vectorWeight = weightSum > 0 ? rawVectorWeight / weightSum : DEFAULT_VECTOR_WEIGHT;
+  const bm25Weight = weightSum > 0 ? rawBm25Weight / weightSum : DEFAULT_BM25_WEIGHT;
+
+  const bm25Query = {
+    bool: {
+      must: [
+        {
+          match: {
+            embedded_text: options.query,
+          },
+        },
+      ],
+      ...(boolFilter ? { filter: filterClauses } : {}),
+    },
+  };
+
+  const baseVectorQuery = boolFilter ? { bool: { filter: filterClauses } } : { match_all: {} };
+
+  const hitsMap = new Map<
+    string,
+    {
+      source?: Record<string, any>;
+      bm25_score?: number;
+      vector_score?: number;
+      combined?: number;
+    }
+  >();
+
+  const tookParts: number[] = [];
+
+  const getTotal = (total: any, fallback: number) => {
+    if (typeof total === "number") {
+      return total;
+    }
+    if (typeof total?.value === "number") {
+      return total.value;
+    }
+    return fallback;
+  };
+
+  let bm25Total = 0;
+  let vectorTotal = 0;
+
+  if (resolvedMode !== "vector") {
+    const bm25Response = await elasticsearchClient.search({
+      index: PRODUCT_EMBEDDINGS_INDEX,
+      size: Math.max(size, size * OVERFETCH_MULTIPLIER),
+      track_total_hits: true,
+      query: bm25Query,
+      _source: sourceFields,
+    });
+
+    tookParts.push(bm25Response.took ?? 0);
+    bm25Total = getTotal(bm25Response.hits.total, 0);
+
+    for (const hit of bm25Response.hits.hits ?? []) {
+      const source = (hit._source || {}) as Record<string, any>;
+      const current = hitsMap.get(hit._id) || {};
+      current.source = current.source || source;
+      current.bm25_score = typeof hit._score === "number" ? hit._score : 0;
+      hitsMap.set(hit._id, current);
+    }
+  }
+
+  if (resolvedMode !== "bm25" && hasEmbedding && options.embedding) {
+    const vectorResponse = await elasticsearchClient.search({
+      index: PRODUCT_EMBEDDINGS_INDEX,
+      size: Math.max(size, size * OVERFETCH_MULTIPLIER),
+      track_total_hits: true,
+      query: {
+        script_score: {
+          query: baseVectorQuery,
+          script: {
+            source: `
+              if (doc['embedding_vector'].size() == 0) { return 0; }
+              double vectorScore = cosineSimilarity(params.query_vector, 'embedding_vector') + 1.0;
+              return Math.max(vectorScore, 0);
+            `,
+            params: {
+              query_vector: options.embedding.vectors,
+            },
           },
         },
       },
-    },
-    _source: sourceFields,
+      _source: sourceFields,
+    });
+
+    tookParts.push(vectorResponse.took ?? 0);
+    vectorTotal = getTotal(vectorResponse.hits.total, 0);
+
+    for (const hit of vectorResponse.hits.hits ?? []) {
+      const source = (hit._source || {}) as Record<string, any>;
+      const current = hitsMap.get(hit._id) || {};
+      current.source = current.source || source;
+      current.vector_score = typeof hit._score === "number" ? hit._score : 0;
+      hitsMap.set(hit._id, current);
+    }
+  }
+
+  const hits = Array.from(hitsMap.entries()).map(([id, data]) => {
+    const combinedScore =
+      (data.vector_score ?? 0) * vectorWeight +
+      (data.bm25_score ?? 0) * bm25Weight;
+
+    return {
+      id,
+      product_id: data.source?.product_id,
+      score: combinedScore,
+      bm25_score: data.bm25_score,
+      vector_score: data.vector_score,
+      embedded_text: data.source?.embedded_text,
+      metadata: data.source?.metadata,
+      generated_at: data.source?.generated_at,
+      embedding:
+        options.includeEmbedding && data.source?.embedding
+          ? data.source.embedding
+          : undefined,
+    };
   });
 
-  const hits =
-    response.hits.hits?.map((hit) => {
-      const source = (hit._source || {}) as Record<string, any>;
-      return {
-        id: hit._id,
-        product_id: source.product_id,
-        score: typeof hit._score === "number" ? hit._score : 0,
-        embedded_text: source.embedded_text,
-        metadata: source.metadata,
-        generated_at: source.generated_at,
-        embedding:
-          (options.includeEmbedding ? source.embedding : undefined) ||
-          undefined,
-      };
-    }) ?? [];
+  hits.sort((a, b) => b.score - a.score);
 
-  const totalHits = response.hits.total;
-  const count =
-    typeof totalHits === "number"
-      ? totalHits
-      : totalHits?.value ?? hits.length;
+  const finalHits = hits.slice(0, size);
+  const count = Math.max(bm25Total, vectorTotal, hits.length);
+  const took = tookParts.reduce((sum, value) => sum + value, 0);
 
   return {
-    hits,
+    hits: finalHits,
     count,
-    took: response.took ?? 0,
+    took,
+    mode: resolvedMode,
   };
 }

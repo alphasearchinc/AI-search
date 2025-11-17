@@ -1,7 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import { embedText } from "../../../../lib/embedding-client";
-import { semanticSearch } from "../../../../lib/semantic-search";
+import {
+  semanticSearch,
+  type SearchMode,
+} from "../../../../lib/semantic-search";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
@@ -24,6 +27,8 @@ type StoreSemanticSearchProductSummary = {
 type StoreSemanticSearchHit = {
   id: string;
   score: number;
+  bm25_score?: number;
+  vector_score?: number;
   product: StoreSemanticSearchProductSummary;
   metadata?: Record<string, any>;
 };
@@ -66,12 +71,28 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
   const limit = sanitizeLimit(body.limit);
 
+  let embedding: { vectors: number[]; dimensions: number } | undefined;
+  let requestedMode: SearchMode | "bm25-only" = "hybrid";
+
   try {
+    const embedResult = await embedText(query);
+    embedding = embedResult.embedding;
+  } catch (error: any) {
+    requestedMode = "bm25-only";
+    logger.warn(
+      `[Store Semantic Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
+    );
+  }
+
+  try {
+
     const embedding = await embedText(query);
     const searchResult = await semanticSearch({
+      query,
       embedding,
       limit,
       includeEmbedding: false,
+      mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
     });
 
     let hits: StoreSemanticSearchHit[] = [];
@@ -110,6 +131,8 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
           return {
             id: hit.id,
             score: hit.score,
+            bm25_score: hit.bm25_score,
+            vector_score: hit.vector_score,
             product: selectProductFields(product),
             metadata: hit.metadata,
           };
@@ -131,6 +154,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       took: searchResult.took,
       total: searchResult.count,
       count: hits.length,
+      mode: searchResult.mode,
       hits,
     });
   } catch (error: any) {
