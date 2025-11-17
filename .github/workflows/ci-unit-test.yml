@@ -11,6 +11,11 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
 
+    # Job-level environment for all steps
+    env:
+      NODE_ENV: test
+      LOCAL_EMBEDDING_SERVICE_URL: "http://localhost:1337"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,4 +34,3 @@ jobs:
       - name: Run unit tests
         working-directory: my-medusa-store
         run: npm run test:unit
-
