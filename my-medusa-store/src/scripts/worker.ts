@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import worker from "../lib/elasticsearch-worker";
 import { initializeProductEmbeddingIndex } from "../modules/elasticsearch-client";
 

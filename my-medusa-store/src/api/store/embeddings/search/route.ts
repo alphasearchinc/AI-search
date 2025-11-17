@@ -85,6 +85,8 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   try {
+
+    const embedding = await embedText(query);
     const searchResult = await semanticSearch({
       query,
       embedding,

@@ -19,6 +19,7 @@
     "start": "medusa start",
     "dev": "medusa develop",
     "worker": "ts-node src/scripts/worker.ts",
+    "reindex": "medusa exec ./src/scripts/reindex.ts",
     "test": "npm run test:unit && npm run test:integration:http && npm run test:integration:modules",
     "test:integration": "npm run test:integration:http && npm run test:integration:modules",
     "test:integration:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
@@ -35,7 +36,8 @@
     "@medusajs/medusa": "2.11.3",
     "bullmq": "^5.63.1",
     "cross-env": "^10.1.0",
-    "ioredis": "^5.8.2"
+    "ioredis": "^5.8.2",
+    "openai": "^6.9.0"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.11.3",
