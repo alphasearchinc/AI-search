@@ -1,0 +1,58 @@
+@startuml
+title Semantic Search Architecture (Backend + Embedding Service)
+
+skinparam componentStyle rectangle
+
+actor Admin as Admin
+actor "Store API Consumer" as StoreClient
+
+component "Medusa Backend\n(my-medusa-store)" as Medusa {
+  [Admin API routes\n(/admin/embeddings/*)]
+  [Store API routes\n(/store/embeddings/search)]
+  [Product Embedding Workflow\n(get-product-data → generate-embedding → store-embedding)]
+  [Semantic Search helper\nsemanticSearch()]
+  [Embedding Client\n@lib/embedding-client]
+}
+
+component "Python Embedder\n(python-embedder)" as Embedder
+component "Elasticsearch Worker\n@lib/elasticsearch-worker" as Worker
+component "Elasticsearch Cluster\nindex: product-embeddings" as ES
+queue "BullMQ Queue\nproduct-embeddings" as Queue
+database "PostgreSQL" as Postgres
+collections "Redis\n(queue backend)" as Redis
+
+Admin --> "Admin API routes\n(/admin/embeddings/*)" : POST /admin/products/:id/embed\nPOST /admin/embeddings/bulk
+"Admin API routes\n(/admin/embeddings/*)" --> "Product Embedding Workflow\n(get-product-data → generate-embedding → store-embedding)" : trigger workflow
+
+"Product Embedding Workflow\n(get-product-data → generate-embedding → store-embedding)" --> Postgres : fetch product + variants
+"Product Embedding Workflow\n(get-product-data → generate-embedding → store-embedding)" --> "Embedding Client\n@lib/embedding-client" : build embed payload
+"Embedding Client\n@lib/embedding-client" --> Embedder : HTTP POST /embed (text)
+Embedder --> "Embedding Client\n@lib/embedding-client" : vector[384]
+"Product Embedding Workflow\n(get-product-data → generate-embedding → store-embedding)" --> Queue : enqueue index job (product, vectors)
+Queue -[hidden]-> Redis
+
+Queue --> Worker : consume jobs
+Worker --> ES : index/update product-embeddings docs
+
+StoreClient --> "Store API routes\n(/store/embeddings/search)" : POST /store/embeddings/search
+"Store API routes\n(/store/embeddings/search)" --> "Semantic Search helper\nsemanticSearch()" : build knn + filter query
+"Semantic Search helper\nsemanticSearch()" --> ES : search product-embeddings
+ES --> "Store API routes\n(/store/embeddings/search)" : hits + metadata
+"Store API routes\n(/store/embeddings/search)" --> StoreClient : JSON response
+
+Medusa --> Postgres : catalog + orders
+Medusa --> Redis : queue + caching
+Medusa --> ES : admin search (optional refresh)
+
+note right of Queue
+BullMQ uses Redis as its transport.
+Worker typically runs as a separate Node process
+but shares the same Medusa codebase.
+end note
+
+note bottom
+Storefront is intentionally omitted per request;
+diagram focuses on backend, embedding service, and search infra.
+end note
+
+@enduml

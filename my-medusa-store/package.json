@@ -19,7 +19,7 @@
     "start": "medusa start",
     "dev": "medusa develop",
     "worker": "ts-node src/scripts/worker.ts",
-    "reindex": "medusa exec src/scripts/reindex.ts",
+    "reindex": "medusa exec ./src/scripts/reindex.ts",
     "test": "npm run test:unit && npm run test:integration:http && npm run test:integration:modules",
     "test:integration": "npm run test:integration:http && npm run test:integration:modules",
     "test:integration:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",

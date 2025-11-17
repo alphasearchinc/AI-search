@@ -22,7 +22,7 @@ export const generateEmbeddingStep = createStep(
     );
 
     try {
-      const embedding = await embedText(text);
+      const { embedding } = await embedText(text);
 
       console.log(
         `✅ Generated semantic embedding with ${embedding.dimensions} dimensions`
