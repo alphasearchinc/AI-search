@@ -3,6 +3,7 @@
 ---
 
 ## 📋 Kladde
+## 📅 Daily Scrum 11-11-2025
 
 ### Hvad har vi lavet siden sidst?
 ### Hvad skal vi lave i dag?
@@ -95,4 +96,24 @@
  - Interessentanalyse
 ### Hvilke udfordringer forudser vi?
 
+
+## 📅 Daily Scrum 18-11-2025
+
+### Hvad har vi lavet siden sidst?
+ -  Opsatte embedding til OpenAI
+ - BM25 search, kombineret med vores vektorsøgning
+ - Fuzzy search
+ - Fix af CI pipeline
+ - Fix af søgning, der ikke fungerede når man navigerede til et produkt
+### Hvad skal vi lave i dag?
+ - Møde med Ian
+ - Fuzzy implementering færdiggjort
+ - Risikoanalyse
+ - Interessentanalyse
+ - Kigge vores kode igennem, forstå den ordentligt, og finde steder hvor der kan refaktoreres
+ - Forstå BullMQ ordentligt
+ - Finde ud af hvordan vi vil monitorere og visualisere performance analyse i vores system
+ - Prøve at få Redis og Postgres op at køre remote, for at spare performance på vores lokale enheder
+### Hvilke udfordringer forudser vi?
+ - Hvordan måler vi vores fuzzy/BM25 implementering? 
 
