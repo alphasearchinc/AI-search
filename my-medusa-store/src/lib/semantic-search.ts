@@ -277,8 +277,8 @@ export async function semanticSearch(
 
   const hits = Array.from(hitsMap.entries()).map(([id, data]) => {
     const normalizedBm25 = maxBm25Score > 0 ? (data.bm25_score ?? 0) / maxBm25Score : 0;
-    // cosineSimilarity + 1.0 returns a score in the range [0, 2], so divide by 2 to normalize
-    const normalizedVector = Math.min((data.vector_score ?? 0) / 2, 1);
+    // Normalize vector score using the actual maxVectorScore, similar to BM25 normalization
+    const normalizedVector = maxVectorScore > 0 ? Math.min((data.vector_score ?? 0) / maxVectorScore, 1) : 0;
 
     const availableVectorWeight = data.vector_score !== undefined ? vectorWeight : 0;
     const availableBm25Weight = data.bm25_score !== undefined ? bm25Weight : 0;
