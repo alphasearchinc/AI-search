@@ -153,18 +153,13 @@ export async function semanticSearch(
     DEFAULT_MAX_EXPANSIONS
   );
 
-  const minConfidence = Math.min(
-    Math.max(
-      typeof options.minConfidence === "number"
-        ? options.minConfidence
-        : parseMinConfidence(
-            process.env.SEMANTIC_SEARCH_MIN_CONFIDENCE,
-            DEFAULT_MIN_CONFIDENCE
-          ),
-      0
-    ),
-    1
-  );
+  const minConfidence =
+    typeof options.minConfidence === "number"
+      ? parseMinConfidence(options.minConfidence, DEFAULT_MIN_CONFIDENCE)
+      : parseMinConfidence(
+          process.env.SEMANTIC_SEARCH_MIN_CONFIDENCE,
+          DEFAULT_MIN_CONFIDENCE
+        );
 
   const bm25Query = {
     bool: {
