@@ -87,13 +87,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
   let embedding: { vectors: number[]; dimensions: number };
   let requestedMode: SearchMode | "bm25-only" = "hybrid";
+  let embeddingStartTime = Date.now();
   let embeddingDuration = 0;
 
   try {
-    const embeddingStartTime = Date.now();
     embedding = await embedText(query);
     embeddingDuration = Date.now() - embeddingStartTime;
   } catch (error: any) {
+    embeddingDuration = Date.now() - embeddingStartTime;
     requestedMode = "bm25-only";
     logger.warn(
       `[Store Semantic Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
