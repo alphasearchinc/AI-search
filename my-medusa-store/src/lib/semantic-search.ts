@@ -21,6 +21,7 @@ export type SemanticSearchOptions = {
   filters?: SemanticSearchFilters;
   includeEmbedding?: boolean;
   mode?: SearchMode;
+  minConfidence?: number;
 };
 
 export type SemanticSearchHit = {
@@ -36,6 +37,7 @@ export type SemanticSearchHit = {
     vectors: number[];
     dimensions: number;
   };
+  confidence?: number;
 };
 
 export type SemanticSearchResult = {
@@ -50,6 +52,7 @@ const MAX_LIMIT = 50;
 const DEFAULT_VECTOR_WEIGHT = 0.7;
 const DEFAULT_BM25_WEIGHT = 0.3;
 const OVERFETCH_MULTIPLIER = 3; // fetch a bit more from ES before re-ranking locally
+const DEFAULT_MIN_CONFIDENCE = 0.3;
 const DEFAULT_FUZZY_ENABLED = true;
 const DEFAULT_FUZZINESS_LEVEL = "AUTO";
 const DEFAULT_PREFIX_LENGTH = 2;
@@ -113,6 +116,14 @@ export async function semanticSearch(
     return fallback;
   };
 
+  const parseMinConfidence = (raw: string | undefined, fallback: number) => {
+    const parsed = Number.parseFloat(raw ?? "");
+    if (Number.isFinite(parsed)) {
+      return Math.min(Math.max(parsed, 0), 1);
+    }
+    return fallback;
+  };
+
   const rawVectorWeight = parseWeight(
     process.env.HYBRID_VECTOR_WEIGHT,
     DEFAULT_VECTOR_WEIGHT
@@ -141,6 +152,14 @@ export async function semanticSearch(
     process.env.SEARCH_MAX_EXPANSIONS,
     DEFAULT_MAX_EXPANSIONS
   );
+
+  const minConfidence =
+    typeof options.minConfidence === "number"
+      ? parseMinConfidence(options.minConfidence, DEFAULT_MIN_CONFIDENCE)
+      : parseMinConfidence(
+          process.env.SEMANTIC_SEARCH_MIN_CONFIDENCE,
+          DEFAULT_MIN_CONFIDENCE
+        );
 
   const bm25Query = {
     bool: {
@@ -190,6 +209,8 @@ export async function semanticSearch(
 
   let bm25Total = 0;
   let vectorTotal = 0;
+  let maxBm25Score = 0;
+  let maxVectorScore = 0;
 
   if (resolvedMode !== "vector") {
     const bm25Response = await elasticsearchClient.search({
@@ -208,6 +229,7 @@ export async function semanticSearch(
       const current = hitsMap.get(hit._id) || {};
       current.source = current.source || source;
       current.bm25_score = typeof hit._score === "number" ? hit._score : 0;
+      maxBm25Score = Math.max(maxBm25Score, current.bm25_score);
       hitsMap.set(hit._id, current);
     }
   }
@@ -243,11 +265,25 @@ export async function semanticSearch(
       const current = hitsMap.get(hit._id) || {};
       current.source = current.source || source;
       current.vector_score = typeof hit._score === "number" ? hit._score : 0;
+      maxVectorScore = Math.max(maxVectorScore, current.vector_score);
       hitsMap.set(hit._id, current);
     }
   }
 
   const hits = Array.from(hitsMap.entries()).map(([id, data]) => {
+    const normalizedBm25 = maxBm25Score > 0 ? (data.bm25_score ?? 0) / maxBm25Score : 0;
+    // Normalize vector score using the actual maxVectorScore, similar to BM25 normalization
+    const normalizedVector = maxVectorScore > 0 ? Math.min((data.vector_score ?? 0) / maxVectorScore, 1) : 0;
+
+    const availableVectorWeight = data.vector_score !== undefined ? vectorWeight : 0;
+    const availableBm25Weight = data.bm25_score !== undefined ? bm25Weight : 0;
+    const availableWeightSum = availableVectorWeight + availableBm25Weight || 1;
+
+    const confidence =
+      (normalizedVector * availableVectorWeight +
+        normalizedBm25 * availableBm25Weight) /
+      availableWeightSum;
+
     const combinedScore =
       (data.vector_score ?? 0) * vectorWeight +
       (data.bm25_score ?? 0) * bm25Weight;
@@ -258,6 +294,7 @@ export async function semanticSearch(
       score: combinedScore,
       bm25_score: data.bm25_score,
       vector_score: data.vector_score,
+      confidence,
       embedded_text: data.source?.embedded_text,
       metadata: data.source?.metadata,
       generated_at: data.source?.generated_at,
@@ -268,10 +305,12 @@ export async function semanticSearch(
     };
   });
 
-  hits.sort((a, b) => b.score - a.score);
+  const filteredHits = hits.filter((hit) => hit.confidence >= minConfidence);
 
-  const finalHits = hits.slice(0, size);
-  const count = Math.max(bm25Total, vectorTotal, hits.length);
+  filteredHits.sort((a, b) => b.score - a.score);
+
+  const finalHits = filteredHits.slice(0, size);
+  const count = filteredHits.length;
   const took = tookParts.reduce((sum, value) => sum + value, 0);
 
   return {
