@@ -105,7 +105,7 @@ export const POST = async (
   try {
     try {
       const embedResult = await embedText(query);
-      embedding = embedResult.embedding;
+      embedding = embedResult;
     } catch (error: any) {
       requestedMode = "bm25-only";
       logger.warn(

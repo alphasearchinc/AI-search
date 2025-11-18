@@ -87,7 +87,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
   try {
     const embedResult = await embedText(query);
-    embedding = embedResult.embedding;
+    embedding = embedResult;
   } catch (error: any) {
     requestedMode = "bm25-only";
     logger.warn(

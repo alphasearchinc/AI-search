@@ -52,7 +52,7 @@ const MAX_LIMIT = 50;
 const DEFAULT_VECTOR_WEIGHT = 0.7;
 const DEFAULT_BM25_WEIGHT = 0.3;
 const OVERFETCH_MULTIPLIER = 3; // fetch a bit more from ES before re-ranking locally
-const DEFAULT_MIN_CONFIDENCE = 1;
+const DEFAULT_MIN_CONFIDENCE = 0.3;
 
 export async function semanticSearch(
   options: SemanticSearchOptions
