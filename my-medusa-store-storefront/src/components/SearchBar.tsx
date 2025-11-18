@@ -18,6 +18,7 @@ const SearchBar = () => {
   const pathname = usePathname()
 
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const latestQueryRef = useRef("")
@@ -124,6 +125,19 @@ const SearchBar = () => {
     setResults([])
   }
 
+  const handleClear = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+    latestQueryRef.current = ""
+    setQuery("")
+    setResults([])
+    setError(null)
+    setIsLoading(false)
+    setIsOpen(true)
+    inputRef.current?.focus()
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
       setIsOpen(false)
@@ -152,15 +166,17 @@ const SearchBar = () => {
     setIsOpen(true)
   }
 
-  return (
-    <div ref={containerRef} className="relative w-full">
-      <label htmlFor="header-search" className="sr-only">
-        Search products
-      </label>
-      <div className="flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest focus-within:border-ui-fg-base focus-within:shadow-elevation-card-hover transition-shadow">
-        <SearchIcon />
+ return (
+  <div ref={containerRef} className="relative w-full">
+    <label htmlFor="header-search" className="sr-only">
+      Search products
+    </label>
+    <div className="relative flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest focus-within:border-ui-fg-base focus-within:shadow-elevation-card-hover transition-shadow">
+      <SearchIcon />
+      <div className="relative flex-1">
         <input
           id="header-search"
+          ref={inputRef}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value)
@@ -170,69 +186,86 @@ const SearchBar = () => {
           onBlur={handleBlur}
           onFocus={handleFocus}
           placeholder="Search products"
-          className="w-full bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none"
+          className="w-full bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none pr-24"
           autoComplete="off"
         />
-        {isLoading && (
-          <span className="text-xs text-ui-fg-muted">Searching…</span>
-        )}
-      </div>
 
-      {showDropdown && (
-        <div className="absolute left-0 right-0 mt-2 rounded-large border border-ui-border-base bg-ui-bg-base shadow-elevation-card-rest z-50">
-          <div className="max-h-96 overflow-y-auto py-2">
-            {error && (
-              <p className="px-4 py-3 text-sm text-rose-600">{error}</p>
+        {isLoading && (
+          <span className="pointer-events-none absolute right-6 top-1 text-xs text-ui-fg-muted">
+            Searching…
+          </span>
+        )}
+
+ {trimmedQuery.length > 0 && (
+  <button
+    type="button"
+    onMouseDown={(event) => event.preventDefault()}
+    onClick={handleClear}
+    className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1 text-ui-fg-muted hover:text-ui-fg-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg-base/50"
+    aria-label="Clear search"
+  >
+    <span aria-hidden="true">&times;</span>
+  </button>
+)}
+
+      </div>
+    </div>
+
+    {showDropdown && (
+      <div className="absolute left-0 right-0 mt-2 rounded-large border border-ui-border-base bg-ui-bg-base shadow-elevation-card-rest z-50">
+        <div className="max-h-96 overflow-y-auto py-2">
+          {error && (
+            <p className="px-4 py-3 text-sm text-rose-600">{error}</p>
+          )}
+
+          {!error &&
+            trimmedQuery.length > 0 &&
+            trimmedQuery.length < MIN_QUERY_LENGTH && (
+              <p className="px-4 py-3 text-sm text-ui-fg-muted">
+                Type at least {MIN_QUERY_LENGTH} characters to search
+              </p>
             )}
 
-            {!error &&
-              trimmedQuery.length > 0 &&
-              trimmedQuery.length < MIN_QUERY_LENGTH && (
-                <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                  Type at least {MIN_QUERY_LENGTH} characters to search
-                </p>
-              )}
+          {!error &&
+            trimmedQuery.length >= MIN_QUERY_LENGTH &&
+            results.map((hit) => (
+              <button
+                key={hit.id}
+                type="button"
+                className="w-full text-left px-4 py-3 hover:bg-ui-bg-subtle transition-colors flex items-center gap-3"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => handleResultNavigation(hit)}
+                data-testid="search-result"
+              >
+                <ThumbnailPreview hit={hit} />
+                <div className="min-w-0">
+                  <p className="txt-compact-small-plus text-ui-fg-base truncate">
+                    {hit.product.title ?? "Untitled product"}
+                  </p>
+                  <p className="txt-compact-small text-ui-fg-subtle truncate">
+                    {hit.product.subtitle ||
+                      hit.product.description ||
+                      hit.metadata?.embedded_text ||
+                      "View details"}
+                  </p>
+                </div>
+              </button>
+            ))}
 
-            {!error &&
-              trimmedQuery.length >= MIN_QUERY_LENGTH &&
-              results.map((hit) => (
-                <button
-                  key={hit.id}
-                  type="button"
-                  className="w-full text-left px-4 py-3 hover:bg-ui-bg-subtle transition-colors flex items-center gap-3"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => handleResultNavigation(hit)}
-                  data-testid="search-result"
-                >
-                  <ThumbnailPreview hit={hit} />
-                  <div className="min-w-0">
-                    <p className="txt-compact-small-plus text-ui-fg-base truncate">
-                      {hit.product.title ?? "Untitled product"}
-                    </p>
-                    <p className="txt-compact-small text-ui-fg-subtle truncate">
-                      {hit.product.subtitle ||
-                        hit.product.description ||
-                        hit.metadata?.embedded_text ||
-                        "View details"}
-                    </p>
-                  </div>
-                </button>
-              ))}
-
-            {!error &&
-              !isLoading &&
-              trimmedQuery.length >= MIN_QUERY_LENGTH &&
-              results.length === 0 && (
-                <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                  No products matched your search.
-                </p>
-              )}
-          </div>
+          {!error &&
+            !isLoading &&
+            trimmedQuery.length >= MIN_QUERY_LENGTH &&
+            results.length === 0 && (
+              <p className="px-4 py-3 text-sm text-ui-fg-muted">
+                No products matched your search.
+              </p>
+            )}
         </div>
-      )}
-    </div>
-  )
-}
+      </div>
+    )}
+  </div>
+)}
+
 
 const ThumbnailPreview = ({ hit }: { hit: SemanticSearchHit }) => {
   const thumbnail = hit.product.thumbnail
