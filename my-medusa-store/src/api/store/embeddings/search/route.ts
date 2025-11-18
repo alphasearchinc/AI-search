@@ -173,7 +173,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       results_count: hits.length,
       filters_applied: undefined, // No filters in store search yet
       user_type: 'store',
-    }).catch(err => console.error('[METRICS] Failed to record:', err));
+    }).catch(err => logger.error('[METRICS] Failed to record:', err));
 
     logger.info(
       `[Store Semantic Search] query="${query.slice(0, 50)}..." ` +
