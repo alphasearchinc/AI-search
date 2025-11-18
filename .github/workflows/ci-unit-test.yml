@@ -28,8 +28,10 @@ jobs:
           cache-dependency-path: my-medusa-store/package-lock.json
 
       - name: Install dependencies
+        env:
+            NPM_CONFIG_LOGLEVEL: verbose
         working-directory: my-medusa-store
-        run: npm ci
+        run: npm ci --no-fund --no-audit --foreground-scripts
 
       - name: Run unit tests
         working-directory: my-medusa-store
