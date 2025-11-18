@@ -14,6 +14,7 @@ const MAX_QUERY_LENGTH = 2000;
 type StoreSemanticSearchBody = {
   query?: string;
   limit?: number;
+  min_confidence?: number;
 };
 
 type StoreSemanticSearchProductSummary = {
@@ -73,6 +74,16 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   const limit = sanitizeLimit(body.limit);
+  let minConfidence: number | undefined = undefined;
+  if (body.min_confidence !== undefined) {
+    if (typeof body.min_confidence !== "number" || !Number.isFinite(body.min_confidence)) {
+      return res.status(400).json({
+        message: "min_confidence must be a number between 0 and 1",
+      });
+    }
+
+    minConfidence = Math.min(Math.max(body.min_confidence, 0), 1);
+  }
 
   let embedding: { vectors: number[]; dimensions: number };
   let requestedMode: SearchMode | "bm25-only" = "hybrid";
@@ -99,6 +110,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       limit,
       includeEmbedding: false,
       mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
+      minConfidence,
     });
     const searchDuration = Date.now() - searchStartTime;
 
