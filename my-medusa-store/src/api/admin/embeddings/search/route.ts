@@ -25,6 +25,7 @@ type SemanticSearchBody = {
   filters?: SemanticSearchFilters;
   include_product?: boolean;
   include_embedding?: boolean;
+  min_confidence?: number;
 };
 
 type SemanticSearchHitResponse = SemanticSearchHit & {
@@ -59,6 +60,17 @@ export const POST = async (
 
   const includeProduct = Boolean(body.include_product);
   const includeEmbedding = Boolean(body.include_embedding);
+
+  let minConfidence: number | undefined = undefined;
+  if (body.min_confidence !== undefined) {
+    if (typeof body.min_confidence !== "number" || !Number.isFinite(body.min_confidence)) {
+      return res.status(400).json({
+        message: "min_confidence must be a number between 0 and 1",
+      });
+    }
+
+    minConfidence = Math.min(Math.max(body.min_confidence, 0), 1);
+  }
 
   const filters = body.filters || {};
   let productIds: string[] = [];
@@ -108,6 +120,7 @@ export const POST = async (
       filters: productIds.length ? { product_ids: productIds } : undefined,
       includeEmbedding,
       mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
+      minConfidence,
     });
 
     let hits: SemanticSearchHitResponse[] = searchResult.hits;
@@ -149,7 +162,9 @@ export const POST = async (
       `[Semantic Search] query="${query.slice(
         0,
         120
-      )}" limit=${limit} hits=${hits.length} took=${searchResult.took}ms`
+      )}" limit=${limit} min_confidence=${
+        minConfidence !== undefined ? minConfidence : "env-default"
+      } hits=${hits.length} took=${searchResult.took}ms`
     );
 
     res.json({
