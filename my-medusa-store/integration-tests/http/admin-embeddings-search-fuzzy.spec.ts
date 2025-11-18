@@ -77,7 +77,7 @@ medusaIntegrationTestRunner({
         );
 
         expect(response.status).toBe(200);
-        
+
         // Validate response structure
         expect(response.data).toHaveProperty("query");
         expect(response.data.query).toBe("laptpo");
@@ -93,7 +93,7 @@ medusaIntegrationTestRunner({
           expect(hit).toHaveProperty("id");
           expect(hit).toHaveProperty("score");
           expect(hit).toHaveProperty("product_id");
-          
+
           // When include_product=true, product details should be included
           if (hit.product) {
             expect(hit.product).toHaveProperty("id");
@@ -113,7 +113,7 @@ medusaIntegrationTestRunner({
         );
 
         expect(response.status).toBe(200);
-        
+
         // The fact that this doesn't throw 400/500 means:
         // 1. Elasticsearch accepted the fuzzy query
         // 2. Environment variables were loaded correctly
@@ -133,7 +133,7 @@ medusaIntegrationTestRunner({
 
         expect(response.status).toBe(200);
         expect(response.data.hits).toBeDefined();
-        
+
         // Exact match queries should still work perfectly with fuzzy enabled
         // Fuzzy doesn't break exact matching
       });
@@ -153,7 +153,7 @@ medusaIntegrationTestRunner({
 
         expect(response.status).toBe(200);
         expect(response.data.hits).toBeDefined();
-        
+
         // Validates that fuzzy + filters work together
         // (filters are applied in the bool query alongside fuzzy match)
       });
@@ -189,7 +189,7 @@ medusaIntegrationTestRunner({
 
         expect(response.status).toBe(200);
         expect(response.data.limit).toBe(2);
-        
+
         // Should respect limit even with fuzzy matching
         if (response.data.hits.length > 0) {
           expect(response.data.hits.length).toBeLessThanOrEqual(2);
@@ -211,7 +211,7 @@ medusaIntegrationTestRunner({
         );
 
         expect(response.status).toBe(200);
-        
+
         // Mode might be "bm25-only" if embedding service is down
         expect(["hybrid", "bm25-only", "bm25"]).toContain(response.data.mode);
       });
