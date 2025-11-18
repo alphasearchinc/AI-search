@@ -1,30 +1,21 @@
 import { ExecArgs } from "@medusajs/framework/types";
 import { Modules } from "@medusajs/framework/utils";
-import {
-  elasticsearchClient,
-  PRODUCT_EMBEDDINGS_INDEX,
-  initializeProductEmbeddingIndex,
-} from "../modules/elasticsearch-client";
+import { ELASTICSEARCH_MODULE } from "../modules/elasticsearch";
+import ElasticsearchModuleService from "../modules/elasticsearch/service";
 import { embedProductWorkflow } from "../workflows/product-embedding/embed-product";
 
 export default async function reindexAllEmbeddings({ container }: ExecArgs) {
   console.log(`\n🔄 Starting full reindexing process...\n`);
 
+  const elasticsearchService: ElasticsearchModuleService = container.resolve(
+    ELASTICSEARCH_MODULE
+  );
+
   // Step 1: Delete existing index
   try {
-    const exists = await elasticsearchClient.indices.exists({
-      index: PRODUCT_EMBEDDINGS_INDEX,
-    });
-
-    if (exists) {
-      console.log(`🗑️  Deleting existing index "${PRODUCT_EMBEDDINGS_INDEX}"...`);
-      await elasticsearchClient.indices.delete({
-        index: PRODUCT_EMBEDDINGS_INDEX,
-      });
-      console.log(`✅ Index deleted successfully\n`);
-    } else {
-      console.log(`ℹ️  Index "${PRODUCT_EMBEDDINGS_INDEX}" does not exist\n`);
-    }
+    console.log(`🗑️  Deleting existing index...`);
+    await elasticsearchService.deleteIndex();
+    console.log(`✅ Index deleted successfully\n`);
   } catch (error: any) {
     console.error(`❌ Failed to delete index:`, error.message);
     throw error;
@@ -33,7 +24,7 @@ export default async function reindexAllEmbeddings({ container }: ExecArgs) {
   // Step 2: Recreate index with correct dimensions
   try {
     console.log(`🔨 Recreating index with current embedding dimensions...`);
-    await initializeProductEmbeddingIndex();
+    await elasticsearchService.initializeIndex();
     console.log(`✅ Index recreated successfully\n`);
   } catch (error: any) {
     console.error(`❌ Failed to recreate index:`, error.message);

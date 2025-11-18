@@ -4,11 +4,12 @@ import type {
 } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import { embedText } from "../../../../lib/embedding-client";
-import {
-  semanticSearch,
-  type SemanticSearchHit,
-  type SearchMode,
-} from "../../../../lib/semantic-search";
+import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../../modules/elasticsearch/service";
+import type {
+  SemanticSearchHit,
+  SearchMode,
+} from "../../../../modules/elasticsearch/types";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
@@ -82,7 +83,7 @@ export const POST = async (
     }
 
     productIds = filters.product_ids
-      .filter((id): id is string => typeof id === "string" && id.trim().length)
+      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
       .map((id) => id.trim());
     productIds = Array.from(new Set(productIds));
 
@@ -113,7 +114,10 @@ export const POST = async (
       );
     }
 
-    const searchResult = await semanticSearch({
+    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
+      ELASTICSEARCH_MODULE
+    );
+    const searchResult = await elasticsearchService.semanticSearch({
       query,
       embedding,
       limit,

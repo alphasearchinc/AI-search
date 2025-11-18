@@ -1,10 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import { embedText } from "../../../../lib/embedding-client";
-import {
-  semanticSearch,
-  type SearchMode,
-} from "../../../../lib/semantic-search";
+import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../../modules/elasticsearch/service";
+import type { SearchMode } from "../../../../modules/elasticsearch/types";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
@@ -96,7 +95,10 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   try {
-    const searchResult = await semanticSearch({
+    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
+      ELASTICSEARCH_MODULE
+    );
+    const searchResult = await elasticsearchService.semanticSearch({
       query,
       embedding,
       limit,
@@ -110,7 +112,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       new Set(
         searchResult.hits
           .map((hit) => hit.product_id)
-          .filter((id): id is string => typeof id === "string" && id.trim())
+          .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
       )
     );
 
@@ -127,28 +129,23 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       );
 
       const productMap = new Map(products.map((product: any) => [product.id, product]));
-      hits = searchResult.hits
-        .map((hit) => {
-          if (!hit.product_id) {
-            return null;
-          }
+      const tempHits: StoreSemanticSearchHit[] = [];
+      for (const hit of searchResult.hits) {
+        if (!hit.product_id) continue;
+        
+        const product = productMap.get(hit.product_id);
+        if (!product) continue;
 
-          const product = productMap.get(hit.product_id);
-          if (!product) {
-            return null;
-          }
-
-          return {
-            id: hit.id,
-            score: hit.score,
-            bm25_score: hit.bm25_score,
-            vector_score: hit.vector_score,
-            product: selectProductFields(product),
-            metadata: hit.metadata,
-          };
-        })
-        .filter((hit): hit is StoreSemanticSearchHit => Boolean(hit))
-        .slice(0, limit);
+        tempHits.push({
+          id: hit.id,
+          score: hit.score,
+          bm25_score: hit.bm25_score,
+          vector_score: hit.vector_score,
+          product: selectProductFields(product),
+          metadata: hit.metadata,
+        });
+      }
+      hits = tempHits.slice(0, limit);
     }
 
     logger.info(
