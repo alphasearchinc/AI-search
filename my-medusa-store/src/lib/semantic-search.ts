@@ -50,6 +50,10 @@ const MAX_LIMIT = 50;
 const DEFAULT_VECTOR_WEIGHT = 0.7;
 const DEFAULT_BM25_WEIGHT = 0.3;
 const OVERFETCH_MULTIPLIER = 3; // fetch a bit more from ES before re-ranking locally
+const DEFAULT_FUZZY_ENABLED = true;
+const DEFAULT_FUZZINESS_LEVEL = "AUTO";
+const DEFAULT_PREFIX_LENGTH = 2;
+const DEFAULT_MAX_EXPANSIONS = 50;
 
 export async function semanticSearch(
   options: SemanticSearchOptions
@@ -60,19 +64,21 @@ export async function semanticSearch(
     !options.embedding.vectors.some((value) => typeof value !== "number");
 
   const requestedMode: SearchMode = options.mode ?? "hybrid";
-  if ((requestedMode === "hybrid" || requestedMode === "vector") && !hasEmbedding) {
+  if (
+    (requestedMode === "hybrid" || requestedMode === "vector") &&
+    !hasEmbedding
+  ) {
     if (requestedMode === "vector") {
-      throw new Error("A numeric embedding vector is required for vector search");
+      throw new Error(
+        "A numeric embedding vector is required for vector search"
+      );
     }
   }
 
   const resolvedMode: SearchMode | "bm25-only" =
     hasEmbedding || requestedMode === "bm25" ? requestedMode : "bm25-only";
 
-  const size = Math.max(
-    1,
-    Math.min(options.limit ?? DEFAULT_LIMIT, MAX_LIMIT)
-  );
+  const size = Math.max(1, Math.min(options.limit ?? DEFAULT_LIMIT, MAX_LIMIT));
 
   const sourceFields = [
     "product_id",
@@ -117,15 +123,38 @@ export async function semanticSearch(
   );
 
   const weightSum = rawVectorWeight + rawBm25Weight;
-  const vectorWeight = weightSum > 0 ? rawVectorWeight / weightSum : DEFAULT_VECTOR_WEIGHT;
-  const bm25Weight = weightSum > 0 ? rawBm25Weight / weightSum : DEFAULT_BM25_WEIGHT;
+  const vectorWeight =
+    weightSum > 0 ? rawVectorWeight / weightSum : DEFAULT_VECTOR_WEIGHT;
+  const bm25Weight =
+    weightSum > 0 ? rawBm25Weight / weightSum : DEFAULT_BM25_WEIGHT;
+
+  // Fuzzy search configuration
+  const fuzzyEnabled =
+    process.env.SEARCH_FUZZY_ENABLED !== "false" && DEFAULT_FUZZY_ENABLED;
+  const fuzzinessLevel =
+    process.env.SEARCH_FUZZINESS_LEVEL || DEFAULT_FUZZINESS_LEVEL;
+  const prefixLength = parseWeight(
+    process.env.SEARCH_PREFIX_LENGTH,
+    DEFAULT_PREFIX_LENGTH
+  );
+  const maxExpansions = parseWeight(
+    process.env.SEARCH_MAX_EXPANSIONS,
+    DEFAULT_MAX_EXPANSIONS
+  );
 
   const bm25Query = {
     bool: {
       must: [
         {
           match: {
-            embedded_text: options.query,
+            embedded_text: fuzzyEnabled
+              ? {
+                  query: options.query,
+                  fuzziness: fuzzinessLevel,
+                  prefix_length: prefixLength,
+                  max_expansions: maxExpansions,
+                }
+              : options.query,
           },
         },
       ],
@@ -133,7 +162,9 @@ export async function semanticSearch(
     },
   };
 
-  const baseVectorQuery = boolFilter ? { bool: { filter: filterClauses } } : { match_all: {} };
+  const baseVectorQuery = boolFilter
+    ? { bool: { filter: filterClauses } }
+    : { match_all: {} };
 
   const hitsMap = new Map<
     string,
