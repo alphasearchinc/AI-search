@@ -2,10 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http";
-import {
-  elasticsearchClient,
-  PRODUCT_EMBEDDINGS_INDEX,
-} from "../../../../modules/elasticsearch-client";
+import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../../modules/elasticsearch/service";
 
 // GET embedding by product ID
 export const GET = async (
@@ -15,8 +13,11 @@ export const GET = async (
   const { product_id } = req.params;
 
   try {
-    const result = await elasticsearchClient.search({
-      index: PRODUCT_EMBEDDINGS_INDEX,
+    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
+      ELASTICSEARCH_MODULE
+    );
+    const result = await elasticsearchService.getClient().search({
+      index: elasticsearchService.PRODUCT_EMBEDDINGS_INDEX,
       query: {
         term: { product_id },
       },
