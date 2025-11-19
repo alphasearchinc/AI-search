@@ -51,7 +51,7 @@ export async function semanticProductSearch(
   const backendUrl = getBackendUrl()
   const publishableKey = getPublishableKey()
 
-  const response = await fetch(`${backendUrl}/store/embeddings/search`, {
+  const response = await fetch(`${backendUrl}/store/search`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
