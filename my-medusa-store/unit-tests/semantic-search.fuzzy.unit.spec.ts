@@ -1,27 +1,43 @@
-import { semanticSearch } from "../src/lib/semantic-search";
-import { elasticsearchClient } from "../src/modules/elasticsearch-client";
+// Mock the Elasticsearch client
+const mockSearch = jest.fn();
 
-jest.mock("../src/modules/elasticsearch-client", () => {
-  const actual = jest.requireActual("../src/modules/elasticsearch-client");
+jest.mock("@elastic/elasticsearch", () => {
   return {
-    ...actual,
-    elasticsearchClient: {
-      search: jest.fn(),
-    },
+    Client: jest.fn().mockImplementation(() => ({
+      search: mockSearch,
+      indices: {
+        exists: jest.fn(),
+        create: jest.fn(),
+        getMapping: jest.fn(),
+      },
+    })),
   };
 });
 
-const mockSearch = elasticsearchClient.search as jest.MockedFunction<
-  typeof elasticsearchClient.search
->;
+// Mock Redis/BullMQ
+jest.mock("bullmq", () => ({
+  Queue: jest.fn().mockImplementation(() => ({
+    add: jest.fn(),
+  })),
+  Worker: jest.fn(),
+}));
+
+jest.mock("../src/lib/redis-connection", () => ({
+  createRedisConnection: jest.fn(() => ({})),
+}));
+
+import ElasticsearchModuleService from "../src/modules/elasticsearch/service";
 
 describe("semanticSearch - fuzzy matching", () => {
+  let service: ElasticsearchModuleService;
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearch.mockClear();
     delete process.env.SEARCH_FUZZY_ENABLED;
     delete process.env.SEARCH_FUZZINESS_LEVEL;
     delete process.env.SEARCH_PREFIX_LENGTH;
     delete process.env.SEARCH_MAX_EXPANSIONS;
+    service = new ElasticsearchModuleService({}, {});
   });
 
   it("WITHOUT fuzzy: typos return no results (baseline test)", async () => {
@@ -35,7 +51,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 2,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "lptop", // typo: missing 'a'
       limit: 2,
       mode: "bm25",
@@ -80,7 +96,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 4,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "lptop", // typo: missing 'a'
       limit: 2,
       mode: "bm25",
@@ -118,7 +134,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 2,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "keyboard",
       limit: 1,
       mode: "bm25",
@@ -154,7 +170,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 3,
     });
 
-    await semanticSearch({
+    await service.semanticSearch({
       query: "wireles", // typo: missing 's'
       limit: 1,
       mode: "bm25",
@@ -186,7 +202,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 5,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "keybord", // typo: 'a' replaced with 'o'
       limit: 1,
       mode: "bm25",
@@ -236,7 +252,7 @@ describe("semanticSearch - fuzzy matching", () => {
         took: 6,
       });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "smartphne", // typo: missing 'o'
       embedding: {
         vectors: [0.3, 0.7],
@@ -270,7 +286,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 2,
     });
 
-    await semanticSearch({
+    await service.semanticSearch({
       query: "abc", // short query
       limit: 1,
       mode: "bm25",
@@ -301,7 +317,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 3,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "mose", // typo: missing 'u'
       limit: 1,
       mode: "bm25",
@@ -336,7 +352,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 4,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "tablett", // typo: extra 't'
       limit: 1,
       mode: "bm25",
@@ -365,7 +381,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 3,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "HEDPHONES", // typo: missing 'a', uppercase
       limit: 1,
       mode: "bm25",
@@ -394,7 +410,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 5,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "moniter", // typo: 'o' instead of 'i'
       limit: 5,
       mode: "bm25",
@@ -432,7 +448,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 2,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "sdd", // typo: 3 characters
       limit: 1,
       mode: "bm25",
@@ -465,7 +481,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 3,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "chargr", // typo: 6 chars, missing 'e'
       limit: 1,
       mode: "bm25",
@@ -508,7 +524,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 4,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "laptop", // exact match
       limit: 2,
       mode: "bm25",
@@ -541,7 +557,7 @@ describe("semanticSearch - fuzzy matching", () => {
       took: 2,
     });
 
-    await semanticSearch({
+    await service.semanticSearch({
       query: "productt",
       limit: 1,
       mode: "bm25",
@@ -592,7 +608,7 @@ describe("semanticSearch - fuzzy matching", () => {
         took: 5,
       });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "camra", // typo
       embedding: { vectors: [0.5, 0.5], dimensions: 2 },
       limit: 1,
@@ -625,7 +641,7 @@ describe("semanticSearch - fuzzy matching", () => {
         took: 5,
       });
 
-      const result = await semanticSearch({
+      const result = await service.semanticSearch({
         query: "lptop",
         embedding: { vectors: [0.2, 0.8], dimensions: 2 },
         limit: 5,
@@ -671,7 +687,7 @@ describe("semanticSearch - fuzzy matching", () => {
           took: 5,
         });
 
-      const result = await semanticSearch({
+      const result = await service.semanticSearch({
         query: "lptop", // same typo
         embedding: { vectors: [0.2, 0.8], dimensions: 2 },
         limit: 5,
@@ -702,7 +718,7 @@ describe("semanticSearch - fuzzy matching", () => {
         took: 2,
       });
 
-      const beforeResult = await semanticSearch({
+      const beforeResult = await service.semanticSearch({
         query: "keybord", // typo
         limit: 5,
         mode: "bm25",
@@ -732,7 +748,7 @@ describe("semanticSearch - fuzzy matching", () => {
         took: 3,
       });
 
-      const afterResult = await semanticSearch({
+      const afterResult = await service.semanticSearch({
         query: "keybord", // same typo
         limit: 5,
         mode: "bm25",

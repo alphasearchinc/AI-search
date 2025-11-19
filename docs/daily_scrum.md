@@ -117,3 +117,35 @@
 ### Hvilke udfordringer forudser vi?
  - Hvordan måler vi vores fuzzy/BM25 implementering? 
 
+### Noter fra møde med Ian
+
+ - Sustainability som et muligt afsnit
+ - I forlængelse af dette sovereignty
+ - God ide med Deployment - opvej hvad gør Alpha vs Hvordan vi får mest fingrene i det
+ - Dokumenter GitHub i rapporten inklusiv yaml filer til issue_templates og argumenter hvorfor vi har valgt dem
+ - Teknologivalg - hvorfor? Valg fra Alpha Solutions eller 
+ - Ændrede objekt struktur i Python, dette medførte at det ikke længerede passede med strukturen i Medusa Backend - Dette blev opdaget manuelt
+ - Vi skal have skrevet en test der ville opfange dette i en CI-pipeline istedet
+ - Forhold os til læringsmålene inden vi påbegynder skrivning
+ - Få påbegyndt rapportskrivning allerede nu
+
+## 📅 Daily Scrum 19-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Risikoanalyse
+ - Interessentanalyse
+ - Møde med Ian
+ - Metrics op at køre
+ - Refaktoreret til korrekt Medusa module struktur
+ - Karl kigget på monitorering generelt
+ - Anders har implementeret Fuzzy search
+ - Implementeret confidence level, så søgemaskinen ikke altid responderer med et svar
+ - Fixet searchbar UI
+### Hvad skal vi lave i dag?
+ - Refaktoreret vores routes
+ - Refaktoreret elasticsearch module service
+ - Gennemgå PR til metrics
+ - Fordele hvad vi skal skrive om torsdag/fredag
+ - Udkast til rapportstruktur
+### Hvilke udfordringer forudser vi?
+ - Eventuelle merge konflikter

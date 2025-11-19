@@ -1,5 +1,6 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { productEmbeddingQueue } from "../../../lib/elasticsearch-queue";
+import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
 
 type StoreEmbeddingInput = {
   product_id: string;
@@ -13,8 +14,12 @@ type StoreEmbeddingInput = {
 
 export const storeEmbeddingStep = createStep(
   "store-embedding-step",
-  async (input: StoreEmbeddingInput) => {
-    const job = await productEmbeddingQueue.add("embedding.index", {
+  async (input: StoreEmbeddingInput, { container }) => {
+    const elasticsearchService: ElasticsearchModuleService = container.resolve(
+      ELASTICSEARCH_MODULE
+    );
+
+    await elasticsearchService.queueEmbedding({
       product_id: input.product_id,
       embedding: input.embedding,
       embedded_text: input.embedded_text,
@@ -23,11 +28,10 @@ export const storeEmbeddingStep = createStep(
 
     return new StepResponse(
       {
-        job_id: job.id,
         product_id: input.product_id,
       },
       {
-        job_id: job.id,
+        product_id: input.product_id,
       }
     );
   }

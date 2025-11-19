@@ -2,10 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http";
-import {
-  elasticsearchClient,
-  PRODUCT_EMBEDDINGS_INDEX,
-} from "../../../modules/elasticsearch-client";
+import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
@@ -15,8 +13,11 @@ export const GET = async (
   const offset = parseInt((req.query?.offset as string) || "0", 10);
 
   try {
-    const searchResponse = await elasticsearchClient.search({
-      index: PRODUCT_EMBEDDINGS_INDEX,
+    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
+      ELASTICSEARCH_MODULE
+    );
+    const searchResponse = await elasticsearchService.getClient().search({
+      index: elasticsearchService.PRODUCT_EMBEDDINGS_INDEX,
       from: offset,
       size: limit,
       sort: [
