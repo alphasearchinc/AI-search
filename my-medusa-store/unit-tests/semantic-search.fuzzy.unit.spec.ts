@@ -26,7 +26,7 @@ jest.mock("../src/lib/redis-connection", () => ({
   createRedisConnection: jest.fn(() => ({})),
 }));
 
-import ElasticsearchModuleService from "../src/modules/elasticsearch/service";
+import ElasticsearchModuleService from "../src/modules/elasticsearch/services/main";
 
 describe("semanticSearch - fuzzy matching", () => {
   let service: ElasticsearchModuleService;

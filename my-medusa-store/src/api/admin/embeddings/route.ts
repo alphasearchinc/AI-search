@@ -3,7 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http";
 import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
-import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
+import ElasticsearchModuleService from "../../../modules/elasticsearch/services/main";
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
