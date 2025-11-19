@@ -1,4 +1,4 @@
-import ElasticsearchModuleService from "../src/modules/elasticsearch/service";
+import ElasticsearchModuleService from "../src/modules/elasticsearch/services/main";
 
 // Mock the Elasticsearch client
 const mockSearch = jest.fn();

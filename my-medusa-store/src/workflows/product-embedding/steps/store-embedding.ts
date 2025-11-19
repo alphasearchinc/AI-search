@@ -1,6 +1,6 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
 import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
-import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
+import ElasticsearchModuleService from "../../../modules/elasticsearch/services/main";
 
 type StoreEmbeddingInput = {
   product_id: string;
