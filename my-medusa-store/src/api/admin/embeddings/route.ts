@@ -14,11 +14,11 @@ export const GET = async (
   const offset = parseInt((req.query?.offset as string) || "0", 10);
 
   try {
-
-    const result = await elasticsearchService.listEmbeddings({ offset, limit });
-    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
+     const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
       ELASTICSEARCH_MODULE
     );
+    const result = await elasticsearchService.listEmbeddings({ offset, limit });
+   
     const searchResponse = await elasticsearchService.getClient().search({
       index: elasticsearchService.PRODUCT_EMBEDDINGS_INDEX,
       from: offset,
