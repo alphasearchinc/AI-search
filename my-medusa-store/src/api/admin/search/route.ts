@@ -2,14 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http";
-import { Modules } from "@medusajs/framework/utils";
-import { embedText } from "../../../lib/embedding-client";
-import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
-import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
-import type {
-  SemanticSearchHit,
-  SearchMode,
-} from "../../../modules/elasticsearch/types";
+import { adminSearchWorkflow } from "../../../workflows/search/admin-search";
+import type { SemanticSearchHit } from "../../../modules/elasticsearch/types";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
@@ -105,85 +99,20 @@ export const POST = async (
     }
   }
 
-  let embedding: { vectors: number[]; dimensions: number } | undefined;
-  let requestedMode: SearchMode | "bm25-only" = "hybrid";
-
   try {
-    try {
-      const embedResult = await embedText(query);
-      embedding = embedResult;
-    } catch (error: any) {
-      requestedMode = "bm25-only";
-      logger.warn(
-        `[Semantic Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
-      );
-    }
-
-    const elasticsearchService: ElasticsearchModuleService =
-      req.scope.resolve(ELASTICSEARCH_MODULE);
-    const searchResult = await elasticsearchService.semanticSearch({
-      query,
-      embedding,
-      limit,
-      filters: productIds.length ? { product_ids: productIds } : undefined,
-      includeEmbedding,
-      mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
-      minConfidence,
+    // Execute search using workflow
+    const { result } = await adminSearchWorkflow(req.scope).run({
+      input: {
+        query,
+        limit,
+        filters: productIds.length ? { product_ids: productIds } : undefined,
+        includeProduct,
+        includeEmbedding,
+        minConfidence,
+      },
     });
 
-    let hits: SemanticSearchHitResponse[] = searchResult.hits;
-
-    if (includeProduct && hits.length) {
-      const productModuleService = req.scope.resolve(Modules.PRODUCT);
-      const uniqueProductIds = Array.from(
-        new Set(
-          hits
-            .map((hit) => hit.product_id)
-            .filter((id): id is string => typeof id === "string")
-        )
-      );
-
-      if (uniqueProductIds.length) {
-        const [products] = await productModuleService.listAndCountProducts(
-          {
-            id: uniqueProductIds,
-          },
-          {
-            take: uniqueProductIds.length,
-          }
-        );
-
-        const productMap = new Map(
-          products.map((product) => [product.id, product])
-        );
-
-        hits = hits.map((hit) => ({
-          ...hit,
-          product: hit.product_id
-            ? productMap.get(hit.product_id) || null
-            : null,
-        }));
-      }
-    }
-
-    logger.info(
-      `[Semantic Search] query="${query.slice(
-        0,
-        120
-      )}" limit=${limit} min_confidence=${
-        minConfidence !== undefined ? minConfidence : "env-default"
-      } hits=${hits.length} took=${searchResult.took}ms`
-    );
-
-    res.json({
-      query,
-      limit,
-      took: searchResult.took,
-      count: searchResult.count,
-      mode: searchResult.mode,
-      embedding,
-      hits,
-    });
+    res.json(result);
   } catch (error: any) {
     logger.error("[Semantic Search] Failed to execute search", error);
     const message = error?.message || "Semantic search failed";

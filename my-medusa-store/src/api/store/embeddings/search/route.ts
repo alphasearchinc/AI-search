@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { StoreSearchService } from "../../../../lib/store-search-service";
+import { storeSearchWorkflow } from "../../../../workflows/search/store-search";
 
 const MAX_LIMIT = 25;
 const MAX_QUERY_LENGTH = 2000;
@@ -64,12 +64,13 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   try {
-    // Execute search using service layer
-    const storeSearchService = new StoreSearchService(req.scope);
-    const result = await storeSearchService.executeStoreSearch({
-      query,
-      limit,
-      minConfidence,
+    // Execute search using workflow
+    const { result } = await storeSearchWorkflow(req.scope).run({
+      input: {
+        query,
+        limit,
+        minConfidence,
+      },
     });
 
     return res.json(result);
