@@ -17,24 +17,24 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
   private queue: Queue<ProductEmbeddingJobData>;
   private worker: Worker<ProductEmbeddingJobData> | null = null;
   private options_: ElasticsearchModuleOptions;
-  
+
   public readonly PRODUCT_EMBEDDINGS_INDEX: string;
   public readonly PRODUCT_EMBEDDING_QUEUE: string;
 
   constructor(container, options: ElasticsearchModuleOptions = {}) {
     super(...arguments);
-    
+
     this.options_ = options;
 
     // Configuration with fallbacks
     const ELASTICSEARCH_URL =
-      options.elasticsearch_url || 
-      process.env.ELASTICSEARCH_URL || 
+      options.elasticsearch_url ||
+      process.env.ELASTICSEARCH_URL ||
       "http://localhost:9200";
 
-    this.PRODUCT_EMBEDDINGS_INDEX = 
+    this.PRODUCT_EMBEDDINGS_INDEX =
       options.product_embeddings_index || "product-embeddings";
-    this.PRODUCT_EMBEDDING_QUEUE = 
+    this.PRODUCT_EMBEDDING_QUEUE =
       options.product_embedding_queue || "product-embedding";
 
     this.client = new Client({
@@ -58,7 +58,9 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
       }
     );
 
-    console.log(`[ELASTICSEARCH MODULE] 📦 Queue "${this.PRODUCT_EMBEDDING_QUEUE}" initialized`);
+    console.log(
+      `[ELASTICSEARCH MODULE] 📦 Queue "${this.PRODUCT_EMBEDDING_QUEUE}" initialized`
+    );
   }
 
   async onApplicationStart(): Promise<void> {
@@ -145,7 +147,7 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
         if (indexDims === null) {
           console.warn(
             `[ELASTICSEARCH MODULE] ⚠️ Unable to determine index embedding dimensions for "${this.PRODUCT_EMBEDDINGS_INDEX}". ` +
-            `Consider running 'npm run reindex' to recreate the index.`
+              `Consider running 'npm run reindex' to recreate the index.`
           );
         } else if (indexDims !== currentDims) {
           console.error(
@@ -167,14 +169,19 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
         }
       }
     } catch (error) {
-      console.error(`[ELASTICSEARCH MODULE] ❌ Failed to initialize index:`, error);
+      console.error(
+        `[ELASTICSEARCH MODULE] ❌ Failed to initialize index:`,
+        error
+      );
       throw error;
     }
   }
 
   async queueEmbedding(data: ProductEmbeddingJobData): Promise<void> {
     await this.queue.add("embed", data);
-    console.log(`[ELASTICSEARCH MODULE] 📦 Queued embedding for product ${data.product_id}`);
+    console.log(
+      `[ELASTICSEARCH MODULE] 📦 Queued embedding for product ${data.product_id}`
+    );
   }
 
   async indexEmbedding(data: ProductEmbeddingJobData): Promise<void> {
@@ -211,7 +218,9 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
       async (job: Job<ProductEmbeddingJobData>) => {
         const { product_id, embedded_text, embedding, metadata } = job.data;
 
-        console.log(`[ELASTICSEARCH MODULE WORKER] 🔍 Processing job ${job.id} for product ${product_id}`);
+        console.log(
+          `[ELASTICSEARCH MODULE WORKER] 🔍 Processing job ${job.id} for product ${product_id}`
+        );
         console.log(
           `[ELASTICSEARCH MODULE WORKER] 🔍 Embedding vector: ${
             embedding.vectors
@@ -241,7 +250,9 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
     });
 
     this.worker.on("failed", (job, err) => {
-      console.error(`[ELASTICSEARCH MODULE WORKER] ❌ Job ${job?.id} failed: ${err.message}`);
+      console.error(
+        `[ELASTICSEARCH MODULE WORKER] ❌ Job ${job?.id} failed: ${err.message}`
+      );
     });
 
     console.log(`[ELASTICSEARCH MODULE] ✅ Worker started`);
@@ -263,7 +274,10 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
     return fallback;
   }
 
-  private parseMinConfidence(raw: string | undefined, fallback: number): number {
+  private parseMinConfidence(
+    raw: string | undefined,
+    fallback: number
+  ): number {
     const parsed = Number.parseFloat(raw ?? "");
     if (Number.isFinite(parsed)) {
       return Math.min(Math.max(parsed, 0), 1);
@@ -308,7 +322,10 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
 
     const size = Math.max(
       1,
-      Math.min(options.limit ?? searchConfig.defaultLimit, searchConfig.maxLimit)
+      Math.min(
+        options.limit ?? searchConfig.defaultLimit,
+        searchConfig.maxLimit
+      )
     );
 
     const sourceFields = [
@@ -489,7 +506,8 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
         data.vector_score !== undefined ? vectorWeight : 0;
       const availableBm25Weight =
         data.bm25_score !== undefined ? bm25Weight : 0;
-      const availableWeightSum = availableVectorWeight + availableBm25Weight || 1;
+      const availableWeightSum =
+        availableVectorWeight + availableBm25Weight || 1;
 
       const confidence =
         (normalizedVector * availableVectorWeight +
@@ -546,6 +564,61 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
         `[ELASTICSEARCH MODULE] 🗑️ Index "${this.PRODUCT_EMBEDDINGS_INDEX}" deleted`
       );
     }
+  }
+
+  /**
+   * List embeddings with pagination and sorting.
+   * Used for admin endpoints to view stored embeddings.
+   */
+  async listEmbeddings(options: { offset?: number; limit?: number }): Promise<{
+    embeddings: Array<{
+      id: string;
+      product_id?: string;
+      embedded_text?: string;
+      metadata?: Record<string, any>;
+      generated_at?: string;
+      embedding?: any;
+    }>;
+    count: number;
+  }> {
+    const offset = options.offset || 0;
+    const limit = options.limit || 50;
+
+    const searchResponse = await this.client.search({
+      index: this.PRODUCT_EMBEDDINGS_INDEX,
+      from: offset,
+      size: limit,
+      sort: [
+        {
+          generated_at: {
+            order: "desc",
+          },
+        },
+      ],
+      _source: [
+        "product_id",
+        "embedded_text",
+        "metadata",
+        "generated_at",
+        "embedding",
+      ],
+    });
+
+    const embeddings = searchResponse.hits.hits.map((hit) => ({
+      id: hit._id as string,
+      ...(hit._source as Record<string, any>),
+    }));
+
+    const count = searchResponse.hits.total
+      ? typeof searchResponse.hits.total === "number"
+        ? searchResponse.hits.total
+        : searchResponse.hits.total.value
+      : embeddings.length;
+
+    return {
+      embeddings,
+      count,
+    };
   }
 
   getClient(): Client {
