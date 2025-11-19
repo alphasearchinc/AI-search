@@ -3,13 +3,13 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
-import { embedText } from "../../../../lib/embedding-client";
-import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
-import ElasticsearchModuleService from "../../../../modules/elasticsearch/service";
+import { embedText } from "../../../lib/embedding-client";
+import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
 import type {
   SemanticSearchHit,
   SearchMode,
-} from "../../../../modules/elasticsearch/types";
+} from "../../../modules/elasticsearch/types";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
@@ -64,7 +64,10 @@ export const POST = async (
 
   let minConfidence: number | undefined = undefined;
   if (body.min_confidence !== undefined) {
-    if (typeof body.min_confidence !== "number" || !Number.isFinite(body.min_confidence)) {
+    if (
+      typeof body.min_confidence !== "number" ||
+      !Number.isFinite(body.min_confidence)
+    ) {
       return res.status(400).json({
         message: "min_confidence must be a number between 0 and 1",
       });
@@ -83,7 +86,9 @@ export const POST = async (
     }
 
     productIds = filters.product_ids
-      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      .filter(
+        (id): id is string => typeof id === "string" && id.trim().length > 0
+      )
       .map((id) => id.trim());
     productIds = Array.from(new Set(productIds));
 
@@ -114,9 +119,8 @@ export const POST = async (
       );
     }
 
-    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
-      ELASTICSEARCH_MODULE
-    );
+    const elasticsearchService: ElasticsearchModuleService =
+      req.scope.resolve(ELASTICSEARCH_MODULE);
     const searchResult = await elasticsearchService.semanticSearch({
       query,
       embedding,

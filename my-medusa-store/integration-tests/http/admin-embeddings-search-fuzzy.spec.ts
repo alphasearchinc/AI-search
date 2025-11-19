@@ -43,10 +43,10 @@ medusaIntegrationTestRunner({
       authHeaders = { Authorization: `Bearer ${token}` };
     });
 
-    describe("POST /admin/embeddings/search - Fuzzy Search E2E", () => {
+    describe("POST /admin/search - Fuzzy Search E2E", () => {
       it("handles typos via HTTP endpoint with real Elasticsearch", async () => {
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "wireles", // typo: missing 's' (but prefix "wi" matches "wireless")
             limit: 5,
@@ -67,7 +67,7 @@ medusaIntegrationTestRunner({
 
       it("returns valid response structure for typo queries", async () => {
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "laptpo", // typo: 'p' and 'o' swapped (prefix "la" matches "laptop")
             limit: 3,
@@ -104,7 +104,7 @@ medusaIntegrationTestRunner({
       it("applies fuzzy configuration from environment variables", async () => {
         // This test documents that fuzzy config is read from .env at runtime
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "keybaord", // typo: 'o' and 'a' swapped (prefix "ke" matches "keyboard")
             limit: 5,
@@ -123,7 +123,7 @@ medusaIntegrationTestRunner({
 
       it("validates that exact matches work alongside fuzzy", async () => {
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "laptop", // exact match (no typo)
             limit: 10,
@@ -140,7 +140,7 @@ medusaIntegrationTestRunner({
 
       it("handles filters combined with fuzzy matching", async () => {
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "wireles", // typo
             limit: 5,
@@ -161,7 +161,7 @@ medusaIntegrationTestRunner({
       it("returns proper error for empty query", async () => {
         try {
           await api.post(
-            "/admin/embeddings/search",
+            "/admin/search",
             {
               query: "",
               limit: 5,
@@ -179,7 +179,7 @@ medusaIntegrationTestRunner({
 
       it("respects limit parameter with fuzzy queries", async () => {
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "prodcut", // typo in "product"
             limit: 2,
@@ -202,7 +202,7 @@ medusaIntegrationTestRunner({
         // When embedding service is unavailable, system falls back to BM25-only
         // Fuzzy should still work in this mode
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "tablte", // typo in "tablet"
             limit: 5,
@@ -218,7 +218,7 @@ medusaIntegrationTestRunner({
 
       it("handles very short queries with prefix_length protection", async () => {
         const response = await api.post(
-          "/admin/embeddings/search",
+          "/admin/search",
           {
             query: "ab", // 2-char query (at prefix_length boundary)
             limit: 5,
