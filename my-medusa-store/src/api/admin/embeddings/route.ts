@@ -32,14 +32,17 @@ export const GET = async (
         "embedded_text",
         "metadata",
         "generated_at",
-        "embedding",
       ],
     });
 
-    const embeddings = searchResponse.hits.hits.map((hit) => ({
-      id: hit._id,
-      ...(hit._source as Record<string, any>),
-    }));
+    const embeddings = searchResponse.hits.hits.map((hit) => {
+      const { embedding, ...safeSource } = (hit._source ||
+        {}) as Record<string, any>;
+      return {
+        id: hit._id,
+        ...safeSource,
+      };
+    });
 
     res.json({
       embeddings,
