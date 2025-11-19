@@ -1,7 +1,7 @@
 import { ExecArgs } from "@medusajs/framework/types";
 import { Modules } from "@medusajs/framework/utils";
 import { ELASTICSEARCH_MODULE } from "../modules/elasticsearch";
-import ElasticsearchModuleService from "../modules/elasticsearch/service";
+import ElasticsearchModuleService from "../modules/elasticsearch/services/main";
 import { embedProductWorkflow } from "../workflows/product-embedding/embed-product";
 
 export default async function reindexAllEmbeddings({ container }: ExecArgs) {

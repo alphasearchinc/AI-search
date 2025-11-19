@@ -40,7 +40,7 @@ jest.mock("../../src/lib/redis-connection", () => ({
   createRedisConnection: jest.fn(() => ({})),
 }));
 
-import ElasticsearchModuleService from "../../src/modules/elasticsearch/service";
+import ElasticsearchModuleService from "../../src/modules/elasticsearch/services/main";
 
 describe("Elasticsearch Module Queue", () => {
   let service: ElasticsearchModuleService;
