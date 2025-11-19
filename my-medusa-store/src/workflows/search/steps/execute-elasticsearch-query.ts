@@ -26,9 +26,8 @@ export const executeElasticsearchQueryStep = createStep(
   "execute-elasticsearch-query",
   async (input: ExecuteElasticsearchQueryInput, { container }) => {
     const logger = container.resolve("logger");
-    const elasticsearchService: ElasticsearchModuleService = container.resolve(
-      ELASTICSEARCH_MODULE
-    );
+    const elasticsearchService: ElasticsearchModuleService =
+      container.resolve(ELASTICSEARCH_MODULE);
 
     const {
       query,

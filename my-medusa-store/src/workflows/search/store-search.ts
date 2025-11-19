@@ -40,13 +40,13 @@ type StoreSearchOutput = {
 
 /**
  * Store-facing semantic search workflow.
- * 
+ *
  * This workflow:
  * 1. Generates embedding for the search query (with BM25 fallback)
  * 2. Executes Elasticsearch query
  * 3. Enriches results with published product data only
  * 4. Records search metrics asynchronously
- * 
+ *
  * Only published products are returned to store users.
  */
 export const storeSearchWorkflow = createWorkflow(
@@ -59,8 +59,9 @@ export const storeSearchWorkflow = createWorkflow(
     const embeddingResult = generateQueryEmbeddingStep({
       query: input.query,
     });
-    const embeddingDuration = transform({ embeddingStartTime }, () =>
-      Date.now() - embeddingStartTime
+    const embeddingDuration = transform(
+      { embeddingStartTime },
+      () => Date.now() - embeddingStartTime
     );
 
     // Step 2: Execute Elasticsearch query
@@ -73,8 +74,9 @@ export const storeSearchWorkflow = createWorkflow(
       minConfidence: input.minConfidence,
       includeEmbedding: false,
     });
-    const searchDuration = transform({ searchStartTime }, () =>
-      Date.now() - searchStartTime
+    const searchDuration = transform(
+      { searchStartTime },
+      () => Date.now() - searchStartTime
     );
 
     // Step 3: Enrich with published products only
@@ -84,8 +86,9 @@ export const storeSearchWorkflow = createWorkflow(
     });
 
     // Calculate total duration
-    const totalDuration = transform({ workflowStartTime }, () =>
-      Date.now() - workflowStartTime
+    const totalDuration = transform(
+      { workflowStartTime },
+      () => Date.now() - workflowStartTime
     );
 
     // Step 4: Record metrics asynchronously

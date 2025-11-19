@@ -19,7 +19,9 @@ export const getAllProductsStep = createStep(
     const productModuleService = container.resolve(Modules.PRODUCT);
     const batchSize = input.batch_size || 100;
 
-    logger.info(`[Bulk Embedding] Fetching products with batch size ${batchSize}`);
+    logger.info(
+      `[Bulk Embedding] Fetching products with batch size ${batchSize}`
+    );
 
     // Get total count first
     const [, totalCount] = await productModuleService.listAndCountProducts(

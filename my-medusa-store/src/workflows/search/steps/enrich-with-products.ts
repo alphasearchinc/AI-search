@@ -60,9 +60,12 @@ export const enrichWithProductsStep = createStep(
       filters.status = ["published"];
     }
 
-    const [products] = await productModuleService.listAndCountProducts(filters, {
-      take: productIds.length,
-    });
+    const [products] = await productModuleService.listAndCountProducts(
+      filters,
+      {
+        take: productIds.length,
+      }
+    );
 
     const productMap = new Map(
       products.map((product: any) => [product.id, product])
@@ -77,7 +80,7 @@ export const enrichWithProductsStep = createStep(
       if (!product) {
         // Skip unpublished products if filtering
         if (published_only) continue;
-        
+
         // For admin, include hit without product data
         logger.warn(`[Search] Product ${hit.product_id} not found`);
         continue;
@@ -93,7 +96,9 @@ export const enrichWithProductsStep = createStep(
       });
     }
 
-    logger.debug(`[Search] Enriched ${enrichedHits.length} hits with product data`);
+    logger.debug(
+      `[Search] Enriched ${enrichedHits.length} hits with product data`
+    );
 
     return new StepResponse(enrichedHits);
   }

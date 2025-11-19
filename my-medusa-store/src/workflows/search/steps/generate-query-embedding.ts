@@ -22,9 +22,11 @@ export const generateQueryEmbeddingStep = createStep(
 
     try {
       const embedding = await embedText(query);
-      
-      logger.debug(`[Search] Generated embedding for query: "${query.slice(0, 50)}..."`);
-      
+
+      logger.debug(
+        `[Search] Generated embedding for query: "${query.slice(0, 50)}..."`
+      );
+
       return new StepResponse({
         embedding,
         mode: "hybrid" as const,
@@ -33,7 +35,7 @@ export const generateQueryEmbeddingStep = createStep(
       logger.warn(
         `[Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
       );
-      
+
       // Return dummy embedding for BM25-only mode
       return new StepResponse({
         embedding: { vectors: [], dimensions: 0 },

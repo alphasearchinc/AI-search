@@ -19,12 +19,12 @@ type BulkEmbedProductsOutput = {
 
 /**
  * Workflow for bulk embedding all products in the database.
- * 
+ *
  * This workflow:
  * 1. Fetches all products from the database
  * 2. Enqueues embedding jobs for each product via embedProductWorkflow
  * 3. Tracks success/failure counts
- * 
+ *
  * Note: This is a simplified implementation that processes all products in a single batch.
  * For very large product catalogs (10k+ products), consider implementing pagination
  * or breaking this into multiple workflow executions.

@@ -27,7 +27,9 @@ export const enqueueProductsStep = createStep(
 
     for (const productId of productIds) {
       try {
-        const { result: workflowResult } = await embedProductWorkflow(container).run({
+        const { result: workflowResult } = await embedProductWorkflow(
+          container
+        ).run({
           input: { product_id: productId },
         });
 

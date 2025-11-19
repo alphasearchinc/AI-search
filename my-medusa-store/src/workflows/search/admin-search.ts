@@ -28,13 +28,13 @@ type AdminSearchOutput = {
 
 /**
  * Admin semantic search workflow.
- * 
+ *
  * This workflow:
  * 1. Generates embedding for the search query (with BM25 fallback)
  * 2. Executes Elasticsearch query with optional filters
  * 3. Optionally enriches results with full product data
  * 4. Returns all products (not limited to published)
- * 
+ *
  * Admin users can see all products and get full product objects.
  */
 export const adminSearchWorkflow = createWorkflow(
@@ -107,8 +107,9 @@ export const adminSearchWorkflow = createWorkflow(
       }
     );
 
-    const totalDuration = transform({ workflowStartTime }, () =>
-      Date.now() - workflowStartTime
+    const totalDuration = transform(
+      { workflowStartTime },
+      () => Date.now() - workflowStartTime
     );
 
     // Return final result

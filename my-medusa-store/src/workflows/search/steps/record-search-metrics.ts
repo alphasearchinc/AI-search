@@ -33,7 +33,9 @@ export const recordSearchMetricsStep = createStep(
         user_type: input.user_type,
       });
 
-      logger.debug(`[Search] Recorded metrics for query: "${input.query.slice(0, 50)}..."`);
+      logger.debug(
+        `[Search] Recorded metrics for query: "${input.query.slice(0, 50)}..."`
+      );
     } catch (error: any) {
       // Don't fail the workflow if metrics fail
       logger.error(`[Search] Failed to record metrics: ${error.message}`);

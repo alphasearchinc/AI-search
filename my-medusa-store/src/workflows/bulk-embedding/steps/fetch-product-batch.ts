@@ -18,13 +18,14 @@ export const fetchProductBatchStep = createStep(
     const logger = container.resolve("logger");
     const productModuleService = container.resolve(Modules.PRODUCT);
 
-    const [products, totalCount] = await productModuleService.listAndCountProducts(
-      {},
-      {
-        skip: input.offset,
-        take: input.batch_size,
-      }
-    );
+    const [products, totalCount] =
+      await productModuleService.listAndCountProducts(
+        {},
+        {
+          skip: input.offset,
+          take: input.batch_size,
+        }
+      );
 
     const productIds = products.map((p: any) => p.id);
     const nextOffset = input.offset + products.length;
