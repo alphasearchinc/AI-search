@@ -1,25 +1,47 @@
-import { semanticSearch } from "../src/lib/semantic-search";
-import { elasticsearchClient } from "../src/modules/elasticsearch-client";
+import ElasticsearchModuleService from "../src/modules/elasticsearch/service";
 
-jest.mock("../src/modules/elasticsearch-client", () => {
-  const actual = jest.requireActual("../src/modules/elasticsearch-client");
+// Mock the Elasticsearch client
+const mockSearch = jest.fn();
+
+jest.mock("@elastic/elasticsearch", () => {
   return {
-    ...actual,
-    elasticsearchClient: {
-      search: jest.fn(),
-    },
+    Client: jest.fn().mockImplementation(() => ({
+      search: mockSearch,
+      indices: {
+        exists: jest.fn(),
+        create: jest.fn(),
+        getMapping: jest.fn(),
+      },
+    })),
   };
 });
 
-const mockSearch = elasticsearchClient.search as jest.MockedFunction<
-  typeof elasticsearchClient.search
->;
+// Mock Redis/BullMQ
+jest.mock("bullmq", () => ({
+  Queue: jest.fn().mockImplementation(() => ({
+    add: jest.fn(),
+  })),
+  Worker: jest.fn(),
+}));
+
+jest.mock("../src/lib/redis-connection", () => ({
+  createRedisConnection: jest.fn(() => ({})),
+}));
 
 describe("semanticSearch - hybrid ranking", () => {
+  let service: ElasticsearchModuleService;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.HYBRID_VECTOR_WEIGHT = "0.7";
-    process.env.HYBRID_BM25_WEIGHT = "0.3";
+    mockSearch.mockClear();
+    
+    // Create service with test options
+    service = new ElasticsearchModuleService({}, {
+      search: {
+        vector_weight: 0.7,
+        bm25_weight: 0.3,
+      },
+    });
   });
 
   it("combines BM25 and vector scores with default weights", async () => {
@@ -79,7 +101,7 @@ describe("semanticSearch - hybrid ranking", () => {
         took: 7,
       });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "laptop",
       embedding: {
         vectors: [0.1, 0.2],
@@ -127,7 +149,7 @@ describe("semanticSearch - hybrid ranking", () => {
       took: 3,
     });
 
-    const result = await semanticSearch({
+    const result = await service.semanticSearch({
       query: "headphones",
       limit: 1,
       mode: "bm25",
