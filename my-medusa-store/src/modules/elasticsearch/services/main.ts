@@ -10,6 +10,7 @@ import { ElasticsearchQueue } from "../jobs/queue";
 import { ElasticsearchWorker } from "../jobs/worker";
 import { IndexManager } from "./index-manager";
 import { SearchEngine } from "./search-engine";
+import { EmbeddingRetrievalService } from "./embedding-retrieval";
 
 export default class ElasticsearchModuleService extends MedusaService({}) {
   private client: Client;
@@ -17,6 +18,7 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
   private worker: ElasticsearchWorker;
   private indexManager: IndexManager;
   private searchEngine: SearchEngine;
+  private embeddingRetrieval: EmbeddingRetrievalService;
   private options_: ElasticsearchModuleOptions;
 
   public readonly PRODUCT_EMBEDDINGS_INDEX: string;
@@ -50,6 +52,10 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
       this.client,
       this.PRODUCT_EMBEDDINGS_INDEX,
       this.options_
+    );
+    this.embeddingRetrieval = new EmbeddingRetrievalService(
+      this.client,
+      this.PRODUCT_EMBEDDINGS_INDEX
     );
     this.queue = new ElasticsearchQueue(this.PRODUCT_EMBEDDING_QUEUE);
     this.worker = new ElasticsearchWorker(
@@ -90,6 +96,32 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
 
   async deleteIndex(): Promise<void> {
     await this.indexManager.deleteIndex();
+  }
+
+  async listEmbeddings(options: { limit?: number; offset?: number }): Promise<{
+    embeddings: Array<{
+      id: string;
+      product_id: string;
+      embedded_text: string;
+      metadata?: any;
+      generated_at?: string;
+      embedding?: any;
+    }>;
+    count: number;
+  }> {
+    return this.embeddingRetrieval.listEmbeddings(options);
+  }
+
+  async getEmbeddingByProductId(productId: string): Promise<{
+    id: string;
+    product_id: string;
+    embedded_text: string;
+    embedding?: { vectors: number[]; dimensions: number };
+    embedding_vector?: number[];
+    metadata?: Record<string, any>;
+    generated_at?: string;
+  } | null> {
+    return this.embeddingRetrieval.getEmbeddingByProductId(productId);
   }
 
   getClient(): Client {
