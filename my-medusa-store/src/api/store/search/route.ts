@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
-import { embedText } from "../../../../lib/embedding-client";
-import { metricsRepository } from "../../../../lib/metrics-repository";
-import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
-import ElasticsearchModuleService from "../../../../modules/elasticsearch/service";
-import type { SearchMode } from "../../../../modules/elasticsearch/types";
+import { embedText } from "../../../lib/embedding-client";
+import { metricsRepository } from "../../../lib/metrics-repository";
+import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
+import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
+import type { SearchMode } from "../../../modules/elasticsearch/types";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
@@ -43,7 +43,9 @@ const sanitizeLimit = (rawLimit: unknown): number => {
   return DEFAULT_LIMIT;
 };
 
-const selectProductFields = (product: Record<string, any>): StoreSemanticSearchProductSummary => ({
+const selectProductFields = (
+  product: Record<string, any>
+): StoreSemanticSearchProductSummary => ({
   id: product.id,
   title: product.title ?? null,
   subtitle: product.subtitle ?? null,
@@ -75,7 +77,10 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   const limit = sanitizeLimit(body.limit);
   let minConfidence: number | undefined = undefined;
   if (body.min_confidence !== undefined) {
-    if (typeof body.min_confidence !== "number" || !Number.isFinite(body.min_confidence)) {
+    if (
+      typeof body.min_confidence !== "number" ||
+      !Number.isFinite(body.min_confidence)
+    ) {
       return res.status(400).json({
         message: "min_confidence must be a number between 0 and 1",
       });
@@ -105,10 +110,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const searchStartTime = Date.now();
 
-    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
-      ELASTICSEARCH_MODULE
-    );
-    
+    const elasticsearchService: ElasticsearchModuleService =
+      req.scope.resolve(ELASTICSEARCH_MODULE);
+
     const searchResult = await elasticsearchService.semanticSearch({
       query,
       embedding,
@@ -124,7 +128,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       new Set(
         searchResult.hits
           .map((hit) => hit.product_id)
-          .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+          .filter(
+            (id): id is string => typeof id === "string" && id.trim().length > 0
+          )
       )
     );
 
@@ -140,11 +146,13 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         }
       );
 
-      const productMap = new Map(products.map((product: any) => [product.id, product]));
+      const productMap = new Map(
+        products.map((product: any) => [product.id, product])
+      );
       const tempHits: StoreSemanticSearchHit[] = [];
       for (const hit of searchResult.hits) {
         if (!hit.product_id) continue;
-        
+
         const product = productMap.get(hit.product_id);
         if (!product) continue;
 
@@ -163,22 +171,24 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     const totalDuration = Date.now() - requestStartTime;
 
     // Record metrics (non-blocking)
-    metricsRepository.recordSearch({
-      query,
-      query_length: query.length,
-      embedding_dimensions: embedding.dimensions,
-      embedding_generation_ms: embeddingDuration,
-      elasticsearch_query_ms: searchDuration,
-      total_duration_ms: totalDuration,
-      results_count: hits.length,
-      filters_applied: undefined, // No filters in store search yet
-      user_type: 'store',
-    }).catch(err => logger.error('[METRICS] Failed to record:', err));
+    metricsRepository
+      .recordSearch({
+        query,
+        query_length: query.length,
+        embedding_dimensions: embedding.dimensions,
+        embedding_generation_ms: embeddingDuration,
+        elasticsearch_query_ms: searchDuration,
+        total_duration_ms: totalDuration,
+        results_count: hits.length,
+        filters_applied: undefined, // No filters in store search yet
+        user_type: "store",
+      })
+      .catch((err) => logger.error("[METRICS] Failed to record:", err));
 
     logger.info(
       `[Store Semantic Search] query="${query.slice(0, 50)}..." ` +
-      `took=${totalDuration}ms (embed=${embeddingDuration}ms, search=${searchDuration}ms) ` +
-      `hits=${hits.length} mode=${searchResult.mode}`
+        `took=${totalDuration}ms (embed=${embeddingDuration}ms, search=${searchDuration}ms) ` +
+        `hits=${hits.length} mode=${searchResult.mode}`
     );
 
     return res.json({
