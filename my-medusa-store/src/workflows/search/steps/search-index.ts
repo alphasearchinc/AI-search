@@ -22,7 +22,8 @@ export type SearchIndexOutput = {
 export const searchIndexStep = createStep(
   "search-index-step",
   async (input: SearchIndexInput, { container }) => {
-    const elasticsearchService: ElasticsearchModuleService = container.resolve(ELASTICSEARCH_MODULE);
+    const elasticsearchService: ElasticsearchModuleService =
+      container.resolve(ELASTICSEARCH_MODULE);
     const startTime = Date.now();
 
     const searchResult = await elasticsearchService.semanticSearch({
@@ -33,7 +34,7 @@ export const searchIndexStep = createStep(
       mode: input.mode === "bm25-only" ? "bm25" : "hybrid",
       minConfidence: input.minConfidence,
     });
-    
+
     const duration = Date.now() - startTime;
 
     return new StepResponse({

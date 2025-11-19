@@ -16,11 +16,11 @@ export const generateEmbeddingStep = createStep(
   async ({ query }: GenerateEmbeddingInput, { container }) => {
     const logger = container.resolve("logger");
     const startTime = Date.now();
-    
+
     try {
       const embedding = await embedText(query);
       const duration = Date.now() - startTime;
-      
+
       return new StepResponse({
         embedding,
         mode: "hybrid",

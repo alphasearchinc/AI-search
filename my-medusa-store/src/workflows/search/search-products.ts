@@ -1,4 +1,7 @@
-import { createWorkflow, WorkflowResponse } from "@medusajs/framework/workflows-sdk";
+import {
+  createWorkflow,
+  WorkflowResponse,
+} from "@medusajs/framework/workflows-sdk";
 import { generateEmbeddingStep } from "./steps/generate-embedding";
 import { searchIndexStep } from "./steps/search-index";
 import { hydrateSearchHitsStep } from "./steps/hydrate-search-hits";
@@ -12,8 +15,12 @@ type SearchProductsWorkflowInput = {
 export const searchProductsWorkflow = createWorkflow(
   "search-products",
   function (input: SearchProductsWorkflowInput) {
-    const { embedding, mode, duration: embeddingDuration } = generateEmbeddingStep({ query: input.query });
-    
+    const {
+      embedding,
+      mode,
+      duration: embeddingDuration,
+    } = generateEmbeddingStep({ query: input.query });
+
     const searchResult = searchIndexStep({
       query: input.query,
       embedding,
@@ -24,7 +31,7 @@ export const searchProductsWorkflow = createWorkflow(
 
     const hits = hydrateSearchHitsStep({
       hits: searchResult.hits,
-      limit: input.limit
+      limit: input.limit,
     });
 
     return new WorkflowResponse({

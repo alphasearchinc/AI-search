@@ -39,12 +39,14 @@ export const hydrateSearchHitsStep = createStep(
   "hydrate-search-hits-step",
   async ({ hits, limit }: HydrateSearchHitsInput, { container }) => {
     const productModuleService = container.resolve(Modules.PRODUCT);
-    
+
     const productIds = Array.from(
       new Set(
         hits
           .map((hit) => hit.product_id)
-          .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+          .filter(
+            (id): id is string => typeof id === "string" && id.trim().length > 0
+          )
       )
     );
 
@@ -62,9 +64,11 @@ export const hydrateSearchHitsStep = createStep(
       }
     );
 
-    const productMap = new Map(products.map((product: any) => [product.id, product]));
+    const productMap = new Map(
+      products.map((product: any) => [product.id, product])
+    );
     const hydratedHits: StoreSemanticSearchHit[] = [];
-    
+
     for (const hit of hits) {
       if (!hit.product_id) continue;
 
