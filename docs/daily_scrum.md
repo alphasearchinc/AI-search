@@ -129,3 +129,23 @@
  - Forhold os til læringsmålene inden vi påbegynder skrivning
  - Få påbegyndt rapportskrivning allerede nu
 
+## 📅 Daily Scrum 19-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Risikoanalyse
+ - Interessentanalyse
+ - Møde med Ian
+ - Metrics op at køre
+ - Refaktoreret til korrekt Medusa module struktur
+ - Karl kigget på monitorering generelt
+ - Anders har implementeret Fuzzy search
+ - Implementeret confidence level, så søgemaskinen ikke altid responderer med et svar
+ - Fixet searchbar UI
+### Hvad skal vi lave i dag?
+ - Refaktoreret vores routes
+ - Refaktoreret elasticsearch module service
+ - Gennemgå PR til metrics
+ - Fordele hvad vi skal skrive om torsdag/fredag
+ - Udkast til rapportstruktur
+### Hvilke udfordringer forudser vi?
+ - Eventuelle merge konflikter
