@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import { embedText } from "../../../../lib/embedding-client";
+import { metricsRepository } from "../../../../lib/metrics-repository";
 import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
 import ElasticsearchModuleService from "../../../../modules/elasticsearch/service";
 import type { SearchMode } from "../../../../modules/elasticsearch/types";
@@ -57,6 +58,8 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   const rawQuery = typeof body.query === "string" ? body.query : "";
   const query = rawQuery.trim();
 
+  const requestStartTime = Date.now();
+
   if (!query) {
     return res
       .status(400)
@@ -81,23 +84,31 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     minConfidence = Math.min(Math.max(body.min_confidence, 0), 1);
   }
 
-  let embedding: { vectors: number[]; dimensions: number } | undefined;
+  let embedding: { vectors: number[]; dimensions: number };
   let requestedMode: SearchMode | "bm25-only" = "hybrid";
+  let embeddingStartTime = Date.now();
+  let embeddingDuration = 0;
 
   try {
-    const embedResult = await embedText(query);
-    embedding = embedResult;
+    embedding = await embedText(query);
+    embeddingDuration = Date.now() - embeddingStartTime;
   } catch (error: any) {
+    embeddingDuration = Date.now() - embeddingStartTime;
     requestedMode = "bm25-only";
     logger.warn(
       `[Store Semantic Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
     );
+    // For BM25-only, use dummy embedding for metrics
+    embedding = { vectors: [], dimensions: 0 };
   }
 
   try {
+    const searchStartTime = Date.now();
+
     const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
       ELASTICSEARCH_MODULE
     );
+    
     const searchResult = await elasticsearchService.semanticSearch({
       query,
       embedding,
@@ -106,6 +117,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
       minConfidence,
     });
+    const searchDuration = Date.now() - searchStartTime;
 
     let hits: StoreSemanticSearchHit[] = [];
     const productIds = Array.from(
@@ -148,19 +160,31 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       hits = tempHits.slice(0, limit);
     }
 
+    const totalDuration = Date.now() - requestStartTime;
+
+    // Record metrics (non-blocking)
+    metricsRepository.recordSearch({
+      query,
+      query_length: query.length,
+      embedding_dimensions: embedding.dimensions,
+      embedding_generation_ms: embeddingDuration,
+      elasticsearch_query_ms: searchDuration,
+      total_duration_ms: totalDuration,
+      results_count: hits.length,
+      filters_applied: undefined, // No filters in store search yet
+      user_type: 'store',
+    }).catch(err => logger.error('[METRICS] Failed to record:', err));
+
     logger.info(
-      `[Store Semantic Search] query="${query.slice(
-        0,
-        120
-      )}" limit=${limit} min_confidence=${
-        minConfidence !== undefined ? minConfidence : "env-default"
-      } hits=${hits.length} took=${searchResult.took}ms`
+      `[Store Semantic Search] query="${query.slice(0, 50)}..." ` +
+      `took=${totalDuration}ms (embed=${embeddingDuration}ms, search=${searchDuration}ms) ` +
+      `hits=${hits.length} mode=${searchResult.mode}`
     );
 
     return res.json({
       query,
       limit,
-      took: searchResult.took,
+      took: totalDuration,
       total: searchResult.count,
       count: hits.length,
       mode: searchResult.mode,
