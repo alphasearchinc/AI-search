@@ -14,10 +14,38 @@ export const GET = async (
   const offset = parseInt((req.query?.offset as string) || "0", 10);
 
   try {
-    const elasticsearchService: ElasticsearchModuleService =
-      req.scope.resolve(ELASTICSEARCH_MODULE);
 
     const result = await elasticsearchService.listEmbeddings({ offset, limit });
+    const elasticsearchService: ElasticsearchModuleService = req.scope.resolve(
+      ELASTICSEARCH_MODULE
+    );
+    const searchResponse = await elasticsearchService.getClient().search({
+      index: elasticsearchService.PRODUCT_EMBEDDINGS_INDEX,
+      from: offset,
+      size: limit,
+      sort: [
+        {
+          generated_at: {
+            order: "desc",
+          },
+        },
+      ],
+      _source: [
+        "product_id",
+        "embedded_text",
+        "metadata",
+        "generated_at",
+      ],
+    });
+
+    const embeddings = searchResponse.hits.hits.map((hit) => {
+      const { embedding, ...safeSource } = (hit._source ||
+        {}) as Record<string, any>;
+      return {
+        id: hit._id,
+        ...safeSource,
+      };
+    });
 
     res.json(result);
   } catch (error: any) {
