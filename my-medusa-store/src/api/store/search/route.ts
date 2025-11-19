@@ -1,10 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { Modules } from "@medusajs/framework/utils";
-import { embedText } from "../../../lib/embedding-client";
 import { metricsRepository } from "../../../lib/metrics-repository";
-import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
-import ElasticsearchModuleService from "../../../modules/elasticsearch/service";
-import type { SearchMode } from "../../../modules/elasticsearch/types";
+import { searchProductsWorkflow } from "../../../workflows/search/search-products";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
@@ -16,24 +12,6 @@ type StoreSemanticSearchBody = {
   min_confidence?: number;
 };
 
-type StoreSemanticSearchProductSummary = {
-  id: string;
-  title?: string | null;
-  subtitle?: string | null;
-  description?: string | null;
-  handle?: string | null;
-  thumbnail?: string | null;
-};
-
-type StoreSemanticSearchHit = {
-  id: string;
-  score: number;
-  bm25_score?: number;
-  vector_score?: number;
-  product: StoreSemanticSearchProductSummary;
-  metadata?: Record<string, any>;
-};
-
 const sanitizeLimit = (rawLimit: unknown): number => {
   if (typeof rawLimit === "number" && Number.isFinite(rawLimit)) {
     const limit = Math.trunc(rawLimit);
@@ -42,17 +20,6 @@ const sanitizeLimit = (rawLimit: unknown): number => {
 
   return DEFAULT_LIMIT;
 };
-
-const selectProductFields = (
-  product: Record<string, any>
-): StoreSemanticSearchProductSummary => ({
-  id: product.id,
-  title: product.title ?? null,
-  subtitle: product.subtitle ?? null,
-  description: product.description ?? null,
-  handle: product.handle ?? null,
-  thumbnail: product.thumbnail ?? null,
-});
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   const logger = req.scope.resolve("logger") as any;
@@ -89,84 +56,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     minConfidence = Math.min(Math.max(body.min_confidence, 0), 1);
   }
 
-  let embedding: { vectors: number[]; dimensions: number };
-  let requestedMode: SearchMode | "bm25-only" = "hybrid";
-  let embeddingStartTime = Date.now();
-  let embeddingDuration = 0;
-
   try {
-    embedding = await embedText(query);
-    embeddingDuration = Date.now() - embeddingStartTime;
-  } catch (error: any) {
-    embeddingDuration = Date.now() - embeddingStartTime;
-    requestedMode = "bm25-only";
-    logger.warn(
-      `[Store Semantic Search] Embedding unavailable, falling back to BM25-only: ${error.message}`
-    );
-    // For BM25-only, use dummy embedding for metrics
-    embedding = { vectors: [], dimensions: 0 };
-  }
-
-  try {
-    const searchStartTime = Date.now();
-
-    const elasticsearchService: ElasticsearchModuleService =
-      req.scope.resolve(ELASTICSEARCH_MODULE);
-
-    const searchResult = await elasticsearchService.semanticSearch({
-      query,
-      embedding,
-      limit,
-      includeEmbedding: false,
-      mode: requestedMode === "bm25-only" ? "bm25" : "hybrid",
-      minConfidence,
+    const { result } = await searchProductsWorkflow(req.scope).run({
+      input: {
+        query,
+        limit,
+        min_confidence: minConfidence,
+      },
     });
-    const searchDuration = Date.now() - searchStartTime;
-
-    let hits: StoreSemanticSearchHit[] = [];
-    const productIds = Array.from(
-      new Set(
-        searchResult.hits
-          .map((hit) => hit.product_id)
-          .filter(
-            (id): id is string => typeof id === "string" && id.trim().length > 0
-          )
-      )
-    );
-
-    if (productIds.length) {
-      const productModuleService = req.scope.resolve(Modules.PRODUCT);
-      const [products] = await productModuleService.listAndCountProducts(
-        {
-          id: productIds,
-          status: ["published"],
-        },
-        {
-          take: productIds.length,
-        }
-      );
-
-      const productMap = new Map(
-        products.map((product: any) => [product.id, product])
-      );
-      const tempHits: StoreSemanticSearchHit[] = [];
-      for (const hit of searchResult.hits) {
-        if (!hit.product_id) continue;
-
-        const product = productMap.get(hit.product_id);
-        if (!product) continue;
-
-        tempHits.push({
-          id: hit.id,
-          score: hit.score,
-          bm25_score: hit.bm25_score,
-          vector_score: hit.vector_score,
-          product: selectProductFields(product),
-          metadata: hit.metadata,
-        });
-      }
-      hits = tempHits.slice(0, limit);
-    }
 
     const totalDuration = Date.now() - requestStartTime;
 
@@ -175,11 +72,11 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       .recordSearch({
         query,
         query_length: query.length,
-        embedding_dimensions: embedding.dimensions,
-        embedding_generation_ms: embeddingDuration,
-        elasticsearch_query_ms: searchDuration,
+        embedding_dimensions: result.embeddingDimensions,
+        embedding_generation_ms: result.embeddingDuration,
+        elasticsearch_query_ms: result.searchDuration,
         total_duration_ms: totalDuration,
-        results_count: hits.length,
+        results_count: result.hits.length,
         filters_applied: undefined, // No filters in store search yet
         user_type: "store",
       })
@@ -187,29 +84,22 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     logger.info(
       `[Store Semantic Search] query="${query.slice(0, 50)}..." ` +
-        `took=${totalDuration}ms (embed=${embeddingDuration}ms, search=${searchDuration}ms) ` +
-        `hits=${hits.length} mode=${searchResult.mode}`
+        `took=${totalDuration}ms (embed=${result.embeddingDuration}ms, search=${result.searchDuration}ms) ` +
+        `hits=${result.hits.length} mode=${result.mode}`
     );
 
     return res.json({
       query,
       limit,
       took: totalDuration,
-      total: searchResult.count,
-      count: hits.length,
-      mode: searchResult.mode,
-      hits,
+      total: result.count,
+      count: result.hits.length,
+      mode: result.mode,
+      hits: result.hits,
     });
   } catch (error: any) {
     logger.error("[Store Semantic Search] Failed to execute search", error);
     const message = error?.message || "Semantic search failed";
-
-    if (message.toLowerCase().includes("embedding service")) {
-      return res.status(503).json({
-        message: "Embedding service unavailable",
-        detail: message,
-      });
-    }
 
     return res.status(500).json({
       message: "Failed to execute semantic search",
