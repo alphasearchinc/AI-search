@@ -1,7 +1,9 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
 import { embedText } from "../../../lib/embedding-client";
+import { metricsRepository } from "../../../lib/metrics-repository"
 
 type GenerateEmbeddingInput = {
+  product_id: string,
   text: string;
 };
 
@@ -21,8 +23,14 @@ export const generateEmbeddingStep = createStep(
       `🔗 Calling ${embeddingSource} to embed product text...`
     );
 
+    const startTime = Date.now();
+    let success = false;
+    let errorMessage: string | undefined;
+    let embedding: any;
+
     try {
-      const embedding = await embedText(text);
+      embedding = await embedText(text);
+      success = true;
 
       console.log(
         `✅ Generated semantic embedding with ${embedding.dimensions} dimensions`
@@ -32,6 +40,9 @@ export const generateEmbeddingStep = createStep(
         embedding,
       });
     } catch (error: any) {
+      success = false;
+      errorMessage = error.message;
+
       console.error(
         `❌ Failed to generate embedding from ${embeddingSource}:`,
         error.message
@@ -40,6 +51,22 @@ export const generateEmbeddingStep = createStep(
       throw new Error(
         `Embedding service unavailable: ${error.message}`
       );
+    } finally {
+      // Record metrics (non-blocking, fire-and-forget)
+      const duration = Date.now() - startTime;
+      
+      metricsRepository.recordEmbedding({
+        product_id: input.product_id || '',
+        query: text,
+        generation_ms: duration,
+        embedding_dimensions: success ? embedding.dimensions : getEmbeddingDimensions(),
+        success,
+        error_message: errorMessage,
+        provider: process.env.LOCAL_EMBEDDING_SERVICE_URL ? 'local' : 'openai',
+        context: 'product_indexing'
+      }).catch(err => {
+        console.error('[METRICS] Failed to record embedding metric:', err);
+      });
     }
   }
 );

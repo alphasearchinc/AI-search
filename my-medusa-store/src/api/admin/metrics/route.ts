@@ -26,13 +26,13 @@ export const GET = async (
   }
 
   try {
-    const [searchStats, topQueries, slowQueries] = await Promise.all([
+    const [searchStats, topQueries, slowQueries, embeddingStats, embeddingFailures] = await Promise.all([
       metricsRepository.getSearchStats(timeRange),
       metricsRepository.getTopQueries(10, timeRange),
       metricsRepository.getSlowQueries(2000, 10),
+      metricsRepository.getEmbeddingStats(timeRange),
+      metricsRepository.getEmbeddingFailures(10, timeRange),
     ]);
-
-    logger.info(`[Metrics] Dashboard loaded for timeRange=${timeRange}`);
 
     res.json({
       time_range: timeRange,
@@ -40,6 +40,10 @@ export const GET = async (
         stats: searchStats,
         top_queries: topQueries,
         slow_queries: slowQueries,
+      },
+      embedding: {
+        stats: embeddingStats,
+        failures: embeddingFailures,
       },
     });
   } catch (error: any) {
