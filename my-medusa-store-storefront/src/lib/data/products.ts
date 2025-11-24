@@ -230,9 +230,7 @@ export const getSemanticRecommendations = async ({
     })
 
     // Sort by semantic search order
-    const productMap = new Map(
-      fullProducts.products.map((p) => [p.id, p])
-    )
+    const productMap = new Map(fullProducts.products.map((p) => [p.id, p]))
     const sortedProducts = recommendedProductIds
       .map((id) => productMap.get(id))
       .filter((p): p is HttpTypes.StoreProduct => p !== undefined)
