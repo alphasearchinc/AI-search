@@ -22,14 +22,14 @@ To fix this, we configured CodeRabbit to run **only when we explicitly request i
 ```yml
 language: "en-US"
 
-reviews:
-  review_status: true
-  commit_status: true
+language: "en-US"
 
+reviews:
   auto_review:
     enabled: true
-    auto_incremental_review: false
+    auto_incremental_review: true
     base_branches:
       - dev
     labels:
-      - "coderabbit-review"
+      - "coderabbit-review"               # ONLY review PRs with this label
+
