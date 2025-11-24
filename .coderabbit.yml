@@ -9,4 +9,4 @@ reviews:
     base_branches:
       - dev                    # only PRs targeting dev
     labels:
-      - "review"               # ONLY review PRs with this label
+      - "coderabbit-review"               # ONLY review PRs with this label
