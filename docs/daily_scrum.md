@@ -149,3 +149,25 @@
  - Udkast til rapportstruktur
 ### Hvilke udfordringer forudser vi?
  - Eventuelle merge konflikter
+
+
+## 📅 Daily Scrum 24-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Begyndt rapportskrivning
+ - Refaktoreret routes
+ - Refaktoreret elasticsearch module service
+ - Merged metrics PR
+ - Fixet SonarQube delvist
+### Hvad skal vi lave i dag?
+ - Møde med Søren
+ - Få SonarQube til at spille 100%
+ - Arbejde videre på metrics
+ - Kigge på bugs i backloggen
+ - Integrere vektorlogik til anbefalede produkter
+ - Kig på det vi har skrevet i fællesskab, og blive enige om konventioner fremadrettet, struktur, detaljegrad, kilder, layout. 
+ - Lav test og testdata til analyse af embedder, så vi kan lave denne analyse om valg af dimensions versus performance. 
+### Hvilke udfordringer forudser vi?
+ - Hvilke metrikker skal vi måle på, og hvordan skal vi visualisere dem?
+ - Fixe product script så den giver god data
+ - Aleksander skal finde ud af hvorfor fanden hans VScode laver .2 filer
