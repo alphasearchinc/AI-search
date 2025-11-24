@@ -8,6 +8,7 @@ module.exports = {
       {
         jsc: {
           parser: { syntax: "typescript", decorators: true },
+          target: "es2022",
         },
       },
     ],
@@ -23,5 +24,5 @@ if (process.env.TEST_TYPE === "integration:http") {
 } else if (process.env.TEST_TYPE === "integration:modules") {
   module.exports.testMatch = ["**/src/modules/*/__tests__/**/*.[jt]s"];
 } else if (process.env.TEST_TYPE === "unit") {
-  module.exports.testMatch = ["**/src/**/__tests__/**/*.unit.spec.[jt]s"];
+  module.exports.testMatch = ["**/unit-tests/**/*.unit.spec.[jt]s"];
 }

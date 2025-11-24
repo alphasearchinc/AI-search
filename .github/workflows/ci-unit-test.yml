@@ -1,0 +1,38 @@
+name: Unit Tests CI
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    # Job-level environment for all steps
+    env:
+      NODE_ENV: test
+      LOCAL_EMBEDDING_SERVICE_URL: "http://localhost:1337"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: my-medusa-store/package-lock.json
+
+      - name: Install dependencies
+        env:
+            NPM_CONFIG_LOGLEVEL: verbose
+        working-directory: my-medusa-store
+        run: npm ci --no-fund --no-audit --foreground-scripts
+
+      - name: Run unit tests
+        working-directory: my-medusa-store
+        run: npm run test:unit

@@ -1,0 +1,17 @@
+cluster.name: es-local
+node.name: es-local-1
+discovery.type: single-node
+
+# Dev only: no auth / no TLS
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+
+# Disable ML to keep the image lean
+xpack.ml.enabled: false
+
+# Bind anywhere (container)
+http.host: 0.0.0.0
+network.host: 0.0.0.0
+
+# Safety: require explicit index names on destructive ops
+action.destructive_requires_name: true
