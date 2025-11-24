@@ -1,8 +1,12 @@
+language: "en-US"
+
 reviews:
+  review_status: true          # or false, up to you
+  commit_status: true          # optional, default true
   auto_review:
+    enabled: true              # allow auto-review in general
+    auto_incremental_review: false  # don't re-run on every push
     base_branches:
-      - dev
-    triggers:
-      labels:
-        - "review"
-    only_on_event: pull_request
+      - dev                    # only PRs targeting dev
+    labels:
+      - "review"               # ONLY review PRs with this label
