@@ -24,14 +24,14 @@ CREATE TABLE IF NOT EXISTS embedding_metrics (
   id BIGSERIAL,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   product_id VARCHAR(255) NOT NULL,
-  text_length INTEGER NOT NULL,
-  embedding_dimensions INTEGER NOT NULL,
-  provider VARCHAR(20) NOT NULL CHECK (provider IN ('local', 'openai')),
+  query TEXT,
   generation_ms INTEGER NOT NULL,
-  indexing_ms INTEGER,
+  embedding_dimensions INTEGER NOT NULL,
   success BOOLEAN NOT NULL,
   error_message TEXT,
-  job_id VARCHAR(255)
+  provider VARCHAR(20) NOT NULL CHECK (provider IN ('local', 'openai')),
+  context VARCHAR(50) NOT NULL CHECK (context IN ('product_indexing', 'search_query', 'bulk_operation'))
+
 );
 
 SELECT create_hypertable('embedding_metrics', 'timestamp', if_not_exists => TRUE);
