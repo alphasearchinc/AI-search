@@ -3,4 +3,6 @@ reviews:
   auto_review:
     base_branches:
       - dev
-      
+    triggers:
+      labels:
+        - "review"
