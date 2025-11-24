@@ -1,17 +1,6 @@
 language: "en-US"
 
 reviews:
-  review_status: true          # or false, up to you
-  commit_status: true          # optional, default true
-  auto_review:
-    enabled: true              # allow auto-review in general
-    auto_incremental_review: false  # don't re-run on every push
-    base_branches:
-      - dev                    # only PRs targeting dev
-    labels:
-      - "coderabbit-review"               # ONLY review PRs with this label
-
-reviews:
   auto_review:
     enabled: true
     auto_incremental_review: true
