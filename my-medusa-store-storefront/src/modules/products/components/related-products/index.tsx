@@ -1,4 +1,4 @@
-import { listProducts } from "@lib/data/products"
+import { getSemanticRecommendations } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import { HttpTypes } from "@medusajs/types"
 import Product from "../product-preview"
@@ -18,28 +18,13 @@ export default async function RelatedProducts({
     return null
   }
 
-  // edit this function to define your related products logic
-  const queryParams: HttpTypes.StoreProductListParams = {}
-  if (region?.id) {
-    queryParams.region_id = region.id
-  }
-  if (product.collection_id) {
-    queryParams.collection_id = [product.collection_id]
-  }
-  if (product.tags) {
-    queryParams.tag_id = product.tags
-      .map((t) => t.id)
-      .filter(Boolean) as string[]
-  }
-  queryParams.is_giftcard = false
-
-  const products = await listProducts({
-    queryParams,
+  // Get semantically similar products based on product title and description
+  const products = await getSemanticRecommendations({
+    productTitle: product.title,
+    productDescription: product.description,
+    excludeProductId: product.id,
+    limit: 4,
     countryCode,
-  }).then(({ response }) => {
-    return response.products.filter(
-      (responseProduct) => responseProduct.id !== product.id
-    )
   })
 
   if (!products.length) {
