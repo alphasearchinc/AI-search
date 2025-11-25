@@ -55,7 +55,7 @@ The volume mount at `/etc/grafana/provisioning` auto-loads datasources and dashb
 
 ## Access
 
-- **URL**: http://localhost:3000
+- **URL**: [http://localhost:3000](http://localhost:3000)
 - **Login**: admin / admin
 - **Location**: Dashboards → Search & Embedding Metrics
 
