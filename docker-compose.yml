@@ -23,6 +23,8 @@ services:
       context: ./python-embedder
       dockerfile: Dockerfile
     container_name: python-embedder
+    env_file:
+      - ./python-embedder/.env
     ports:
       - "1337:1337"      
     environment:
