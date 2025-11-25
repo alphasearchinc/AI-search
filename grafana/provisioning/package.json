@@ -1,0 +1,16 @@
+{
+  "name": "grafana-provisioning-tests",
+  "version": "1.0.0",
+  "description": "Tests for Grafana configuration files",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "js-yaml": "^4.1.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.js"]
+  }
+}
