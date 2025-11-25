@@ -1,7 +1,7 @@
-import { listProducts } from "@lib/data/products"
+import { getSemanticRecommendations } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import { HttpTypes } from "@medusajs/types"
-import Product from "../product-preview"
+import { RelatedProductsCarousel } from "./carousel"
 
 type RelatedProductsProps = {
   product: HttpTypes.StoreProduct
@@ -18,28 +18,13 @@ export default async function RelatedProducts({
     return null
   }
 
-  // edit this function to define your related products logic
-  const queryParams: HttpTypes.StoreProductListParams = {}
-  if (region?.id) {
-    queryParams.region_id = region.id
-  }
-  if (product.collection_id) {
-    queryParams.collection_id = [product.collection_id]
-  }
-  if (product.tags) {
-    queryParams.tag_id = product.tags
-      .map((t) => t.id)
-      .filter(Boolean) as string[]
-  }
-  queryParams.is_giftcard = false
-
-  const products = await listProducts({
-    queryParams,
+  // Get semantically similar products based on product title and description
+  const products = await getSemanticRecommendations({
+    productTitle: product.title,
+    productDescription: product.description,
+    excludeProductId: product.id,
+    limit: 12, // Fetch 12 products for the carousel
     countryCode,
-  }).then(({ response }) => {
-    return response.products.filter(
-      (responseProduct) => responseProduct.id !== product.id
-    )
   })
 
   if (!products.length) {
@@ -57,13 +42,7 @@ export default async function RelatedProducts({
         </p>
       </div>
 
-      <ul className="grid grid-cols-2 small:grid-cols-3 medium:grid-cols-4 gap-x-6 gap-y-8">
-        {products.map((product) => (
-          <li key={product.id}>
-            <Product region={region} product={product} />
-          </li>
-        ))}
-      </ul>
+      <RelatedProductsCarousel products={products} region={region} />
     </div>
   )
 }

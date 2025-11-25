@@ -10,6 +10,7 @@ import {
 import {
   ContainerRegistrationKeys,
   ModuleRegistrationName,
+  Modules,
   ProductStatus,
 } from "@medusajs/framework/utils";
 import { faker } from "@faker-js/faker";
@@ -33,45 +34,97 @@ export default async function seedDemoData({ container }: ExecArgs) {
     throw new Error("Default Sales Channel not found");
   }
 
+  const productModuleService = container.resolve(Modules.PRODUCT);
+
+  logger.info("Deleting existing products before seeding...");
+
+  const productIds: string[] = [];
+  const batchSize = 100;
+  let offset = 0;
+
+  while (true) {
+    const [products, count] = await productModuleService.listAndCountProducts(
+      {},
+      { select: ["id"], take: batchSize, skip: offset }
+    );
+
+    if (!products.length) {
+      break;
+    }
+
+    productIds.push(...products.map((product) => product.id));
+    offset += products.length;
+
+    if (offset >= count) {
+      break;
+    }
+  }
+
+  if (productIds.length) {
+    await productModuleService.deleteProducts(productIds);
+    logger.info(`Deleted ${productIds.length} existing products.`);
+  } else {
+    logger.info("No existing products to delete.");
+  }
+
   logger.info("Seeding product data...");
 
-  const {
-    result: [collection],
-  } = await createCollectionsWorkflow(container).run({
-    input: {
-      collections: [
-        {
-          title: "Featured",
-          handle: "featured",
-        },
-      ],
-    },
-  });
+  const existingCollections =
+    await productModuleService.listProductCollections(
+      { handle: ["featured"] },
+      { take: 1, select: ["id", "handle", "title"] }
+    );
 
-  const { result: categoryResult } = await createProductCategoriesWorkflow(
-    container
-  ).run({
-    input: {
-      product_categories: [
-        {
-          name: "Laptops",
-          is_active: true,
+  const collection =
+    existingCollections[0] ??
+    (
+      await createCollectionsWorkflow(container).run({
+        input: {
+          collections: [
+            {
+              title: "Featured",
+              handle: "featured",
+            },
+          ],
         },
-        {
-          name: "Accessories",
-          is_active: true,
-        },
-        {
-          name: "Phones",
-          is_active: true,
-        },
-        {
-          name: "Monitors",
-          is_active: true,
-        },
-      ],
-    },
-  });
+      })
+    ).result[0];
+
+  const desiredCategories = [
+    { name: "Laptops", handle: "laptops" },
+    { name: "Accessories", handle: "accessories" },
+    { name: "Phones", handle: "phones" },
+    { name: "Monitors", handle: "monitors" },
+  ];
+
+  const existingCategories =
+    await productModuleService.listProductCategories(
+      { handle: desiredCategories.map((cat) => cat.handle) },
+      { select: ["id", "name", "handle"] }
+    );
+
+  const existingCategoryMap = new Map(
+    existingCategories.map((cat: any) => [cat.handle?.toLowerCase(), cat])
+  );
+
+  const missingCategories = desiredCategories.filter(
+    (cat) => !existingCategoryMap.has(cat.handle.toLowerCase())
+  );
+
+  const createdCategories = missingCategories.length
+    ? (
+        await createProductCategoriesWorkflow(container).run({
+          input: {
+            product_categories: missingCategories.map((cat) => ({
+              ...cat,
+              is_active: true,
+            })),
+          },
+        })
+      ).result
+    : [];
+
+  const categoryResult = [...existingCategories, ...createdCategories];
 
   await createProductsWorkflow(container).run({
     input: {
@@ -555,7 +608,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           category_ids: [
             categoryResult.find((cat) => cat.name === "Accessories")?.id!,
           ],
-          description: `This wireless keyboard offers a comfortable typing experience with a numeric keypad and Touch ID. It features navigation buttons, full-sized arrow keys, and is ideal for spreadsheets and gaming. The rechargeable battery lasts about a month. It pairs automatically with compatible computers and includes a USB-C to Lightning cable for charging and pairing.`,
+          description: `This wireless mouse glides effortlessly with a low-friction base and precision laser sensor. The multi-touch surface supports smooth scrolling and intuitive gestures, and the rechargeable battery is designed to last for weeks on a single charge. Pair it over Bluetooth in seconds and top up quickly with the included USB-C cable.`,
           weight: 400,
           status: ProductStatus.PUBLISHED,
           images: [
@@ -780,6 +833,36 @@ export default async function seedDemoData({ container }: ExecArgs) {
     "Dolby",
     "Fast-Charge",
   ];
+  const buildDetails = [
+    "a lightweight aluminum frame",
+    "a reinforced polymer shell",
+    "a soft-touch matte finish",
+    "precision-milled edges",
+    "a breathable mesh wrap",
+    "an anodized alloy chassis",
+    "a compact travel-friendly build",
+  ];
+  const useCases = [
+    "hybrid work setups",
+    "travel days",
+    "gaming marathons",
+    "studio sessions",
+    "everyday carry bags",
+    "home office upgrades",
+    "portable creators on the move",
+  ];
+  const highlightPool = [
+    "USB-C fast charging",
+    "multi-device pairing",
+    "low-latency wireless",
+    "drop protection",
+    "studio-grade tuning",
+    "modular ports",
+    "extended battery life",
+    "customizable presets",
+    "quiet switches",
+    "advanced thermal control",
+  ];
 
   for (let i = 0; i < numberOfRandomProducts; i++) {
     const category = faker.helpers.arrayElement(categoryResult);
@@ -787,6 +870,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
     const feature = faker.helpers.arrayElement(features);
     const productType = faker.helpers.arrayElement(products);
     const spec = faker.helpers.arrayElement(specs);
+    const productTitle = `${brand} ${feature} ${productType} | ${spec}`;
 
     // Generate two unique colors
     const colors = faker.helpers.uniqueArray(() => faker.color.human(), 2);
@@ -798,17 +882,22 @@ export default async function seedDemoData({ container }: ExecArgs) {
     const images = Array.from({ length: imageCount }, () => ({
       url: faker.image.url({ width: 800, height: 800 }),
     }));
+    const buildDetail = faker.helpers.arrayElement(buildDetails);
+    const useCase = faker.helpers.arrayElement(useCases);
+    const highlightSnippets = faker.helpers.arrayElements(highlightPool, 2);
+    const highlightText =
+      highlightSnippets.length > 1
+        ? `${highlightSnippets[0]} and ${highlightSnippets[1]}`
+        : highlightSnippets[0];
+    const description = `${productTitle} delivers a ${feature.toLowerCase()} take on the ${productType.toLowerCase()} category with ${spec} performance. It uses ${buildDetail} and is tuned for ${useCase}. Highlights include ${highlightText}. Available in ${color1} or ${color2}.`;
 
     await createProductsWorkflow(container).run({
       input: {
         products: [
           {
-            title: `${brand} ${feature} ${productType} | ${spec}`,
+            title: productTitle,
             category_ids: [category.id],
-            description:
-              faker.commerce.productDescription() +
-              ". " +
-              faker.lorem.paragraph(),
+            description,
             weight: faker.number.int({ min: 100, max: 1000 }),
             status: ProductStatus.PUBLISHED,
             images: images,

@@ -20,6 +20,7 @@ export const embedProductWorkflow = createWorkflow(
 
     // Step 2: Generate embedding from the product text
     const embeddingResult = generateEmbeddingStep({
+      product_id: productData.product_id,
       text: productData.embedded_text,
     });
 
