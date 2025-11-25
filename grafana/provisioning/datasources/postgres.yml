@@ -8,7 +8,7 @@ datasources:
     url: postgres:5432
     user: medusa_user
     secureJsonData:
-      password: medusa_pass
+      password: $__env{GF_DB_PASSWORD}
     jsonData:
       database: medusa_hovedopgave
       sslmode: disable
