@@ -30,8 +30,7 @@ variable "vm_size" {
   default     = "Standard_B2s"
 }
 
-# Uncomment if you want to hard-wire subscription in provider:
-# variable "subscription_id" {
-#   description = "Azure subscription ID"
-#   type        = string
-# }
+ variable "subscription_id" {
+   description = "Azure subscription ID"
+   type        = string
+ }

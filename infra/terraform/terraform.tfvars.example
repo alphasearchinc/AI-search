@@ -4,3 +4,4 @@ admin_username      = "aleksander"
 ssh_public_key_path = "~/.ssh/id_ed25519.pub"
 admin_public_ip     = "YOUR.PUBLIC.IP.ADDR/32" # e.g. 1.2.3.4/32
 vm_size             = "Standard_B2s"
+subscription_id     = "00000000-0000-0000-0000-000000000000"
