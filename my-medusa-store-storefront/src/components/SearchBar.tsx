@@ -3,6 +3,7 @@
 import {
   semanticProductSearch,
   type CategoryFacet,
+  type OptionFacet,
   type PriceRange,
   type SemanticSearchHit,
 } from "@lib/search"
@@ -18,8 +19,12 @@ const SearchBar = () => {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SemanticSearchHit[]>([])
   const [facets, setFacets] = useState<CategoryFacet[]>([])
+  const [optionFacets, setOptionFacets] = useState<OptionFacet[]>([])
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string[]>
+  >({})
   const [minPriceInput, setMinPriceInput] = useState("")
   const [maxPriceInput, setMaxPriceInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -87,6 +92,7 @@ const SearchBar = () => {
       setError(null)
       setResults([])
       setFacets([])
+      setOptionFacets([])
       setPriceRange(null)
       return
     }
@@ -97,6 +103,13 @@ const SearchBar = () => {
     debounceRef.current = setTimeout(async () => {
       latestQueryRef.current = trimmedQuery
       try {
+        // Only include options with at least one selected value
+        const activeOptions = Object.fromEntries(
+          Object.entries(selectedOptions).filter(
+            ([, values]) => values.length > 0
+          )
+        )
+
         const response = await semanticProductSearch({
           query: trimmedQuery,
           limit: RESULT_LIMIT,
@@ -104,11 +117,14 @@ const SearchBar = () => {
             selectedCategories.length > 0 ? selectedCategories : undefined,
           minPrice: validMinPrice,
           maxPrice: validMaxPrice,
+          options:
+            Object.keys(activeOptions).length > 0 ? activeOptions : undefined,
           includeFacets: true,
         })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
           setFacets(response.facets?.categories ?? [])
+          setOptionFacets(response.facets?.options ?? [])
           setPriceRange(response.facets?.priceRange ?? null)
         }
       } catch (err: any) {
@@ -117,6 +133,7 @@ const SearchBar = () => {
             err instanceof Error ? err.message : "Unable to search right now"
           setResults([])
           setFacets([])
+          setOptionFacets([])
           setPriceRange(null)
           setError(message)
         }
@@ -132,7 +149,13 @@ const SearchBar = () => {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [trimmedQuery, selectedCategories, validMinPrice, validMaxPrice])
+  }, [
+    trimmedQuery,
+    selectedCategories,
+    selectedOptions,
+    validMinPrice,
+    validMaxPrice,
+  ])
 
   const handleResultNavigation = (hit: SemanticSearchHit) => {
     const handle = hit.product.handle
@@ -161,8 +184,10 @@ const SearchBar = () => {
     setQuery("")
     setResults([])
     setFacets([])
+    setOptionFacets([])
     setPriceRange(null)
     setSelectedCategories([])
+    setSelectedOptions({})
     setMinPriceInput("")
     setMaxPriceInput("")
     setError(null)
@@ -177,6 +202,25 @@ const SearchBar = () => {
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
     )
+  }
+
+  const toggleOption = (optionName: string, value: string) => {
+    setSelectedOptions((prev) => {
+      const currentValues = prev[optionName] ?? []
+      const isSelected = currentValues.includes(value)
+
+      if (isSelected) {
+        const newValues = currentValues.filter((v) => v !== value)
+        if (newValues.length === 0) {
+          // Remove the option key entirely if no values selected
+          const { [optionName]: _, ...rest } = prev
+          return rest
+        }
+        return { ...prev, [optionName]: newValues }
+      } else {
+        return { ...prev, [optionName]: [...currentValues, value] }
+      }
+    })
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -336,6 +380,52 @@ const SearchBar = () => {
                     Clear
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Option facets (Storage, Color, etc.) */}
+          {optionFacets.length > 0 && (
+            <div className="px-4 py-3 border-b border-ui-border-base">
+              <p className="text-xs text-ui-fg-muted mb-2">Filter by options</p>
+              <div className="space-y-3">
+                {optionFacets.map((option) => (
+                  <div key={option.name}>
+                    <p className="text-xs font-medium text-ui-fg-base mb-1.5">
+                      {option.name}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {option.values.map(({ value, count }) => {
+                        const isSelected =
+                          selectedOptions[option.name]?.includes(value) ?? false
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => toggleOption(option.name, value)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
+                              isSelected
+                                ? "bg-ui-fg-base text-ui-bg-base"
+                                : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
+                            }`}
+                          >
+                            {value}
+                            <span
+                              className={`${
+                                isSelected
+                                  ? "text-ui-bg-base/70"
+                                  : "text-ui-fg-muted"
+                              }`}
+                            >
+                              ({count})
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
