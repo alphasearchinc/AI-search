@@ -12,6 +12,8 @@ type SearchProductsWorkflowInput = {
   min_confidence?: number;
   filters?: {
     category_ids?: string[];
+    min_price?: number;
+    max_price?: number;
   };
   include_facets?: boolean;
 };

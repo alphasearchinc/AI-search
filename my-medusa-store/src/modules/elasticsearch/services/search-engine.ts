@@ -6,6 +6,7 @@ import {
   SearchMode,
   CategoryFacet,
   SearchFacets,
+  PriceRange,
 } from "../types";
 import {
   getSearchConfig,
@@ -255,17 +256,40 @@ export class SearchEngine {
 
     filteredHits.sort((a, b) => b.score - a.score);
 
-    // Build facets from ALL confidence-filtered hits (before category filtering)
-    // This ensures users see all available categories for their query
+    // Apply price range filter first (before building facets)
+    const minPrice = options.filters?.min_price;
+    const maxPrice = options.filters?.max_price;
+    let priceFilteredHits = filteredHits;
+    
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      priceFilteredHits = filteredHits.filter((hit) => {
+        const hitMinPrice = hit.metadata?.min_price;
+        const hitMaxPrice = hit.metadata?.max_price;
+        
+        // If product has no price indexed, include it (don't exclude due to missing data)
+        if (hitMinPrice === undefined && hitMaxPrice === undefined) return true;
+        
+        const productMinPrice = hitMinPrice ?? 0;
+        const productMaxPrice = hitMaxPrice ?? productMinPrice;
+        
+        // Check if product's price range overlaps with the filter range
+        if (minPrice !== undefined && productMaxPrice < minPrice) return false;
+        if (maxPrice !== undefined && productMinPrice > maxPrice) return false;
+        return true;
+      });
+    }
+
+    // Build facets from price-filtered hits (before category filtering)
+    // This ensures category facets reflect only products within the price range
     let facets: SearchFacets | undefined;
     if (options.includeFacets) {
-      facets = this.buildFacetsFromHits(filteredHits);
+      facets = this.buildFacetsFromHits(priceFilteredHits);
     }
 
     // Now apply category filter to get final results
-    let categoryFilteredHits = filteredHits;
+    let categoryFilteredHits = priceFilteredHits;
     if (categoryIds.length > 0) {
-      categoryFilteredHits = filteredHits.filter((hit) => {
+      categoryFilteredHits = priceFilteredHits.filter((hit) => {
         const hitCategoryIds = hit.metadata?.category_ids ?? [];
         return categoryIds.some((catId) => hitCategoryIds.includes(catId));
       });
@@ -314,6 +338,24 @@ export class SearchEngine {
       .map(([id, { name, count }]) => ({ id, name, count }))
       .sort((a, b) => b.count - a.count);
 
-    return { categories };
+    // Calculate price range from hits
+    let priceRange: PriceRange | undefined;
+    const prices: number[] = [];
+    for (const hit of hits) {
+      if (typeof hit.metadata?.min_price === "number") {
+        prices.push(hit.metadata.min_price);
+      }
+      if (typeof hit.metadata?.max_price === "number") {
+        prices.push(hit.metadata.max_price);
+      }
+    }
+    if (prices.length > 0) {
+      priceRange = {
+        min: Math.min(...prices),
+        max: Math.max(...prices),
+      };
+    }
+
+    return { categories, priceRange };
   }
 }

@@ -21,6 +21,8 @@ export type ElasticsearchModuleOptions = {
 export type SemanticSearchFilters = {
   product_ids?: string[];
   category_ids?: string[];
+  min_price?: number;
+  max_price?: number;
 };
 
 export type SearchMode = "hybrid" | "bm25" | "vector";
@@ -47,8 +49,14 @@ export type CategoryFacet = {
   count: number;
 };
 
+export type PriceRange = {
+  min: number;
+  max: number;
+};
+
 export type SearchFacets = {
   categories: CategoryFacet[];
+  priceRange?: PriceRange;
 };
 
 export type SemanticSearchHit = {

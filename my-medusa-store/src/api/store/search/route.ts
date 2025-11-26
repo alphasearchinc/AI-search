@@ -11,6 +11,8 @@ type StoreSemanticSearchBody = {
   limit?: number;
   min_confidence?: number;
   category_ids?: string[];
+  min_price?: number;
+  max_price?: number;
   include_facets?: boolean;
 };
 
@@ -63,8 +65,29 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     ? body.category_ids.filter((id) => typeof id === "string" && id.trim())
     : [];
 
+  // Parse price filters
+  const minPrice =
+    typeof body.min_price === "number" && Number.isFinite(body.min_price)
+      ? body.min_price
+      : undefined;
+  const maxPrice =
+    typeof body.max_price === "number" && Number.isFinite(body.max_price)
+      ? body.max_price
+      : undefined;
+
   // Whether to include facets in response (default: true)
   const includeFacets = body.include_facets !== false;
+
+  // Build filters object
+  const hasFilters =
+    categoryIds.length > 0 || minPrice !== undefined || maxPrice !== undefined;
+  const filters = hasFilters
+    ? {
+        ...(categoryIds.length > 0 && { category_ids: categoryIds }),
+        ...(minPrice !== undefined && { min_price: minPrice }),
+        ...(maxPrice !== undefined && { max_price: maxPrice }),
+      }
+    : undefined;
 
   try {
     const { result } = await searchProductsWorkflow(req.scope).run({
@@ -72,8 +95,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         query,
         limit,
         min_confidence: minConfidence,
-        filters:
-          categoryIds.length > 0 ? { category_ids: categoryIds } : undefined,
+        filters,
         include_facets: includeFacets,
       },
     });

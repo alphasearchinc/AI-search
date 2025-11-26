@@ -1,5 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { Modules } from "@medusajs/framework/utils";
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 
 type GetProductDataInput = {
   product_id: string;
@@ -8,15 +8,27 @@ type GetProductDataInput = {
 export const getProductDataStep = createStep(
   "get-product-data-step",
   async (input: GetProductDataInput, { container }) => {
-    const productModuleService = container.resolve(Modules.PRODUCT);
+    const query = container.resolve(ContainerRegistrationKeys.QUERY);
 
-    // Retrieve product details
-    const product = await productModuleService.retrieveProduct(
-      input.product_id,
-      {
-        relations: ["variants", "categories", "tags"],
-      }
-    );
+    // Retrieve product with variants and prices using Query
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: [
+        "*",
+        "variants.*",
+        "variants.prices.*",
+        "categories.*",
+        "tags.*",
+      ],
+      filters: {
+        id: [input.product_id],
+      },
+    });
+
+    const product = products[0];
+    if (!product) {
+      throw new Error(`Product ${input.product_id} not found`);
+    }
 
     // Construct text to embed (title + description + category info)
     const textParts = [product.title];
@@ -47,6 +59,25 @@ export const getProductDataStep = createStep(
 
     if (product.tags && product.tags.length > 0) {
       metadata.tags = product.tags.map((tag: any) => tag.value);
+    }
+
+    // Extract price range from variants
+    if (product.variants && product.variants.length > 0) {
+      const prices: number[] = [];
+      for (const variant of product.variants as any[]) {
+        // Prices are now available via Query
+        if (variant.prices && Array.isArray(variant.prices)) {
+          for (const price of variant.prices) {
+            if (typeof price.amount === "number") {
+              prices.push(price.amount);
+            }
+          }
+        }
+      }
+      if (prices.length > 0) {
+        metadata.min_price = Math.min(...prices);
+        metadata.max_price = Math.max(...prices);
+      }
     }
 
     return new StepResponse({
