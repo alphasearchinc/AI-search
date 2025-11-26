@@ -17,6 +17,9 @@ export const getProductDataStep = createStep(
         "*",
         "variants.*",
         "variants.prices.*",
+        "variants.options.*",
+        "options.*",
+        "options.values.*",
         "categories.*",
         "tags.*",
       ],
@@ -77,6 +80,34 @@ export const getProductDataStep = createStep(
       if (prices.length > 0) {
         metadata.min_price = Math.min(...prices);
         metadata.max_price = Math.max(...prices);
+      }
+    }
+
+    // Extract product options (e.g., Storage, Color) as a map of option_name -> [values]
+    // This allows dynamic filtering by any product option
+    if (product.options && product.options.length > 0) {
+      const optionsMap: Record<string, string[]> = {};
+
+      for (const option of product.options as any[]) {
+        const optionTitle = option.title;
+        if (!optionTitle) continue;
+
+        const values: string[] = [];
+        if (option.values && Array.isArray(option.values)) {
+          for (const val of option.values) {
+            if (val.value) {
+              values.push(val.value);
+            }
+          }
+        }
+
+        if (values.length > 0) {
+          optionsMap[optionTitle] = values;
+        }
+      }
+
+      if (Object.keys(optionsMap).length > 0) {
+        metadata.options = optionsMap;
       }
     }
 

@@ -13,6 +13,7 @@ type StoreSemanticSearchBody = {
   category_ids?: string[];
   min_price?: number;
   max_price?: number;
+  options?: Record<string, string[]>;
   include_facets?: boolean;
 };
 
@@ -75,17 +76,37 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       ? body.max_price
       : undefined;
 
+  // Parse options filter (e.g., { "Storage": ["256 GB", "512 GB"], "Color": ["Black"] })
+  const optionsFilter =
+    body.options &&
+    typeof body.options === "object" &&
+    !Array.isArray(body.options)
+      ? Object.fromEntries(
+          Object.entries(body.options).filter(
+            ([key, values]) =>
+              typeof key === "string" &&
+              Array.isArray(values) &&
+              values.every((v) => typeof v === "string")
+          )
+        )
+      : undefined;
+
   // Whether to include facets in response (default: true)
   const includeFacets = body.include_facets !== false;
 
   // Build filters object
   const hasFilters =
-    categoryIds.length > 0 || minPrice !== undefined || maxPrice !== undefined;
+    categoryIds.length > 0 ||
+    minPrice !== undefined ||
+    maxPrice !== undefined ||
+    (optionsFilter && Object.keys(optionsFilter).length > 0);
   const filters = hasFilters
     ? {
         ...(categoryIds.length > 0 && { category_ids: categoryIds }),
         ...(minPrice !== undefined && { min_price: minPrice }),
         ...(maxPrice !== undefined && { max_price: maxPrice }),
+        ...(optionsFilter &&
+          Object.keys(optionsFilter).length > 0 && { options: optionsFilter }),
       }
     : undefined;
 

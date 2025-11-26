@@ -14,6 +14,7 @@ type SearchProductsWorkflowInput = {
     category_ids?: string[];
     min_price?: number;
     max_price?: number;
+    options?: Record<string, string[]>;
   };
   include_facets?: boolean;
 };

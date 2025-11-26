@@ -7,6 +7,7 @@ import {
   CategoryFacet,
   SearchFacets,
   PriceRange,
+  OptionFacet,
 } from "../types";
 import {
   getSearchConfig,
@@ -279,17 +280,46 @@ export class SearchEngine {
       });
     }
 
-    // Build facets from price-filtered hits (before category filtering)
-    // This ensures category facets reflect only products within the price range
+    // Apply options filter (before building facets)
+    const optionsFilter = options.filters?.options;
+    let optionsFilteredHits = priceFilteredHits;
+
+    if (optionsFilter && Object.keys(optionsFilter).length > 0) {
+      optionsFilteredHits = priceFilteredHits.filter((hit) => {
+        const hitOptions = hit.metadata?.options as
+          | Record<string, string[]>
+          | undefined;
+        if (!hitOptions) return false;
+
+        // Product must match ALL selected option filters (AND between option types)
+        // But can match ANY value within an option type (OR within option values)
+        for (const [optionName, selectedValues] of Object.entries(
+          optionsFilter
+        )) {
+          if (!selectedValues || selectedValues.length === 0) continue;
+
+          const productOptionValues = hitOptions[optionName] ?? [];
+          // Check if product has at least one of the selected values for this option
+          const hasMatch = selectedValues.some((val) =>
+            productOptionValues.includes(val)
+          );
+          if (!hasMatch) return false;
+        }
+        return true;
+      });
+    }
+
+    // Build facets from options-filtered hits (before category filtering)
+    // This ensures category facets reflect only products within the price range and option filters
     let facets: SearchFacets | undefined;
     if (options.includeFacets) {
-      facets = this.buildFacetsFromHits(priceFilteredHits);
+      facets = this.buildFacetsFromHits(optionsFilteredHits);
     }
 
     // Now apply category filter to get final results
-    let categoryFilteredHits = priceFilteredHits;
+    let categoryFilteredHits = optionsFilteredHits;
     if (categoryIds.length > 0) {
-      categoryFilteredHits = priceFilteredHits.filter((hit) => {
+      categoryFilteredHits = optionsFilteredHits.filter((hit) => {
         const hitCategoryIds = hit.metadata?.category_ids ?? [];
         return categoryIds.some((catId) => hitCategoryIds.includes(catId));
       });
@@ -356,6 +386,54 @@ export class SearchEngine {
       };
     }
 
-    return { categories, priceRange };
+    // Build option facets dynamically from hits
+    const options = this.buildOptionFacetsFromHits(hits);
+
+    return { categories, priceRange, options };
+  }
+
+  /**
+   * Build option facets from search hits.
+   * Discovers all unique option types and their values with counts.
+   */
+  private buildOptionFacetsFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): OptionFacet[] {
+    // Map of optionName -> Map of value -> count
+    const optionMap = new Map<string, Map<string, number>>();
+
+    for (const hit of hits) {
+      const hitOptions = hit.metadata?.options as
+        | Record<string, string[]>
+        | undefined;
+      if (!hitOptions) continue;
+
+      for (const [optionName, values] of Object.entries(hitOptions)) {
+        if (!Array.isArray(values)) continue;
+
+        let valueMap = optionMap.get(optionName);
+        if (!valueMap) {
+          valueMap = new Map<string, number>();
+          optionMap.set(optionName, valueMap);
+        }
+
+        for (const value of values) {
+          const currentCount = valueMap.get(value) ?? 0;
+          valueMap.set(value, currentCount + 1);
+        }
+      }
+    }
+
+    // Convert to OptionFacet array
+    const optionFacets: OptionFacet[] = Array.from(optionMap.entries())
+      .map(([name, valueMap]) => ({
+        name,
+        values: Array.from(valueMap.entries())
+          .map(([value, count]) => ({ value, count }))
+          .sort((a, b) => b.count - a.count), // Sort values by count descending
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)); // Sort options alphabetically
+
+    return optionFacets;
   }
 }

@@ -23,6 +23,7 @@ export type SemanticSearchFilters = {
   category_ids?: string[];
   min_price?: number;
   max_price?: number;
+  options?: Record<string, string[]>; // e.g., { "Storage": ["512 GB", "1 TB"], "Color": ["Black"] }
 };
 
 export type SearchMode = "hybrid" | "bm25" | "vector";
@@ -54,9 +55,18 @@ export type PriceRange = {
   max: number;
 };
 
+export type OptionFacet = {
+  name: string; // e.g., "Storage", "Color"
+  values: Array<{
+    value: string; // e.g., "512 GB", "Black"
+    count: number;
+  }>;
+};
+
 export type SearchFacets = {
   categories: CategoryFacet[];
   priceRange?: PriceRange;
+  options?: OptionFacet[];
 };
 
 export type SemanticSearchHit = {
