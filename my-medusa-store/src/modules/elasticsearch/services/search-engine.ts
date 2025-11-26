@@ -76,18 +76,12 @@ export class SearchEngine {
     const productIds = options.filters?.product_ids?.filter(Boolean) ?? [];
     const categoryIds = options.filters?.category_ids?.filter(Boolean) ?? [];
 
+    // Only apply product_id filter at ES level
+    // Category filtering is done in-memory to allow smart facets
     if (productIds.length) {
       filterClauses.push({
         terms: {
           product_id: productIds,
-        },
-      });
-    }
-
-    if (categoryIds.length) {
-      filterClauses.push({
-        terms: {
-          "metadata.category_ids": categoryIds,
         },
       });
     }
@@ -261,15 +255,25 @@ export class SearchEngine {
 
     filteredHits.sort((a, b) => b.score - a.score);
 
-    const finalHits = filteredHits.slice(0, size);
-    const count = filteredHits.length;
-    const took = tookParts.reduce((sum, value) => sum + value, 0);
-
-    // Build facets from the filtered hits if requested
+    // Build facets from ALL confidence-filtered hits (before category filtering)
+    // This ensures users see all available categories for their query
     let facets: SearchFacets | undefined;
     if (options.includeFacets) {
       facets = this.buildFacetsFromHits(filteredHits);
     }
+
+    // Now apply category filter to get final results
+    let categoryFilteredHits = filteredHits;
+    if (categoryIds.length > 0) {
+      categoryFilteredHits = filteredHits.filter((hit) => {
+        const hitCategoryIds = hit.metadata?.category_ids ?? [];
+        return categoryIds.some((catId) => hitCategoryIds.includes(catId));
+      });
+    }
+
+    const finalHits = categoryFilteredHits.slice(0, size);
+    const count = categoryFilteredHits.length;
+    const took = tookParts.reduce((sum, value) => sum + value, 0);
 
     return {
       hits: finalHits,

@@ -1,6 +1,10 @@
 "use client"
 
-import { semanticProductSearch, type SemanticSearchHit } from "@lib/search"
+import {
+  semanticProductSearch,
+  type CategoryFacet,
+  type SemanticSearchHit,
+} from "@lib/search"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 
@@ -11,6 +15,8 @@ const DEBOUNCE_DELAY = 350
 const SearchBar = () => {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SemanticSearchHit[]>([])
+  const [facets, setFacets] = useState<CategoryFacet[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -26,10 +32,7 @@ const SearchBar = () => {
   const trimmedQuery = query.trim()
   const showDropdown =
     isOpen &&
-    (trimmedQuery.length > 0 ||
-      isLoading ||
-      !!error ||
-      results.length > 0)
+    (trimmedQuery.length > 0 || isLoading || !!error || results.length > 0)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -69,6 +72,7 @@ const SearchBar = () => {
       setIsLoading(false)
       setError(null)
       setResults([])
+      setFacets([])
       return
     }
 
@@ -78,18 +82,23 @@ const SearchBar = () => {
     debounceRef.current = setTimeout(async () => {
       latestQueryRef.current = trimmedQuery
       try {
-        const response = await semanticProductSearch(
-          trimmedQuery,
-          RESULT_LIMIT
-        )
+        const response = await semanticProductSearch({
+          query: trimmedQuery,
+          limit: RESULT_LIMIT,
+          categoryIds:
+            selectedCategories.length > 0 ? selectedCategories : undefined,
+          includeFacets: true,
+        })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
+          setFacets(response.facets?.categories ?? [])
         }
       } catch (err: any) {
         if (latestQueryRef.current === trimmedQuery) {
           const message =
             err instanceof Error ? err.message : "Unable to search right now"
           setResults([])
+          setFacets([])
           setError(message)
         }
       } finally {
@@ -104,7 +113,7 @@ const SearchBar = () => {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [trimmedQuery])
+  }, [trimmedQuery, selectedCategories])
 
   const handleResultNavigation = (hit: SemanticSearchHit) => {
     const handle = hit.product.handle
@@ -132,10 +141,20 @@ const SearchBar = () => {
     latestQueryRef.current = ""
     setQuery("")
     setResults([])
+    setFacets([])
+    setSelectedCategories([])
     setError(null)
     setIsLoading(false)
     setIsOpen(true)
     inputRef.current?.focus()
+  }
+
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    )
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -166,106 +185,141 @@ const SearchBar = () => {
     setIsOpen(true)
   }
 
- return (
-  <div ref={containerRef} className="relative w-full">
-    <label htmlFor="header-search" className="sr-only">
-      Search products
-    </label>
-    <div className="relative flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest focus-within:border-ui-fg-base focus-within:shadow-elevation-card-hover transition-shadow">
-      <SearchIcon />
-      <div className="relative flex-1">
-        <input
-          id="header-search"
-          ref={inputRef}
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setIsOpen(true)
-          }}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          onFocus={handleFocus}
-          placeholder="Search products"
-          className="w-full bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none pr-24"
-          autoComplete="off"
-        />
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <label htmlFor="header-search" className="sr-only">
+        Search products
+      </label>
+      <div className="relative flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest focus-within:border-ui-fg-base focus-within:shadow-elevation-card-hover transition-shadow">
+        <SearchIcon />
+        <div className="relative flex-1">
+          <input
+            id="header-search"
+            ref={inputRef}
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setIsOpen(true)
+            }}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            onFocus={handleFocus}
+            placeholder="Search products"
+            className="w-full bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none pr-24"
+            autoComplete="off"
+          />
 
-        {isLoading && (
-          <span className="pointer-events-none absolute right-6 top-1 text-xs text-ui-fg-muted">
-            Searching…
-          </span>
-        )}
-
- {trimmedQuery.length > 0 && (
-  <button
-    type="button"
-    onMouseDown={(event) => event.preventDefault()}
-    onClick={handleClear}
-    className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1 text-ui-fg-muted hover:text-ui-fg-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg-base/50"
-    aria-label="Clear search"
-  >
-    <span aria-hidden="true">&times;</span>
-  </button>
-)}
-
-      </div>
-    </div>
-
-    {showDropdown && (
-      <div className="absolute left-0 right-0 mt-2 rounded-large border border-ui-border-base bg-ui-bg-base shadow-elevation-card-rest z-50">
-        <div className="max-h-96 overflow-y-auto py-2">
-          {error && (
-            <p className="px-4 py-3 text-sm text-rose-600">{error}</p>
+          {isLoading && (
+            <span className="pointer-events-none absolute right-6 top-1 text-xs text-ui-fg-muted">
+              Searching…
+            </span>
           )}
 
-          {!error &&
-            trimmedQuery.length > 0 &&
-            trimmedQuery.length < MIN_QUERY_LENGTH && (
-              <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                Type at least {MIN_QUERY_LENGTH} characters to search
-              </p>
-            )}
-
-          {!error &&
-            trimmedQuery.length >= MIN_QUERY_LENGTH &&
-            results.map((hit) => (
-              <button
-                key={hit.id}
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-ui-bg-subtle transition-colors flex items-center gap-3"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => handleResultNavigation(hit)}
-                data-testid="search-result"
-              >
-                <ThumbnailPreview hit={hit} />
-                <div className="min-w-0">
-                  <p className="txt-compact-small-plus text-ui-fg-base truncate">
-                    {hit.product.title ?? "Untitled product"}
-                  </p>
-                  <p className="txt-compact-small text-ui-fg-subtle truncate">
-                    {hit.product.subtitle ||
-                      hit.product.description ||
-                      hit.metadata?.embedded_text ||
-                      "View details"}
-                  </p>
-                </div>
-              </button>
-            ))}
-
-          {!error &&
-            !isLoading &&
-            trimmedQuery.length >= MIN_QUERY_LENGTH &&
-            results.length === 0 && (
-              <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                No products matched your search.
-              </p>
-            )}
+          {trimmedQuery.length > 0 && (
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={handleClear}
+              className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1 text-ui-fg-muted hover:text-ui-fg-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg-base/50"
+              aria-label="Clear search"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          )}
         </div>
       </div>
-    )}
-  </div>
-)}
 
+      {showDropdown && (
+        <div className="absolute left-0 right-0 mt-2 rounded-large border border-ui-border-base bg-ui-bg-base shadow-elevation-card-rest z-50">
+          {/* Category facets */}
+          {facets.length > 0 && (
+            <div className="px-4 py-3 border-b border-ui-border-base">
+              <p className="text-xs text-ui-fg-muted mb-2">
+                Filter by category
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {facets.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat.id)
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors ${
+                        isSelected
+                          ? "bg-ui-fg-base text-ui-bg-base"
+                          : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
+                      }`}
+                    >
+                      {cat.name}
+                      <span
+                        className={`${
+                          isSelected ? "text-ui-bg-base/70" : "text-ui-fg-muted"
+                        }`}
+                      >
+                        ({cat.count})
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-96 overflow-y-auto py-2">
+            {error && (
+              <p className="px-4 py-3 text-sm text-rose-600">{error}</p>
+            )}
+
+            {!error &&
+              trimmedQuery.length > 0 &&
+              trimmedQuery.length < MIN_QUERY_LENGTH && (
+                <p className="px-4 py-3 text-sm text-ui-fg-muted">
+                  Type at least {MIN_QUERY_LENGTH} characters to search
+                </p>
+              )}
+
+            {!error &&
+              trimmedQuery.length >= MIN_QUERY_LENGTH &&
+              results.map((hit) => (
+                <button
+                  key={hit.id}
+                  type="button"
+                  className="w-full text-left px-4 py-3 hover:bg-ui-bg-subtle transition-colors flex items-center gap-3"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => handleResultNavigation(hit)}
+                  data-testid="search-result"
+                >
+                  <ThumbnailPreview hit={hit} />
+                  <div className="min-w-0">
+                    <p className="txt-compact-small-plus text-ui-fg-base truncate">
+                      {hit.product.title ?? "Untitled product"}
+                    </p>
+                    <p className="txt-compact-small text-ui-fg-subtle truncate">
+                      {hit.product.subtitle ||
+                        hit.product.description ||
+                        hit.metadata?.embedded_text ||
+                        "View details"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+
+            {!error &&
+              !isLoading &&
+              trimmedQuery.length >= MIN_QUERY_LENGTH &&
+              results.length === 0 && (
+                <p className="px-4 py-3 text-sm text-ui-fg-muted">
+                  No products matched your search.
+                </p>
+              )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const ThumbnailPreview = ({ hit }: { hit: SemanticSearchHit }) => {
   const thumbnail = hit.product.thumbnail

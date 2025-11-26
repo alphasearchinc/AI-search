@@ -14,6 +14,16 @@ export type SemanticSearchHit = {
   metadata?: Record<string, unknown>
 }
 
+export type CategoryFacet = {
+  id: string
+  name: string
+  count: number
+}
+
+export type SearchFacets = {
+  categories: CategoryFacet[]
+}
+
 export type SemanticSearchResponse = {
   query: string
   limit: number
@@ -21,6 +31,7 @@ export type SemanticSearchResponse = {
   total: number
   count: number
   hits: SemanticSearchHit[]
+  facets?: SearchFacets
 }
 
 const getBackendUrl = (): string => {
@@ -38,11 +49,22 @@ const getBackendUrl = (): string => {
 const getPublishableKey = (): string | undefined =>
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
+export type SemanticSearchOptions = {
+  query: string
+  limit?: number
+  categoryIds?: string[]
+  includeFacets?: boolean
+}
+
 export async function semanticProductSearch(
-  query: string,
+  options: SemanticSearchOptions | string,
   limit = 5
 ): Promise<SemanticSearchResponse> {
-  const sanitizedQuery = query.trim()
+  // Support both old (query, limit) and new (options) signature
+  const opts: SemanticSearchOptions =
+    typeof options === "string" ? { query: options, limit } : options
+
+  const sanitizedQuery = opts.query.trim()
 
   if (!sanitizedQuery) {
     throw new Error("Search query must not be empty")
@@ -59,7 +81,11 @@ export async function semanticProductSearch(
     },
     body: JSON.stringify({
       query: sanitizedQuery,
-      limit,
+      limit: opts.limit ?? limit,
+      ...(opts.categoryIds?.length && { category_ids: opts.categoryIds }),
+      ...(opts.includeFacets !== undefined && {
+        include_facets: opts.includeFacets,
+      }),
     }),
     cache: "no-store",
   })
