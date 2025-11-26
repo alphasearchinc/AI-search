@@ -20,8 +20,14 @@ export type CategoryFacet = {
   count: number
 }
 
+export type PriceRange = {
+  min: number
+  max: number
+}
+
 export type SearchFacets = {
   categories: CategoryFacet[]
+  priceRange?: PriceRange
 }
 
 export type SemanticSearchResponse = {
@@ -53,6 +59,8 @@ export type SemanticSearchOptions = {
   query: string
   limit?: number
   categoryIds?: string[]
+  minPrice?: number
+  maxPrice?: number
   includeFacets?: boolean
 }
 
@@ -83,6 +91,8 @@ export async function semanticProductSearch(
       query: sanitizedQuery,
       limit: opts.limit ?? limit,
       ...(opts.categoryIds?.length && { category_ids: opts.categoryIds }),
+      ...(opts.minPrice !== undefined && { min_price: opts.minPrice }),
+      ...(opts.maxPrice !== undefined && { max_price: opts.maxPrice }),
       ...(opts.includeFacets !== undefined && {
         include_facets: opts.includeFacets,
       }),

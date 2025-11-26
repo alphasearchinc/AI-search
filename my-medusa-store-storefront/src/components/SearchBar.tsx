@@ -3,6 +3,7 @@
 import {
   semanticProductSearch,
   type CategoryFacet,
+  type PriceRange,
   type SemanticSearchHit,
 } from "@lib/search"
 import { usePathname, useRouter } from "next/navigation"
@@ -11,12 +12,16 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 const MIN_QUERY_LENGTH = 2
 const RESULT_LIMIT = 6
 const DEBOUNCE_DELAY = 350
+const PRICE_DEBOUNCE_DELAY = 500
 
 const SearchBar = () => {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SemanticSearchHit[]>([])
   const [facets, setFacets] = useState<CategoryFacet[]>([])
+  const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [minPriceInput, setMinPriceInput] = useState("")
+  const [maxPriceInput, setMaxPriceInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -27,7 +32,16 @@ const SearchBar = () => {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const priceDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const latestQueryRef = useRef("")
+
+  // Parse price inputs to numbers
+  const minPrice = minPriceInput ? parseFloat(minPriceInput) : undefined
+  const maxPrice = maxPriceInput ? parseFloat(maxPriceInput) : undefined
+  const validMinPrice =
+    minPrice !== undefined && !isNaN(minPrice) ? minPrice : undefined
+  const validMaxPrice =
+    maxPrice !== undefined && !isNaN(maxPrice) ? maxPrice : undefined
 
   const trimmedQuery = query.trim()
   const showDropdown =
@@ -73,6 +87,7 @@ const SearchBar = () => {
       setError(null)
       setResults([])
       setFacets([])
+      setPriceRange(null)
       return
     }
 
@@ -87,11 +102,14 @@ const SearchBar = () => {
           limit: RESULT_LIMIT,
           categoryIds:
             selectedCategories.length > 0 ? selectedCategories : undefined,
+          minPrice: validMinPrice,
+          maxPrice: validMaxPrice,
           includeFacets: true,
         })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
           setFacets(response.facets?.categories ?? [])
+          setPriceRange(response.facets?.priceRange ?? null)
         }
       } catch (err: any) {
         if (latestQueryRef.current === trimmedQuery) {
@@ -99,6 +117,7 @@ const SearchBar = () => {
             err instanceof Error ? err.message : "Unable to search right now"
           setResults([])
           setFacets([])
+          setPriceRange(null)
           setError(message)
         }
       } finally {
@@ -113,7 +132,7 @@ const SearchBar = () => {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [trimmedQuery, selectedCategories])
+  }, [trimmedQuery, selectedCategories, validMinPrice, validMaxPrice])
 
   const handleResultNavigation = (hit: SemanticSearchHit) => {
     const handle = hit.product.handle
@@ -142,7 +161,10 @@ const SearchBar = () => {
     setQuery("")
     setResults([])
     setFacets([])
+    setPriceRange(null)
     setSelectedCategories([])
+    setMinPriceInput("")
+    setMaxPriceInput("")
     setError(null)
     setIsLoading(false)
     setIsOpen(true)
@@ -263,6 +285,57 @@ const SearchBar = () => {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Price range filter */}
+          {trimmedQuery.length >= MIN_QUERY_LENGTH && (
+            <div className="px-4 py-3 border-b border-ui-border-base">
+              <p className="text-xs text-ui-fg-muted mb-2">
+                Price range
+                {priceRange && (
+                  <span className="text-ui-fg-subtle ml-1">
+                    (${priceRange.min.toFixed(0)} - ${priceRange.max.toFixed(0)}{" "}
+                    available)
+                  </span>
+                )}
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minPriceInput}
+                  onChange={(e) => setMinPriceInput(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onFocus={handleFocus}
+                  className="w-24 px-2 py-1 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                  min={0}
+                />
+                <span className="text-ui-fg-muted text-sm">–</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxPriceInput}
+                  onChange={(e) => setMaxPriceInput(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onFocus={handleFocus}
+                  className="w-24 px-2 py-1 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                  min={0}
+                />
+                {(minPriceInput || maxPriceInput) && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setMinPriceInput("")
+                      setMaxPriceInput("")
+                    }}
+                    className="text-xs text-ui-fg-muted hover:text-ui-fg-base"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
           )}

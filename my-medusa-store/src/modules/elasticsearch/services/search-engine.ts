@@ -260,18 +260,18 @@ export class SearchEngine {
     const minPrice = options.filters?.min_price;
     const maxPrice = options.filters?.max_price;
     let priceFilteredHits = filteredHits;
-    
+
     if (minPrice !== undefined || maxPrice !== undefined) {
       priceFilteredHits = filteredHits.filter((hit) => {
         const hitMinPrice = hit.metadata?.min_price;
         const hitMaxPrice = hit.metadata?.max_price;
-        
+
         // If product has no price indexed, include it (don't exclude due to missing data)
         if (hitMinPrice === undefined && hitMaxPrice === undefined) return true;
-        
+
         const productMinPrice = hitMinPrice ?? 0;
         const productMaxPrice = hitMaxPrice ?? productMinPrice;
-        
+
         // Check if product's price range overlaps with the filter range
         if (minPrice !== undefined && productMaxPrice < minPrice) return false;
         if (maxPrice !== undefined && productMinPrice > maxPrice) return false;
