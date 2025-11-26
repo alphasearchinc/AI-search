@@ -42,6 +42,7 @@ export const getProductDataStep = createStep(
 
     if (product.categories && product.categories.length > 0) {
       metadata.categories = product.categories.map((cat: any) => cat.name);
+      metadata.category_ids = product.categories.map((cat: any) => cat.id);
     }
 
     if (product.tags && product.tags.length > 0) {

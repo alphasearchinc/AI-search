@@ -10,6 +10,8 @@ type StoreSemanticSearchBody = {
   query?: string;
   limit?: number;
   min_confidence?: number;
+  category_ids?: string[];
+  include_facets?: boolean;
 };
 
 const sanitizeLimit = (rawLimit: unknown): number => {
@@ -56,18 +58,34 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     minConfidence = Math.min(Math.max(body.min_confidence, 0), 1);
   }
 
+  // Parse category_ids filter
+  const categoryIds = Array.isArray(body.category_ids)
+    ? body.category_ids.filter((id) => typeof id === "string" && id.trim())
+    : [];
+
+  // Whether to include facets in response (default: true)
+  const includeFacets = body.include_facets !== false;
+
   try {
     const { result } = await searchProductsWorkflow(req.scope).run({
       input: {
         query,
         limit,
         min_confidence: minConfidence,
+        filters:
+          categoryIds.length > 0 ? { category_ids: categoryIds } : undefined,
+        include_facets: includeFacets,
       },
     });
 
     const totalDuration = Date.now() - requestStartTime;
 
     // Record metrics (non-blocking)
+    const filtersApplied =
+      categoryIds.length > 0
+        ? categoryIds.map((id) => `category_id:${id}`)
+        : undefined;
+
     metricsRepository
       .recordSearch({
         query,
@@ -77,7 +95,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         elasticsearch_query_ms: result.searchDuration,
         total_duration_ms: totalDuration,
         results_count: result.hits.length,
-        filters_applied: undefined, // No filters in store search yet
+        filters_applied: filtersApplied,
         user_type: "store",
       })
       .catch((err) => logger.error("[METRICS] Failed to record:", err));
@@ -85,7 +103,10 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     logger.info(
       `[Store Semantic Search] query="${query.slice(0, 50)}..." ` +
         `took=${totalDuration}ms (embed=${result.embeddingDuration}ms, search=${result.searchDuration}ms) ` +
-        `hits=${result.hits.length} mode=${result.mode}`
+        `hits=${result.hits.length} mode=${result.mode}` +
+        (categoryIds.length > 0
+          ? ` filters=[${categoryIds.length} categories]`
+          : "")
     );
 
     return res.json({
@@ -96,6 +117,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       count: result.hits.length,
       mode: result.mode,
       hits: result.hits,
+      facets: result.facets,
     });
   } catch (error: any) {
     logger.error("[Store Semantic Search] Failed to execute search", error);

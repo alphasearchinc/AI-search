@@ -20,6 +20,7 @@ export type ElasticsearchModuleOptions = {
 
 export type SemanticSearchFilters = {
   product_ids?: string[];
+  category_ids?: string[];
 };
 
 export type SearchMode = "hybrid" | "bm25" | "vector";
@@ -35,8 +36,19 @@ export type SemanticSearchOptions = {
   limit?: number;
   filters?: SemanticSearchFilters;
   includeEmbedding?: boolean;
+  includeFacets?: boolean;
   mode?: SearchMode;
   minConfidence?: number;
+};
+
+export type CategoryFacet = {
+  id: string;
+  name: string;
+  count: number;
+};
+
+export type SearchFacets = {
+  categories: CategoryFacet[];
 };
 
 export type SemanticSearchHit = {
@@ -60,6 +72,7 @@ export type SemanticSearchResult = {
   count: number;
   took: number;
   mode: SearchMode | "bm25-only";
+  facets?: SearchFacets;
 };
 
 export type ProductEmbeddingJobData = {

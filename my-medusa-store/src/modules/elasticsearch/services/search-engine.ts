@@ -4,6 +4,8 @@ import {
   SemanticSearchOptions,
   SemanticSearchResult,
   SearchMode,
+  CategoryFacet,
+  SearchFacets,
 } from "../types";
 import {
   getSearchConfig,
@@ -72,11 +74,20 @@ export class SearchEngine {
 
     const filterClauses: any[] = [];
     const productIds = options.filters?.product_ids?.filter(Boolean) ?? [];
+    const categoryIds = options.filters?.category_ids?.filter(Boolean) ?? [];
 
     if (productIds.length) {
       filterClauses.push({
         terms: {
           product_id: productIds,
+        },
+      });
+    }
+
+    if (categoryIds.length) {
+      filterClauses.push({
+        terms: {
+          "metadata.category_ids": categoryIds,
         },
       });
     }
@@ -254,11 +265,51 @@ export class SearchEngine {
     const count = filteredHits.length;
     const took = tookParts.reduce((sum, value) => sum + value, 0);
 
+    // Build facets from the filtered hits if requested
+    let facets: SearchFacets | undefined;
+    if (options.includeFacets) {
+      facets = this.buildFacetsFromHits(filteredHits);
+    }
+
     return {
       hits: finalHits,
       count,
       took,
       mode: resolvedMode,
+      facets,
     };
+  }
+
+  /**
+   * Build category facets from search hits.
+   * This creates "smart facets" where only categories with matching products are shown.
+   */
+  private buildFacetsFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): SearchFacets {
+    const categoryMap = new Map<string, { name: string; count: number }>();
+
+    for (const hit of hits) {
+      const categoryIds = hit.metadata?.category_ids ?? [];
+      const categoryNames = hit.metadata?.categories ?? [];
+
+      for (let i = 0; i < categoryIds.length; i++) {
+        const id = categoryIds[i];
+        const name = categoryNames[i] || id;
+
+        const existing = categoryMap.get(id);
+        if (existing) {
+          existing.count++;
+        } else {
+          categoryMap.set(id, { name, count: 1 });
+        }
+      }
+    }
+
+    const categories: CategoryFacet[] = Array.from(categoryMap.entries())
+      .map(([id, { name, count }]) => ({ id, name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return { categories };
   }
 }

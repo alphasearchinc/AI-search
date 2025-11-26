@@ -10,6 +10,10 @@ type SearchProductsWorkflowInput = {
   query: string;
   limit: number;
   min_confidence?: number;
+  filters?: {
+    category_ids?: string[];
+  };
+  include_facets?: boolean;
 };
 
 export const searchProductsWorkflow = createWorkflow(
@@ -27,6 +31,8 @@ export const searchProductsWorkflow = createWorkflow(
       limit: input.limit,
       mode,
       minConfidence: input.min_confidence,
+      filters: input.filters,
+      includeFacets: input.include_facets,
     });
 
     const hits = hydrateSearchHitsStep({
@@ -41,6 +47,7 @@ export const searchProductsWorkflow = createWorkflow(
       embeddingDuration,
       searchDuration: searchResult.duration,
       embeddingDimensions: embedding.dimensions,
+      facets: searchResult.facets,
     });
   }
 );

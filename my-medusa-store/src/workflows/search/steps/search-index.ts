@@ -2,7 +2,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
 import { ELASTICSEARCH_MODULE } from "../../../modules/elasticsearch";
 import ElasticsearchModuleService from "../../../modules/elasticsearch/services/main";
 import { EmbeddingResult } from "../../../lib/embedding-client";
-import { SearchMode } from "../../../modules/elasticsearch/types";
+import { SearchMode, SearchFacets } from "../../../modules/elasticsearch/types";
 
 type SearchIndexInput = {
   query: string;
@@ -10,6 +10,10 @@ type SearchIndexInput = {
   limit: number;
   mode: SearchMode | "bm25-only";
   minConfidence?: number;
+  filters?: {
+    category_ids?: string[];
+  };
+  includeFacets?: boolean;
 };
 
 export type SearchIndexOutput = {
@@ -17,6 +21,7 @@ export type SearchIndexOutput = {
   count: number;
   mode: SearchMode;
   duration: number;
+  facets?: SearchFacets;
 };
 
 export const searchIndexStep = createStep(
@@ -33,6 +38,8 @@ export const searchIndexStep = createStep(
       includeEmbedding: false,
       mode: input.mode === "bm25-only" ? "bm25" : "hybrid",
       minConfidence: input.minConfidence,
+      filters: input.filters,
+      includeFacets: input.includeFacets,
     });
 
     const duration = Date.now() - startTime;
@@ -42,6 +49,7 @@ export const searchIndexStep = createStep(
       count: searchResult.count,
       mode: searchResult.mode,
       duration,
+      facets: searchResult.facets,
     } as SearchIndexOutput);
   }
 );
