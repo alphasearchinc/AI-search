@@ -49,6 +49,13 @@ _local_model_cache: Dict[str, SentenceTransformer] = {}
 _openai_client: Optional["OpenAI"] = None
 
 
+def is_openai_configured() -> bool:
+    """
+    Return True when the OpenAI client can be used (API key + package installed).
+    """
+    return bool(os.getenv("OPENAI_API_KEY")) and OpenAI is not None
+
+
 def _get_local_model(key: str) -> SentenceTransformer:
     if SentenceTransformer is None:
         raise ModelUnavailable("sentence-transformers is not installed")
