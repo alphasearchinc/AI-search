@@ -134,6 +134,26 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
   }
 
   /**
+   * Get a product's embedding vector by ID
+   * Uses direct document retrieval for reliability
+   */
+  async getProductEmbedding(productId: string): Promise<number[]> {
+    const result = await this.client.get({
+      index: this.PRODUCT_EMBEDDINGS_INDEX,
+      id: productId,
+      _source: ["embedding"],
+    });
+
+    const embedding = (result._source as any)?.embedding;
+
+    if (!embedding || !Array.isArray(embedding)) {
+      throw new Error(`Product ${productId} has no embedding`);
+    }
+
+    return embedding;
+  }
+
+  /**
    * Find similar products using kNN vector search
    */
   async findSimilarProducts(options: {

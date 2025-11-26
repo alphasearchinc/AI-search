@@ -10,22 +10,7 @@ export const getProductEmbeddingStep = createStep(
       container.resolve(ELASTICSEARCH_MODULE);
 
     try {
-      // Use direct client.get() with document ID instead of search
-      const client = elasticsearchService.getClient();
-      const indexName = elasticsearchService.PRODUCT_EMBEDDINGS_INDEX;
-
-      const result = await client.get({
-        index: indexName,
-        id: productId,
-        _source: ["embedding"],
-      });
-
-      const embedding = (result._source as any)?.embedding;
-
-      if (!embedding || !Array.isArray(embedding)) {
-        throw new Error(`Product ${productId} has no embedding`);
-      }
-
+      const embedding = await elasticsearchService.getProductEmbedding(productId);
       return new StepResponse({ embedding });
     } catch (error: any) {
       if (error.meta?.statusCode === 404) {
