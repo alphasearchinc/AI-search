@@ -71,6 +71,18 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+  # Medusa backend
+  security_rule {
+    name                       = "MedusaAPI"
+    priority                   = 1030      # Must be unique
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "9000"   
+    source_address_prefix      = "*"      
+    destination_address_prefix = "*"
+  }
 
   tags = local.common_tags
 }
