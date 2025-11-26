@@ -241,3 +241,86 @@ export const getSemanticRecommendations = async ({
     return []
   }
 }
+
+/**
+ * Get product recommendations using the product's existing embedding
+ * Does not pollute search metrics
+ */
+export const getProductRecommendations = async ({
+  productId,
+  limit = 4,
+  countryCode,
+}: {
+  productId: string
+  limit?: number
+  countryCode: string
+}): Promise<HttpTypes.StoreProduct[]> => {
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL?.replace(
+      /\/$/,
+      ""
+    )
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+
+    if (!backendUrl) {
+      console.error(
+        "Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL for recommendations"
+      )
+      return []
+    }
+
+    const response = await fetch(
+      `${backendUrl}/store/recommendations/${productId}?limit=${limit}`,
+      {
+        headers: {
+          ...(publishableKey && { "x-publishable-api-key": publishableKey }),
+        },
+        next: {
+          tags: ["recommendations", productId],
+          revalidate: 3600,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.debug(
+          `Product ${productId} not yet embedded, skipping recommendations`
+        )
+      } else {
+        console.warn(
+          `Recommendations failed: ${response.status} ${response.statusText}`
+        )
+      }
+      return []
+    }
+
+    const data: { recommendations: Array<{ product_id: string }> } =
+      await response.json()
+
+    const recommendedProductIds = data.recommendations.map(
+      (rec) => rec.product_id
+    )
+
+    if (recommendedProductIds.length === 0) {
+      return []
+    }
+
+    const { response: fullProducts } = await listProducts({
+      queryParams: {
+        id: recommendedProductIds,
+      },
+      countryCode,
+    })
+
+    const productMap = new Map(fullProducts.products.map((p) => [p.id, p]))
+    const sortedProducts = recommendedProductIds
+      .map((id) => productMap.get(id))
+      .filter((p): p is HttpTypes.StoreProduct => p !== undefined)
+
+    return sortedProducts
+  } catch (error) {
+    console.error("Error fetching product recommendations:", error)
+    return []
+  }
+}
