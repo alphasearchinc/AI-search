@@ -134,3 +134,110 @@ export const listProductsWithSort = async ({
     queryParams,
   }
 }
+
+type SemanticSearchHit = {
+  id: string
+  score: number
+  product: {
+    id: string
+    title?: string | null
+    subtitle?: string | null
+    description?: string | null
+    handle?: string | null
+    thumbnail?: string | null
+  }
+}
+
+type SemanticSearchResponse = {
+  hits: SemanticSearchHit[]
+  count: number
+}
+
+/**
+ * Get semantically similar product recommendations based on a product's content
+ */
+export const getSemanticRecommendations = async ({
+  productTitle,
+  productDescription,
+  excludeProductId,
+  limit = 4,
+  countryCode,
+}: {
+  productTitle: string
+  productDescription?: string | null
+  excludeProductId: string
+  limit?: number
+  countryCode: string
+}): Promise<HttpTypes.StoreProduct[]> => {
+  try {
+    // Construct search query from product title and description
+    const query = productDescription
+      ? `${productTitle} ${productDescription}`.slice(0, 2000)
+      : productTitle
+
+    const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL?.replace(
+      /\/$/,
+      ""
+    )
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+
+    if (!backendUrl) {
+      console.error(
+        "Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL for semantic recommendations"
+      )
+      return []
+    }
+
+    // Call semantic search endpoint
+    const response = await fetch(`${backendUrl}/store/search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(publishableKey && { "x-publishable-api-key": publishableKey }),
+      },
+      body: JSON.stringify({
+        query,
+        limit: limit + 1, // Request extra to account for filtering current product
+      }),
+      cache: "no-store",
+    })
+
+    if (!response.ok) {
+      console.error(
+        `Semantic search failed: ${response.status} ${response.statusText}`
+      )
+      return []
+    }
+
+    const data: SemanticSearchResponse = await response.json()
+
+    // Filter out the current product and get product IDs
+    const recommendedProductIds = data.hits
+      .filter((hit) => hit.product.id !== excludeProductId)
+      .slice(0, limit)
+      .map((hit) => hit.product.id)
+
+    if (recommendedProductIds.length === 0) {
+      return []
+    }
+
+    // Fetch full product details from Medusa
+    const { response: fullProducts } = await listProducts({
+      queryParams: {
+        id: recommendedProductIds,
+      },
+      countryCode,
+    })
+
+    // Sort by semantic search order
+    const productMap = new Map(fullProducts.products.map((p) => [p.id, p]))
+    const sortedProducts = recommendedProductIds
+      .map((id) => productMap.get(id))
+      .filter((p): p is HttpTypes.StoreProduct => p !== undefined)
+
+    return sortedProducts
+  } catch (error) {
+    console.error("Error fetching semantic recommendations:", error)
+    return []
+  }
+}

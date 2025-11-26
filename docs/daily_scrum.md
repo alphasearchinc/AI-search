@@ -173,6 +173,7 @@
  - Aleksander skal finde ud af hvorfor fanden hans VScode laver .2 filer
 
 
+
 ## Møde med Søren 24-11/2025
  - Søgning skal kunne ske over forskellige kategorier, pris, størrelse etc. 
  - Valg af en kategori skal ikke udelukke en anden, men udelukke dead ends
@@ -183,3 +184,22 @@
  - Bedre og ensrettet produktdata
  - Et par modeller mere til Embedding analyse
  - 
+ ## 📅 Daily Scrum 11-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Fået Grafana op at køre.
+ - Sat Terraform op til at provisione VM.
+ - Dashboard med embedding tests i Python.
+ - Lavet karussel til anbefalede produkter og integreret vektorlogik i denne. 
+ - Coderabbit kører nu kun med label på PR
+ - Fordelt et par emner mere vi hver især skal skrive om. 
+### Hvad skal vi lave i dag?
+ - Få Ansible op at køre, og deploye vores backend
+ - Merget både Python og Terraform ind i dev
+ - Sikre at alle stadig kan køre programmet
+ - Arbejder på filterfunktion til søgning
+ - Overveje hvad der ellers skal vises på Grafana
+ - Få strømlinet produkter - brug Klaus' template og udfyld med 150 produkter
+### Hvilke udfordringer forudser vi?
+ - Forstå filtrering i Elastic
+ - Ansible driller

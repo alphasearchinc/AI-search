@@ -28,6 +28,29 @@ export interface SearchStats {
   user_type: string;
 }
 
+export interface EmbeddingMetrics {
+  product_id: string;
+  query: string;
+  generation_ms: number;
+  embedding_dimensions: number;
+  success: boolean;
+  error_message?: string;
+  provider: 'local' | 'openai';
+  context: 'product_indexing' | 'search_query' | 'bulk_operation';
+}
+
+export interface EmbeddingStats {
+  total_embeddings: number;
+  successful_embeddings: number;
+  failed_embeddings: number;
+  avg_generation_ms: number;
+  p95_generation_ms: number;
+  avg_success_ms: number;
+  avg_failure_ms: number;
+  provider: 'local' | 'openai';
+  context: 'product_indexing' | 'search_query' | 'bulk_operation';
+}
+
 export class MetricsRepository {
   /**
    * Record a search operation to the metrics database.
@@ -56,6 +79,41 @@ export class MetricsRepository {
     } catch (error) {
       // Don't throw, metrics failures shouldn't break user requests
       console.error('[METRICS] Failed to record search:', error);
+    }
+  }
+
+  /**
+   * Record embedding generation metrics (non-blocking)
+   */
+  async recordEmbedding(data: EmbeddingMetrics): Promise<void> {
+    try {
+      await pool.query(
+        `
+        INSERT INTO embedding_metrics (
+          product_id,
+          query,
+          generation_ms,
+          embedding_dimensions,
+          success,
+          error_message,
+          provider,
+          context
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `,
+        [
+          data.product_id || null,
+          data.query || null,
+          data.generation_ms,
+          data.embedding_dimensions,
+          data.success,
+          data.error_message || null,
+          data.provider,
+          data.context
+        ]
+      );
+    } catch (error) {
+      // Silent fail - metrics should never break functionality
+      console.error('[METRICS] Failed to record embedding metric:', error);
     }
   }
 
@@ -126,6 +184,49 @@ export class MetricsRepository {
     return result.rows;
   }
 
+  async getEmbeddingStats(timeRange: string = '24h'): Promise<EmbeddingStats[]> {
+    const interval = this.parseTimeRange(timeRange);
+    const result = await pool.query<EmbeddingStats>(
+      `SELECT
+        COUNT(*)::int as total_embeddings,
+        COUNT(*) FILTER (WHERE success = true)::int as successful_embeddings,
+        COUNT(*) FILTER (WHERE success = false)::int as failed_embeddings,
+        ROUND(AVG(generation_ms))::int as avg_generation_ms,
+        ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY generation_ms))::int as p95_generation_ms,
+        ROUND(AVG(generation_ms) FILTER (WHERE success = true))::int as avg_success_ms,
+        ROUND(AVG(generation_ms) FILTER (WHERE success = false))::int as avg_failure_ms,
+        provider,
+        context
+      FROM embedding_metrics
+      WHERE timestamp > NOW() - $1::interval
+      GROUP BY provider, context
+      ORDER BY total_embeddings DESC`,
+      [interval]
+    );
+    return result.rows;
+  }
+
+  async getEmbeddingFailures(limit: number = 10, timeRange: string = '24h') {
+    const interval = this.parseTimeRange(timeRange);
+    const result = await pool.query(
+      `SELECT
+        product_id,
+        query,
+        generation_ms,
+        error_message,
+        provider,
+        context,
+        timestamp
+      FROM embedding_metrics
+      WHERE success = false
+        AND timestamp > NOW() - $1::interval
+      ORDER BY timestamp DESC
+      LIMIT $2`,
+      [interval, limit]
+    );
+    return result.rows;
+  }
+
   /**
    * Parse time range string (e.g., "24h", "7d") into PostgreSQL interval.
    */
@@ -137,7 +238,12 @@ export class MetricsRepository {
     return `${num} ${units[unit]}`;
   }
 
-  async close(): Promise<void> {
+  constructor() {
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+  }
+
+  private async shutdown() {
     await pool.end();
   }
 }

@@ -1,6 +1,10 @@
+language: "en-US"
+
 reviews:
-  review_status: false
   auto_review:
+    enabled: true
+    auto_incremental_review: true
     base_branches:
       - dev
-      
+    labels:
+      - "coderabbit-review"               # ONLY review PRs with this label
