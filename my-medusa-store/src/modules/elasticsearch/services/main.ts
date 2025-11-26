@@ -5,6 +5,7 @@ import {
   SemanticSearchOptions,
   SemanticSearchResult,
   ProductEmbeddingJobData,
+  RecommendationHit,
 } from "../types";
 import { ElasticsearchQueue } from "../jobs/queue";
 import { ElasticsearchWorker } from "../jobs/worker";
@@ -130,5 +131,48 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
 
   getQueue() {
     return this.queue.getQueue();
+  }
+
+  /**
+   * Find similar products using kNN vector search
+   */
+  async findSimilarProducts(options: {
+    queryVector: number[];
+    limit: number;
+    excludeProductId?: string;
+  }): Promise<{
+    hits: RecommendationHit[];
+    took: number;
+  }> {
+    const searchResponse = await this.client.search({
+      index: this.PRODUCT_EMBEDDINGS_INDEX,
+      size: options.limit,
+      knn: {
+        field: "embedding",
+        query_vector: options.queryVector,
+        k: options.limit,
+        num_candidates: Math.max(options.limit * 2, 50),
+      },
+      _source: ["product_id", "embedded_text", "metadata", "generated_at"],
+    });
+
+    const hits = searchResponse.hits.hits.map((hit) => {
+      const source = hit._source as any;
+      return {
+        id: hit._id as string,
+        product_id: source.product_id,
+        score: hit._score || 0,
+        vector_score: hit._score || 0,
+        confidence: hit._score ? Math.min(hit._score, 1) : 0,
+        embedded_text: source.embedded_text,
+        metadata: source.metadata,
+        generated_at: source.generated_at,
+      };
+    });
+
+    return {
+      hits,
+      took: searchResponse.took || 0,
+    };
   }
 }

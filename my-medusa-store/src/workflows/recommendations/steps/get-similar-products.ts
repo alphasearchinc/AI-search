@@ -15,36 +15,14 @@ export const getSimilarProductsStep = createStep(
     const elasticsearchService: ElasticsearchModuleService =
       container.resolve(ELASTICSEARCH_MODULE);
 
-    const client = elasticsearchService.getClient();
-    const indexName = elasticsearchService.PRODUCT_EMBEDDINGS_INDEX;
-
-    const searchResponse = await client.search({
-      index: indexName,
-      size: input.limit + 1,
-      knn: {
-        field: "embedding",
-        query_vector: input.embedding,
-        k: input.limit + 1,
-        num_candidates: Math.max(input.limit * 2, 50),
-      },
-      _source: ["product_id", "embedded_text", "metadata", "generated_at"],
+    const result = await elasticsearchService.findSimilarProducts({
+      queryVector: input.embedding,
+      limit: input.limit + 1, // Fetch extra to filter source product
+      excludeProductId: input.productId,
     });
 
-    const allHits = searchResponse.hits.hits.map((hit) => {
-      const source = hit._source as any;
-      return {
-        id: hit._id as string,
-        product_id: source.product_id,
-        score: hit._score || 0,
-        vector_score: hit._score || 0,
-        confidence: hit._score ? Math.min(hit._score, 1) : 0,
-        embedded_text: source.embedded_text,
-        metadata: source.metadata,
-        generated_at: source.generated_at,
-      };
-    });
-
-    const recommendations = allHits
+    // Filter out the source product
+    const recommendations = result.hits
       .filter((hit) => hit.product_id !== input.productId)
       .slice(0, input.limit);
 
@@ -56,7 +34,7 @@ export const getSimilarProductsStep = createStep(
       product_id: input.productId,
       hits: recommendations,
       count: recommendations.length,
-      searchDuration: searchResponse.took || 0,
+      searchDuration: result.took,
     });
   }
 );

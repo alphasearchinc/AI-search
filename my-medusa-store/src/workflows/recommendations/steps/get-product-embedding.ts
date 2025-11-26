@@ -10,6 +10,7 @@ export const getProductEmbeddingStep = createStep(
       container.resolve(ELASTICSEARCH_MODULE);
 
     try {
+      // Use direct client.get() with document ID instead of search
       const client = elasticsearchService.getClient();
       const indexName = elasticsearchService.PRODUCT_EMBEDDINGS_INDEX;
 
@@ -19,29 +20,20 @@ export const getProductEmbeddingStep = createStep(
         _source: ["embedding"],
       });
 
-      const embeddingVector = (result._source as any)?.embedding;
+      const embedding = (result._source as any)?.embedding;
 
-      if (!embeddingVector || !Array.isArray(embeddingVector)) {
-        throw new Error(
-          `Product ${productId} found but has no embedding field`
-        );
+      if (!embedding || !Array.isArray(embedding)) {
+        throw new Error(`Product ${productId} has no embedding`);
       }
 
-      return new StepResponse({ embedding: embeddingVector });
+      return new StepResponse({ embedding });
     } catch (error: any) {
       if (error.meta?.statusCode === 404) {
-        logger.warn(
-          `[Recommendations] Product ${productId} not found in embeddings index`
-        );
-        throw new Error(
-          `Product ${productId} not found in embeddings index`
-        );
+        logger.warn(`[Recommendations] Product ${productId} not found in embeddings index`);
+        throw new Error(`Product ${productId} not found in embeddings index`);
       }
 
-      logger.error(
-        `[Recommendations] Failed to get embedding for ${productId}`,
-        error
-      );
+      logger.error(`[Recommendations] Failed to get embedding for ${productId}`, error);
       throw error;
     }
   }
