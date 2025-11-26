@@ -1,0 +1,19 @@
+---
+# Where we deploy everything on the VM
+medusa_project_root: /opt/medusa
+
+# Docker image for your Medusa backend in GHCR
+# TODO: replace with your real org/repo
+medusa_image: "ghcr.io/YOUR_GITHUB_ORG/YOUR_MEDUSA_IMAGE"
+medusa_image_tag: "latest"
+
+# Medusa port on the host
+medusa_port: 9000
+
+# Elasticsearch heap size
+es_heap: "512m"
+
+# NOTE: For now, put placeholder values here. Later, move these into Ansible Vault.
+medusa_database_url: "postgres://USER:PASSWORD@HOST:PORT/DBNAME"
+medusa_redis_url: "redis://redis:6379"
+node_env: "production"

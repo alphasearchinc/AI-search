@@ -1,0 +1,45 @@
+---
+- name: Enable Ubuntu universe repo
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_facts['lsb']['codename'] }} universe"
+    state: present
+
+- name: Enable Ubuntu multiverse repo
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_facts['lsb']['codename'] }} multiverse"
+    state: present
+
+- name: Update apt cache after enabling repos
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install Docker engine from Ubuntu repos
+  ansible.builtin.apt:
+    name:
+      - docker.io
+    state: present
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+# Docker Compose v2 as a CLI plugin binary
+- name: Ensure Docker CLI plugins directory exists
+  ansible.builtin.file:
+    path: /usr/lib/docker/cli-plugins
+    state: directory
+    mode: "0755"
+
+- name: Install Docker Compose v2 plugin binary
+  ansible.builtin.get_url:
+    url: "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64"
+    dest: "/usr/lib/docker/cli-plugins/docker-compose"
+    mode: "0755"
+
+- name: Add {{ ansible_user | default('aleksander') }} to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user | default('aleksander') }}"
+    groups: docker
+    append: true
