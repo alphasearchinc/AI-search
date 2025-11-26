@@ -21,6 +21,7 @@ export type ElasticsearchModuleOptions = {
 export type SemanticSearchFilters = {
   product_ids?: string[];
   category_ids?: string[];
+  brands?: string[];
   min_price?: number;
   max_price?: number;
   options?: Record<string, string[]>; // e.g., { "Storage": ["512 GB", "1 TB"], "Color": ["Black"] }
@@ -63,8 +64,14 @@ export type OptionFacet = {
   }>;
 };
 
+export type BrandFacet = {
+  name: string;
+  count: number;
+};
+
 export type SearchFacets = {
   categories: CategoryFacet[];
+  brands?: BrandFacet[];
   priceRange?: PriceRange;
   options?: OptionFacet[];
 };

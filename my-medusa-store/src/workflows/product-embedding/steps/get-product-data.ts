@@ -55,6 +55,11 @@ export const getProductDataStep = createStep(
       handle: product.handle,
     };
 
+    // Extract brand from product metadata if available
+    if (product.metadata?.brand) {
+      metadata.brand = product.metadata.brand;
+    }
+
     if (product.categories && product.categories.length > 0) {
       metadata.categories = product.categories.map((cat: any) => cat.name);
       metadata.category_ids = product.categories.map((cat: any) => cat.id);

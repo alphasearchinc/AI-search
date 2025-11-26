@@ -5,6 +5,7 @@ import {
   SemanticSearchResult,
   SearchMode,
   CategoryFacet,
+  BrandFacet,
   SearchFacets,
   PriceRange,
   OptionFacet,
@@ -280,12 +281,24 @@ export class SearchEngine {
       });
     }
 
+    // Apply brand filter (before options filter)
+    const brandsFilter = options.filters?.brands ?? [];
+    let brandFilteredHits = priceFilteredHits;
+
+    if (brandsFilter.length > 0) {
+      brandFilteredHits = priceFilteredHits.filter((hit) => {
+        const hitBrand = hit.metadata?.brand as string | undefined;
+        if (!hitBrand) return false;
+        return brandsFilter.includes(hitBrand);
+      });
+    }
+
     // Apply options filter (before building facets)
     const optionsFilter = options.filters?.options;
-    let optionsFilteredHits = priceFilteredHits;
+    let optionsFilteredHits = brandFilteredHits;
 
     if (optionsFilter && Object.keys(optionsFilter).length > 0) {
-      optionsFilteredHits = priceFilteredHits.filter((hit) => {
+      optionsFilteredHits = brandFilteredHits.filter((hit) => {
         const hitOptions = hit.metadata?.options as
           | Record<string, string[]>
           | undefined;
@@ -368,6 +381,9 @@ export class SearchEngine {
       .map(([id, { name, count }]) => ({ id, name, count }))
       .sort((a, b) => b.count - a.count);
 
+    // Build brand facets from hits
+    const brands = this.buildBrandFacetsFromHits(hits);
+
     // Calculate price range from hits
     let priceRange: PriceRange | undefined;
     const prices: number[] = [];
@@ -389,7 +405,28 @@ export class SearchEngine {
     // Build option facets dynamically from hits
     const options = this.buildOptionFacetsFromHits(hits);
 
-    return { categories, priceRange, options };
+    return { categories, brands, priceRange, options };
+  }
+
+  /**
+   * Build brand facets from search hits.
+   */
+  private buildBrandFacetsFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): BrandFacet[] {
+    const brandMap = new Map<string, number>();
+
+    for (const hit of hits) {
+      const brand = hit.metadata?.brand as string | undefined;
+      if (!brand) continue;
+
+      const currentCount = brandMap.get(brand) ?? 0;
+      brandMap.set(brand, currentCount + 1);
+    }
+
+    return Array.from(brandMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count descending
   }
 
   /**

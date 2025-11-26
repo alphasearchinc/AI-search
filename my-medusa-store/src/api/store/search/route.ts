@@ -11,6 +11,7 @@ type StoreSemanticSearchBody = {
   limit?: number;
   min_confidence?: number;
   category_ids?: string[];
+  brands?: string[];
   min_price?: number;
   max_price?: number;
   options?: Record<string, string[]>;
@@ -66,6 +67,11 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     ? body.category_ids.filter((id) => typeof id === "string" && id.trim())
     : [];
 
+  // Parse brands filter
+  const brands = Array.isArray(body.brands)
+    ? body.brands.filter((b) => typeof b === "string" && b.trim())
+    : [];
+
   // Parse price filters
   const minPrice =
     typeof body.min_price === "number" && Number.isFinite(body.min_price)
@@ -97,12 +103,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   // Build filters object
   const hasFilters =
     categoryIds.length > 0 ||
+    brands.length > 0 ||
     minPrice !== undefined ||
     maxPrice !== undefined ||
     (optionsFilter && Object.keys(optionsFilter).length > 0);
   const filters = hasFilters
     ? {
         ...(categoryIds.length > 0 && { category_ids: categoryIds }),
+        ...(brands.length > 0 && { brands }),
         ...(minPrice !== undefined && { min_price: minPrice }),
         ...(maxPrice !== undefined && { max_price: maxPrice }),
         ...(optionsFilter &&
