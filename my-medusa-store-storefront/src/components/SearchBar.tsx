@@ -255,9 +255,9 @@ const SearchBar = () => {
 
       {/* Fullscreen Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-ui-bg-base">
+        <div className="fixed inset-0 z-50 bg-ui-bg-base flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-ui-bg-base border-b border-ui-border-base">
+          <div className="flex-shrink-0 bg-ui-bg-base border-b border-ui-border-base">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center gap-4 py-4">
                 {/* Search Input */}
@@ -318,9 +318,10 @@ const SearchBar = () => {
             </div>
           </div>
 
-          {/* Content */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {trimmedQuery.length < MIN_QUERY_LENGTH ? (
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {trimmedQuery.length < MIN_QUERY_LENGTH ? (
               <div className="text-center py-16">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
                   <SearchIcon size={32} />
@@ -487,6 +488,7 @@ const SearchBar = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
