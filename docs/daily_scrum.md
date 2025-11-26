@@ -173,6 +173,17 @@
  - Aleksander skal finde ud af hvorfor fanden hans VScode laver .2 filer
 
 
+
+## Møde med Søren 24-11/2025
+ - Søgning skal kunne ske over forskellige kategorier, pris, størrelse etc. 
+ - Valg af en kategori skal ikke udelukke en anden, men udelukke dead ends
+ - Researche hvordan man gør dette i ElasticSearch
+ - UI udvide søgefelt/lave til en modal
+ - Deploye
+ - Få monitorering helt op at køre
+ - Bedre og ensrettet produktdata
+ - Et par modeller mere til Embedding analyse
+ - 
  ## 📅 Daily Scrum 11-11-2025
 
 ### Hvad har vi lavet siden sidst?

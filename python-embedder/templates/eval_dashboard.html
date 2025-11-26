@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Embedding Evaluation Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <style>
+      :root {
+        --good: #2ecc71;
+        --warn: #f39c12;
+        --bad: #e74c3c;
+      }
+      body { padding: 1.5rem; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+      table td, table th { font-size: 0.95rem; }
+      .muted { color: #7f8c8d; }
+      .badge { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 0.35rem; font-size: 0.8rem; }
+      .badge.skip { background: #f6f8fa; color: #7f8c8d; border: 1px solid #e1e4e8; }
+      .badge.err { background: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Embedding Evaluation Dashboard</h1>
+      <p class="muted">
+        Showing latest run (fresh on each page load). Weights: quality {{ weights.quality }}, latency {{ weights.latency }}.
+      </p>
+
+      <div class="grid">
+        <section>
+          <h3>Combined Score</h3>
+          <canvas id="scoreChart" height="240"></canvas>
+        </section>
+
+        <section>
+          <h3>Latency vs Dimensions</h3>
+          <canvas id="latencyChart" height="240"></canvas>
+        </section>
+      </div>
+
+      <section>
+        <h3>Model Details</h3>
+        <table id="modelsTable">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Dims</th>
+              <th class="sortable" data-sort="avg_similar_distance">Avg Similar ↓</th>
+              <th class="sortable" data-sort="avg_dissimilar_distance">Avg Dissimilar ↑</th>
+              <th class="sortable" data-sort="distance_gap">Gap ↑</th>
+              <th class="sortable" data-sort="avg_latency_ms">Avg Latency (ms) ↓</th>
+              <th class="sortable" data-sort="combined_score">Combined ↑</th>
+              <th class="sortable" data-sort="status">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in models %}
+              <tr data-row='{{ m | tojson | safe }}'>
+                <td>{{ m.name }}</td>
+                <td>{{ m.dimensions or "-" }}</td>
+                <td>{{ "%.3f"|format(m.avg_similar_distance) if m.avg_similar_distance is defined else "-" }}</td>
+                <td>{{ "%.3f"|format(m.avg_dissimilar_distance) if m.avg_dissimilar_distance is defined else "-" }}</td>
+                <td>{{ "%.3f"|format(m.distance_gap) if m.distance_gap is defined else "-" }}</td>
+                <td>{{ "%.1f"|format(m.avg_latency_ms) if m.avg_latency_ms is defined else "-" }}</td>
+                <td>{{ "%.3f"|format(m.combined_score) if m.combined_score is defined else "-" }}</td>
+                <td>
+                  {% if m.skipped %}
+                    <span class="badge skip">Skipped</span>
+                    <span class="muted">{{ m.reason }}</span>
+                  {% elif m.error %}
+                    <span class="badge err">Error</span>
+                    <span class="muted">{{ m.error }}</span>
+                  {% else %}
+                    <span class="badge" style="background: #eaf7ef; color: #1e8449;">OK</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const rawModels = {{ models | tojson }};
+      const activeModels = rawModels.filter(m => !m.skipped && !m.error);
+      const labels = activeModels.map(m => `${m.name} (${m.dimensions}d)`);
+      const combined = activeModels.map(m => m.combined_score);
+      const latency = activeModels.map(m => m.avg_latency_ms);
+      const dims = activeModels.map(m => m.dimensions);
+
+          const ctxScore = document.getElementById('scoreChart').getContext('2d');
+          const scoreChart = new Chart(ctxScore, {
+            type: 'bar',
+            data: {
+              labels,
+          datasets: [{
+            label: 'Combined Score',
+            data: combined,
+            backgroundColor: '#3498db',
+          }],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { min: 0, max: 1, ticks: { stepSize: 0.1 } },
+          },
+          plugins: {
+            tooltip: { enabled: true },
+            legend: { display: false },
+          },
+        },
+      });
+
+      const ctxLatency = document.getElementById('latencyChart').getContext('2d');
+      const latencyChart = new Chart(ctxLatency, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Avg Latency (ms)',
+              data: latency,
+              backgroundColor: '#9b59b6',
+              yAxisID: 'y',
+            },
+            {
+              label: 'Dimensions',
+              data: dims,
+              backgroundColor: 'rgba(46, 204, 113, 0.4)',
+              borderColor: '#2ecc71',
+              borderWidth: 1,
+              type: 'line',
+              yAxisID: 'y1',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              title: { display: true, text: 'Latency (ms)' },
+              beginAtZero: true,
+            },
+            y1: {
+              position: 'right',
+              title: { display: true, text: 'Dimensions' },
+              beginAtZero: true,
+              grid: { drawOnChartArea: false },
+            },
+          },
+          plugins: {
+            tooltip: { enabled: true },
+            legend: { position: 'bottom' },
+          },
+        },
+      });
+
+      // Simple sortable table
+      const statusRank = (m) => {
+        if (m.skipped) return 1; // after OK
+        if (m.error) return 2;   // last
+        return 0;                // OK first
+      };
+
+      const tbody = document.querySelector('#modelsTable tbody');
+      const headers = document.querySelectorAll('#modelsTable th.sortable');
+      let sortState = { key: null, dir: 'asc' };
+
+      const sortRows = (key) => {
+        if (sortState.key === key) {
+          sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState = { key, dir: 'desc' }; // default to high → low
+        }
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort((a, b) => {
+          const dataA = JSON.parse(a.dataset.row);
+          const dataB = JSON.parse(b.dataset.row);
+
+          let valA, valB;
+          if (key === 'status') {
+            valA = statusRank(dataA);
+            valB = statusRank(dataB);
+          } else {
+            valA = dataA[key];
+            valB = dataB[key];
+          }
+
+          // Handle undefined/null gracefully
+          if (valA === undefined || valA === null) valA = -Infinity;
+          if (valB === undefined || valB === null) valB = -Infinity;
+
+          if (valA < valB) return sortState.dir === 'asc' ? -1 : 1;
+          if (valA > valB) return sortState.dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        // Re-append rows in sorted order
+        rows.forEach((r) => tbody.appendChild(r));
+
+        // Visual cue: bold the active header
+        headers.forEach((h) => h.style.textDecoration = h.dataset.sort === key ? 'underline' : 'none');
+      };
+
+      headers.forEach((h) => {
+        h.style.cursor = 'pointer';
+        h.addEventListener('click', () => sortRows(h.dataset.sort));
+      });
+    </script>
+  </body>
+</html>
