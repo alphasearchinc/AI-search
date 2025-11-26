@@ -9,6 +9,8 @@ on:
       - "my-medusa-store/**"
       - ".github/workflows/medusa-backend.yml"
 
+  workflow_dispatch:
+
 permissions:
   contents: read
   packages: write
@@ -41,7 +43,6 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
 
   deploy:
     name: Deploy to Azure VM
