@@ -2,6 +2,7 @@
 
 import {
   semanticProductSearch,
+  type BrandFacet,
   type CategoryFacet,
   type OptionFacet,
   type PriceRange,
@@ -19,9 +20,11 @@ const SearchBar = () => {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SemanticSearchHit[]>([])
   const [facets, setFacets] = useState<CategoryFacet[]>([])
+  const [brandFacets, setBrandFacets] = useState<BrandFacet[]>([])
   const [optionFacets, setOptionFacets] = useState<OptionFacet[]>([])
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string[]>
   >({})
@@ -92,6 +95,7 @@ const SearchBar = () => {
       setError(null)
       setResults([])
       setFacets([])
+      setBrandFacets([])
       setOptionFacets([])
       setPriceRange(null)
       return
@@ -115,6 +119,7 @@ const SearchBar = () => {
           limit: RESULT_LIMIT,
           categoryIds:
             selectedCategories.length > 0 ? selectedCategories : undefined,
+          brands: selectedBrands.length > 0 ? selectedBrands : undefined,
           minPrice: validMinPrice,
           maxPrice: validMaxPrice,
           options:
@@ -124,6 +129,7 @@ const SearchBar = () => {
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
           setFacets(response.facets?.categories ?? [])
+          setBrandFacets(response.facets?.brands ?? [])
           setOptionFacets(response.facets?.options ?? [])
           setPriceRange(response.facets?.priceRange ?? null)
         }
@@ -133,6 +139,7 @@ const SearchBar = () => {
             err instanceof Error ? err.message : "Unable to search right now"
           setResults([])
           setFacets([])
+          setBrandFacets([])
           setOptionFacets([])
           setPriceRange(null)
           setError(message)
@@ -152,6 +159,7 @@ const SearchBar = () => {
   }, [
     trimmedQuery,
     selectedCategories,
+    selectedBrands,
     selectedOptions,
     validMinPrice,
     validMaxPrice,
@@ -184,9 +192,11 @@ const SearchBar = () => {
     setQuery("")
     setResults([])
     setFacets([])
+    setBrandFacets([])
     setOptionFacets([])
     setPriceRange(null)
     setSelectedCategories([])
+    setSelectedBrands([])
     setSelectedOptions({})
     setMinPriceInput("")
     setMaxPriceInput("")
@@ -201,6 +211,12 @@ const SearchBar = () => {
       prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
+    )
+  }
+
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     )
   }
 
@@ -325,6 +341,40 @@ const SearchBar = () => {
                         }`}
                       >
                         ({cat.count})
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Brand facets */}
+          {brandFacets.length > 0 && (
+            <div className="px-4 py-3 border-b border-ui-border-base">
+              <p className="text-xs text-ui-fg-muted mb-2">Filter by brand</p>
+              <div className="flex flex-wrap gap-2">
+                {brandFacets.map((brand) => {
+                  const isSelected = selectedBrands.includes(brand.name)
+                  return (
+                    <button
+                      key={brand.name}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => toggleBrand(brand.name)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors ${
+                        isSelected
+                          ? "bg-ui-fg-base text-ui-bg-base"
+                          : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
+                      }`}
+                    >
+                      {brand.name}
+                      <span
+                        className={`${
+                          isSelected ? "text-ui-bg-base/70" : "text-ui-fg-muted"
+                        }`}
+                      >
+                        ({brand.count})
                       </span>
                     </button>
                   )

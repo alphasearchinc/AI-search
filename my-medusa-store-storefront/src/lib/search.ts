@@ -25,6 +25,11 @@ export type OptionFacet = {
   values: Array<{ value: string; count: number }>
 }
 
+export type BrandFacet = {
+  name: string
+  count: number
+}
+
 export type PriceRange = {
   min: number
   max: number
@@ -32,6 +37,7 @@ export type PriceRange = {
 
 export type SearchFacets = {
   categories: CategoryFacet[]
+  brands?: BrandFacet[]
   priceRange?: PriceRange
   options?: OptionFacet[]
 }
@@ -65,6 +71,7 @@ export type SemanticSearchOptions = {
   query: string
   limit?: number
   categoryIds?: string[]
+  brands?: string[]
   minPrice?: number
   maxPrice?: number
   options?: Record<string, string[]>
@@ -98,6 +105,7 @@ export async function semanticProductSearch(
       query: sanitizedQuery,
       limit: opts.limit ?? limit,
       ...(opts.categoryIds?.length && { category_ids: opts.categoryIds }),
+      ...(opts.brands?.length && { brands: opts.brands }),
       ...(opts.minPrice !== undefined && { min_price: opts.minPrice }),
       ...(opts.maxPrice !== undefined && { max_price: opts.maxPrice }),
       ...(opts.options &&
