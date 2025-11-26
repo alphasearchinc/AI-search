@@ -322,20 +322,28 @@ export class SearchEngine {
       });
     }
 
-    // Build facets from options-filtered hits (before category filtering)
-    // This ensures category facets reflect only products within the price range and option filters
-    let facets: SearchFacets | undefined;
-    if (options.includeFacets) {
-      facets = this.buildFacetsFromHits(optionsFilteredHits);
-    }
-
-    // Now apply category filter to get final results
+    // Now apply category filter
     let categoryFilteredHits = optionsFilteredHits;
     if (categoryIds.length > 0) {
       categoryFilteredHits = optionsFilteredHits.filter((hit) => {
         const hitCategoryIds = hit.metadata?.category_ids ?? [];
         return categoryIds.some((catId) => hitCategoryIds.includes(catId));
       });
+    }
+
+    // Build facets from category-filtered hits
+    // This ensures brands/options/price update when a category is selected
+    let facets: SearchFacets | undefined;
+    if (options.includeFacets) {
+      // Category facets from pre-category-filter hits (so user can see all categories)
+      const categoryFacets =
+        this.buildCategoryFacetsFromHits(optionsFilteredHits);
+      // Other facets from post-category-filter hits (so they reflect selected category)
+      const brands = this.buildBrandFacetsFromHits(categoryFilteredHits);
+      const priceRange = this.buildPriceRangeFromHits(categoryFilteredHits);
+      const options = this.buildOptionFacetsFromHits(categoryFilteredHits);
+
+      facets = { categories: categoryFacets, brands, priceRange, options };
     }
 
     const finalHits = categoryFilteredHits.slice(0, size);
@@ -353,11 +361,10 @@ export class SearchEngine {
 
   /**
    * Build category facets from search hits.
-   * This creates "smart facets" where only categories with matching products are shown.
    */
-  private buildFacetsFromHits(
+  private buildCategoryFacetsFromHits(
     hits: Array<{ metadata?: Record<string, any> }>
-  ): SearchFacets {
+  ): CategoryFacet[] {
     const categoryMap = new Map<string, { name: string; count: number }>();
 
     for (const hit of hits) {
@@ -377,15 +384,17 @@ export class SearchEngine {
       }
     }
 
-    const categories: CategoryFacet[] = Array.from(categoryMap.entries())
+    return Array.from(categoryMap.entries())
       .map(([id, { name, count }]) => ({ id, name, count }))
       .sort((a, b) => b.count - a.count);
+  }
 
-    // Build brand facets from hits
-    const brands = this.buildBrandFacetsFromHits(hits);
-
-    // Calculate price range from hits
-    let priceRange: PriceRange | undefined;
+  /**
+   * Build price range from search hits.
+   */
+  private buildPriceRangeFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): PriceRange | undefined {
     const prices: number[] = [];
     for (const hit of hits) {
       if (typeof hit.metadata?.min_price === "number") {
@@ -396,16 +405,12 @@ export class SearchEngine {
       }
     }
     if (prices.length > 0) {
-      priceRange = {
+      return {
         min: Math.min(...prices),
         max: Math.max(...prices),
       };
     }
-
-    // Build option facets dynamically from hits
-    const options = this.buildOptionFacetsFromHits(hits);
-
-    return { categories, brands, priceRange, options };
+    return undefined;
   }
 
   /**
@@ -426,7 +431,7 @@ export class SearchEngine {
 
     return Array.from(brandMap.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count); // Sort by count descending
+      .sort((a, b) => b.count - a.count);
   }
 
   /**
@@ -436,7 +441,6 @@ export class SearchEngine {
   private buildOptionFacetsFromHits(
     hits: Array<{ metadata?: Record<string, any> }>
   ): OptionFacet[] {
-    // Map of optionName -> Map of value -> count
     const optionMap = new Map<string, Map<string, number>>();
 
     for (const hit of hits) {
@@ -461,16 +465,13 @@ export class SearchEngine {
       }
     }
 
-    // Convert to OptionFacet array
-    const optionFacets: OptionFacet[] = Array.from(optionMap.entries())
+    return Array.from(optionMap.entries())
       .map(([name, valueMap]) => ({
         name,
         values: Array.from(valueMap.entries())
           .map(([value, count]) => ({ value, count }))
-          .sort((a, b) => b.count - a.count), // Sort values by count descending
+          .sort((a, b) => b.count - a.count),
       }))
-      .sort((a, b) => a.name.localeCompare(b.name)); // Sort options alphabetically
-
-    return optionFacets;
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 }
