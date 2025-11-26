@@ -5,6 +5,7 @@ from evaluation import (
     ModelUnavailable,
     embed_local,
     evaluate_models,
+    is_openai_configured,
 )
 
 app = Flask(__name__)
@@ -61,7 +62,7 @@ def embed():
 
 @app.route("/eval-summary", methods=["GET"])
 def eval_summary():
-    include_openai = True
+    include_openai = is_openai_configured()
     results = evaluate_models(include_openai=include_openai)
 
     return jsonify(

@@ -1,12 +1,10 @@
-import os
-
 import pytest
 
 from evaluation import (
     LOCAL_MODELS,
     OPENAI_MODEL,
-    OpenAI,
     evaluate_models,
+    is_openai_configured,
 )
 
 
@@ -36,7 +34,7 @@ def test_local_models_evaluation_runs():
         assert 0.0 <= result["combined_score"] <= 1.0
 
 
-openai_ready = os.getenv("OPENAI_API_KEY") and OpenAI is not None
+openai_ready = is_openai_configured()
 
 
 @pytest.mark.skipif(
