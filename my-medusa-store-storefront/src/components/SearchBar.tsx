@@ -12,9 +12,8 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 
 const MIN_QUERY_LENGTH = 2
-const RESULT_LIMIT = 6
+const RESULT_LIMIT = 12
 const DEBOUNCE_DELAY = 350
-const PRICE_DEBOUNCE_DELAY = 500
 
 const SearchBar = () => {
   const [query, setQuery] = useState("")
@@ -32,15 +31,12 @@ const SearchBar = () => {
   const [maxPriceInput, setMaxPriceInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const modalInputRef = useRef<HTMLInputElement | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const priceDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const latestQueryRef = useRef("")
 
   // Parse price inputs to numbers
@@ -52,39 +48,35 @@ const SearchBar = () => {
     maxPrice !== undefined && !isNaN(maxPrice) ? maxPrice : undefined
 
   const trimmedQuery = query.trim()
-  const showDropdown =
-    isOpen &&
-    (trimmedQuery.length > 0 || isLoading || !!error || results.length > 0)
 
+  // Count active filters
+  const activeFilterCount =
+    selectedCategories.length +
+    selectedBrands.length +
+    Object.values(selectedOptions).reduce((sum, arr) => sum + arr.length, 0) +
+    (validMinPrice !== undefined ? 1 : 0) +
+    (validMaxPrice !== undefined ? 1 : 0)
+
+  // Close modal on route change
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [])
-
-  useEffect(() => {
-    setIsOpen(false)
+    setIsModalOpen(false)
   }, [pathname])
 
+  // Lock body scroll when modal is open
   useEffect(() => {
-    return () => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current)
-      }
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden"
+      // Focus input when modal opens
+      setTimeout(() => modalInputRef.current?.focus(), 50)
+    } else {
+      document.body.style.overflow = ""
     }
-  }, [])
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [isModalOpen])
 
+  // Search effect
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
@@ -107,7 +99,6 @@ const SearchBar = () => {
     debounceRef.current = setTimeout(async () => {
       latestQueryRef.current = trimmedQuery
       try {
-        // Only include options with at least one selected value
         const activeOptions = Object.fromEntries(
           Object.entries(selectedOptions).filter(
             ([, values]) => values.length > 0
@@ -133,7 +124,7 @@ const SearchBar = () => {
           setOptionFacets(response.facets?.options ?? [])
           setPriceRange(response.facets?.priceRange ?? null)
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (latestQueryRef.current === trimmedQuery) {
           const message =
             err instanceof Error ? err.message : "Unable to search right now"
@@ -167,9 +158,7 @@ const SearchBar = () => {
 
   const handleResultNavigation = (hit: SemanticSearchHit) => {
     const handle = hit.product.handle
-    if (!handle) {
-      return
-    }
+    if (!handle) return
 
     const segments = pathname?.split("/").filter(Boolean) ?? []
     const countryCode =
@@ -179,16 +168,11 @@ const SearchBar = () => {
       : `/products/${handle}`
 
     router.push(destination)
-    setIsOpen(false)
-    setQuery("")
-    setResults([])
+    closeModal()
   }
 
-  const handleClear = () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-    latestQueryRef.current = ""
+  const closeModal = () => {
+    setIsModalOpen(false)
     setQuery("")
     setResults([])
     setFacets([])
@@ -202,8 +186,14 @@ const SearchBar = () => {
     setMaxPriceInput("")
     setError(null)
     setIsLoading(false)
-    setIsOpen(true)
-    inputRef.current?.focus()
+  }
+
+  const clearFilters = () => {
+    setSelectedCategories([])
+    setSelectedBrands([])
+    setSelectedOptions({})
+    setMinPriceInput("")
+    setMaxPriceInput("")
   }
 
   const toggleCategory = (categoryId: string) => {
@@ -228,7 +218,6 @@ const SearchBar = () => {
       if (isSelected) {
         const newValues = currentValues.filter((v) => v !== value)
         if (newValues.length === 0) {
-          // Remove the option key entirely if no values selected
           const { [optionName]: _, ...rest } = prev
           return rest
         }
@@ -241,331 +230,606 @@ const SearchBar = () => {
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
-      setIsOpen(false)
+      closeModal()
       return
     }
-
     if (event.key === "Enter" && results.length && trimmedQuery.length) {
       handleResultNavigation(results[0])
     }
   }
 
-  const handleBlur = () => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current)
-    }
+  return (
+    <>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className="flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest hover:shadow-elevation-card-hover hover:border-ui-fg-base transition-all w-full max-w-md"
+      >
+        <SearchIcon />
+        <span className="text-ui-fg-muted text-sm">Search products...</span>
+        <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 rounded border border-ui-border-base bg-ui-bg-subtle px-1.5 py-0.5 text-[10px] text-ui-fg-muted">
+          <span className="text-xs">⌘</span>K
+        </kbd>
+      </button>
 
-    blurTimeoutRef.current = setTimeout(() => {
-      setIsOpen(false)
-    }, 120)
-  }
+      {/* Fullscreen Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-ui-bg-base">
+          {/* Header */}
+          <div className="sticky top-0 z-10 bg-ui-bg-base border-b border-ui-border-base">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-4 py-4">
+                {/* Search Input */}
+                <div className="flex-1 relative">
+                  <div className="flex items-center gap-3 rounded-lg border border-ui-border-base bg-ui-bg-field px-4 py-3 focus-within:border-ui-fg-base transition-colors">
+                    <SearchIcon />
+                    <input
+                      ref={modalInputRef}
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Search for products..."
+                      className="flex-1 bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none text-base"
+                      autoComplete="off"
+                    />
+                    {isLoading && (
+                      <div className="animate-spin h-4 w-4 border-2 border-ui-fg-muted border-t-transparent rounded-full" />
+                    )}
+                    {query && !isLoading && (
+                      <button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        className="text-ui-fg-muted hover:text-ui-fg-base p-1"
+                      >
+                        <CloseIcon size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-  const handleFocus = () => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current)
-    }
-    setIsOpen(true)
-  }
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex items-center justify-center w-10 h-10 rounded-lg border border-ui-border-base bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover text-ui-fg-base transition-colors"
+                >
+                  <CloseIcon size={20} />
+                </button>
+              </div>
+
+              {/* Active Filters Summary */}
+              {activeFilterCount > 0 && (
+                <div className="flex items-center gap-2 pb-3">
+                  <span className="text-xs text-ui-fg-muted">
+                    {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}{" "}
+                    active
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs text-ui-fg-interactive hover:text-ui-fg-interactive-hover underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {trimmedQuery.length < MIN_QUERY_LENGTH ? (
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
+                  <SearchIcon size={32} />
+                </div>
+                <p className="text-ui-fg-muted text-lg">
+                  Type at least {MIN_QUERY_LENGTH} characters to search
+                </p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-16">
+                <p className="text-rose-600">{error}</p>
+              </div>
+            ) : (
+              <div className="flex gap-8">
+                {/* Filters Sidebar */}
+                <div className="w-64 flex-shrink-0 hidden lg:block">
+                  <div className="sticky top-32 space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto pr-4">
+                    {/* Categories */}
+                    {facets.length > 0 && (
+                      <FilterSection title="Categories">
+                        <div className="space-y-1">
+                          {facets.map((cat) => (
+                            <FilterCheckbox
+                              key={cat.id}
+                              label={cat.name}
+                              count={cat.count}
+                              checked={selectedCategories.includes(cat.id)}
+                              onChange={() => toggleCategory(cat.id)}
+                            />
+                          ))}
+                        </div>
+                      </FilterSection>
+                    )}
+
+                    {/* Brands */}
+                    {brandFacets.length > 0 && (
+                      <FilterSection title="Brands" count={brandFacets.length}>
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {brandFacets.map((brand) => (
+                            <FilterCheckbox
+                              key={brand.name}
+                              label={brand.name}
+                              count={brand.count}
+                              checked={selectedBrands.includes(brand.name)}
+                              onChange={() => toggleBrand(brand.name)}
+                            />
+                          ))}
+                        </div>
+                      </FilterSection>
+                    )}
+
+                    {/* Price Range */}
+                    <FilterSection title="Price">
+                      <div className="space-y-2">
+                        {priceRange && (
+                          <p className="text-xs text-ui-fg-subtle">
+                            Range: ${priceRange.min.toFixed(0)} - $
+                            {priceRange.max.toFixed(0)}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="Min"
+                            value={minPriceInput}
+                            onChange={(e) => setMinPriceInput(e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                            min={0}
+                          />
+                          <span className="text-ui-fg-muted">–</span>
+                          <input
+                            type="number"
+                            placeholder="Max"
+                            value={maxPriceInput}
+                            onChange={(e) => setMaxPriceInput(e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                    </FilterSection>
+
+                    {/* Options */}
+                    {optionFacets.map((option) => (
+                      <FilterSection key={option.name} title={option.name}>
+                        <div className="space-y-1">
+                          {option.values.map(({ value, count }) => (
+                            <FilterCheckbox
+                              key={value}
+                              label={value}
+                              count={count}
+                              checked={
+                                selectedOptions[option.name]?.includes(value) ??
+                                false
+                              }
+                              onChange={() => toggleOption(option.name, value)}
+                            />
+                          ))}
+                        </div>
+                      </FilterSection>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Results Grid */}
+                <div className="flex-1 min-w-0">
+                  {/* Mobile Filters */}
+                  <div className="lg:hidden mb-4">
+                    <MobileFilters
+                      facets={facets}
+                      brandFacets={brandFacets}
+                      optionFacets={optionFacets}
+                      priceRange={priceRange}
+                      selectedCategories={selectedCategories}
+                      selectedBrands={selectedBrands}
+                      selectedOptions={selectedOptions}
+                      minPriceInput={minPriceInput}
+                      maxPriceInput={maxPriceInput}
+                      onToggleCategory={toggleCategory}
+                      onToggleBrand={toggleBrand}
+                      onToggleOption={toggleOption}
+                      onMinPriceChange={setMinPriceInput}
+                      onMaxPriceChange={setMaxPriceInput}
+                    />
+                  </div>
+
+                  {/* Results Count */}
+                  <div className="mb-4">
+                    <p className="text-sm text-ui-fg-muted">
+                      {isLoading
+                        ? "Searching..."
+                        : `${results.length} result${
+                            results.length !== 1 ? "s" : ""
+                          } found`}
+                    </p>
+                  </div>
+
+                  {/* Results */}
+                  {results.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {results.map((hit) => (
+                        <ProductCard
+                          key={hit.id}
+                          hit={hit}
+                          onClick={() => handleResultNavigation(hit)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    !isLoading && (
+                      <div className="text-center py-16">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
+                          <SearchIcon size={32} />
+                        </div>
+                        <p className="text-ui-fg-muted text-lg">
+                          No products found
+                        </p>
+                        <p className="text-ui-fg-subtle text-sm mt-1">
+                          Try adjusting your search or filters
+                        </p>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Filter Section Component
+const FilterSection = ({
+  title,
+  count,
+  children,
+}: {
+  title: string
+  count?: number
+  children: React.ReactNode
+}) => (
+  <div>
+    <h3 className="text-sm font-medium text-ui-fg-base mb-3 flex items-center gap-2">
+      {title}
+      {count !== undefined && count > 10 && (
+        <span className="text-xs text-ui-fg-muted">({count})</span>
+      )}
+    </h3>
+    {children}
+  </div>
+)
+
+// Filter Checkbox Component
+const FilterCheckbox = ({
+  label,
+  count,
+  checked,
+  onChange,
+}: {
+  label: string
+  count: number
+  checked: boolean
+  onChange: () => void
+}) => (
+  <label className="flex items-center gap-2 py-1 cursor-pointer group">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      className="w-4 h-4 rounded border-ui-border-base text-ui-fg-base focus:ring-ui-fg-base focus:ring-offset-0"
+    />
+    <span className="flex-1 text-sm text-ui-fg-base group-hover:text-ui-fg-base/80 truncate">
+      {label}
+    </span>
+    <span className="text-xs text-ui-fg-muted">{count}</span>
+  </label>
+)
+
+// Product Card Component
+const ProductCard = ({
+  hit,
+  onClick,
+}: {
+  hit: SemanticSearchHit
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="group text-left bg-ui-bg-subtle rounded-lg p-4 hover:bg-ui-bg-subtle-hover transition-colors"
+  >
+    {/* Thumbnail */}
+    <div className="aspect-square w-full overflow-hidden rounded-md bg-ui-bg-base mb-3">
+      {hit.product.thumbnail ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={hit.product.thumbnail}
+          alt={hit.product.title ?? "Product"}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-ui-fg-muted">
+          <span className="text-sm">No image</span>
+        </div>
+      )}
+    </div>
+
+    {/* Info */}
+    <h4 className="text-sm font-medium text-ui-fg-base line-clamp-2 mb-1">
+      {hit.product.title ?? "Untitled"}
+    </h4>
+    <p className="text-xs text-ui-fg-subtle line-clamp-2">
+      {hit.product.subtitle || hit.product.description || "View product"}
+    </p>
+  </button>
+)
+
+// Mobile Filters Component
+const MobileFilters = ({
+  facets,
+  brandFacets,
+  optionFacets,
+  priceRange,
+  selectedCategories,
+  selectedBrands,
+  selectedOptions,
+  minPriceInput,
+  maxPriceInput,
+  onToggleCategory,
+  onToggleBrand,
+  onToggleOption,
+  onMinPriceChange,
+  onMaxPriceChange,
+}: {
+  facets: CategoryFacet[]
+  brandFacets: BrandFacet[]
+  optionFacets: OptionFacet[]
+  priceRange: PriceRange | null
+  selectedCategories: string[]
+  selectedBrands: string[]
+  selectedOptions: Record<string, string[]>
+  minPriceInput: string
+  maxPriceInput: string
+  onToggleCategory: (id: string) => void
+  onToggleBrand: (brand: string) => void
+  onToggleOption: (name: string, value: string) => void
+  onMinPriceChange: (value: string) => void
+  onMaxPriceChange: (value: string) => void
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const hasFilters =
+    facets.length > 0 ||
+    brandFacets.length > 0 ||
+    optionFacets.length > 0 ||
+    priceRange
+
+  if (!hasFilters) return null
 
   return (
-    <div ref={containerRef} className="relative w-full">
-      <label htmlFor="header-search" className="sr-only">
-        Search products
-      </label>
-      <div className="relative flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest focus-within:border-ui-fg-base focus-within:shadow-elevation-card-hover transition-shadow">
-        <SearchIcon />
-        <div className="relative flex-1">
-          <input
-            id="header-search"
-            ref={inputRef}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setIsOpen(true)
-            }}
-            onKeyDown={handleKeyDown}
-            onBlur={handleBlur}
-            onFocus={handleFocus}
-            placeholder="Search products"
-            className="w-full bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none pr-24"
-            autoComplete="off"
-          />
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-ui-border-base bg-ui-bg-subtle text-sm text-ui-fg-base"
+      >
+        <FilterIcon />
+        Filters
+        {(selectedCategories.length > 0 ||
+          selectedBrands.length > 0 ||
+          Object.keys(selectedOptions).length > 0) && (
+          <span className="bg-ui-fg-base text-ui-bg-base text-xs px-1.5 py-0.5 rounded-full">
+            {selectedCategories.length +
+              selectedBrands.length +
+              Object.values(selectedOptions).reduce(
+                (sum, arr) => sum + arr.length,
+                0
+              )}
+          </span>
+        )}
+      </button>
 
-          {isLoading && (
-            <span className="pointer-events-none absolute right-6 top-1 text-xs text-ui-fg-muted">
-              Searching…
-            </span>
-          )}
-
-          {trimmedQuery.length > 0 && (
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-ui-bg-base">
+          <div className="flex items-center justify-between px-4 py-4 border-b border-ui-border-base">
+            <h2 className="text-lg font-medium">Filters</h2>
             <button
               type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={handleClear}
-              className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1 text-ui-fg-muted hover:text-ui-fg-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg-base/50"
-              aria-label="Clear search"
+              onClick={() => setIsOpen(false)}
+              className="p-2"
             >
-              <span aria-hidden="true">&times;</span>
+              <CloseIcon size={20} />
             </button>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {showDropdown && (
-        <div className="absolute left-0 right-0 mt-2 rounded-large border border-ui-border-base bg-ui-bg-base shadow-elevation-card-rest z-50">
-          {/* Category facets */}
-          {facets.length > 0 && (
-            <div className="px-4 py-3 border-b border-ui-border-base">
-              <p className="text-xs text-ui-fg-muted mb-2">
-                Filter by category
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {facets.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat.id)
-                  return (
-                    <button
+          <div className="p-4 space-y-6 overflow-y-auto max-h-[calc(100vh-8rem)]">
+            {/* Categories */}
+            {facets.length > 0 && (
+              <FilterSection title="Categories">
+                <div className="flex flex-wrap gap-2">
+                  {facets.map((cat) => (
+                    <FilterPill
                       key={cat.id}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => toggleCategory(cat.id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors ${
-                        isSelected
-                          ? "bg-ui-fg-base text-ui-bg-base"
-                          : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
-                      }`}
-                    >
-                      {cat.name}
-                      <span
-                        className={`${
-                          isSelected ? "text-ui-bg-base/70" : "text-ui-fg-muted"
-                        }`}
-                      >
-                        ({cat.count})
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+                      label={cat.name}
+                      count={cat.count}
+                      selected={selectedCategories.includes(cat.id)}
+                      onClick={() => onToggleCategory(cat.id)}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+            )}
 
-          {/* Brand facets */}
-          {brandFacets.length > 0 && (
-            <div className="px-4 py-3 border-b border-ui-border-base">
-              <p className="text-xs text-ui-fg-muted mb-2">Filter by brand</p>
-              <div className="flex flex-wrap gap-2">
-                {brandFacets.map((brand) => {
-                  const isSelected = selectedBrands.includes(brand.name)
-                  return (
-                    <button
+            {/* Brands */}
+            {brandFacets.length > 0 && (
+              <FilterSection title="Brands">
+                <div className="flex flex-wrap gap-2">
+                  {brandFacets.map((brand) => (
+                    <FilterPill
                       key={brand.name}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => toggleBrand(brand.name)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors ${
-                        isSelected
-                          ? "bg-ui-fg-base text-ui-bg-base"
-                          : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
-                      }`}
-                    >
-                      {brand.name}
-                      <span
-                        className={`${
-                          isSelected ? "text-ui-bg-base/70" : "text-ui-fg-muted"
-                        }`}
-                      >
-                        ({brand.count})
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+                      label={brand.name}
+                      count={brand.count}
+                      selected={selectedBrands.includes(brand.name)}
+                      onClick={() => onToggleBrand(brand.name)}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+            )}
 
-          {/* Price range filter */}
-          {trimmedQuery.length >= MIN_QUERY_LENGTH && (
-            <div className="px-4 py-3 border-b border-ui-border-base">
-              <p className="text-xs text-ui-fg-muted mb-2">
-                Price range
-                {priceRange && (
-                  <span className="text-ui-fg-subtle ml-1">
-                    (${priceRange.min.toFixed(0)} - ${priceRange.max.toFixed(0)}{" "}
-                    available)
-                  </span>
-                )}
-              </p>
+            {/* Price */}
+            <FilterSection title="Price">
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   placeholder="Min"
                   value={minPriceInput}
-                  onChange={(e) => setMinPriceInput(e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onFocus={handleFocus}
-                  className="w-24 px-2 py-1 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                  onChange={(e) => onMinPriceChange(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-ui-border-base rounded-md bg-ui-bg-field"
                   min={0}
                 />
-                <span className="text-ui-fg-muted text-sm">–</span>
+                <span className="text-ui-fg-muted">–</span>
                 <input
                   type="number"
                   placeholder="Max"
                   value={maxPriceInput}
-                  onChange={(e) => setMaxPriceInput(e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onFocus={handleFocus}
-                  className="w-24 px-2 py-1 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                  onChange={(e) => onMaxPriceChange(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-ui-border-base rounded-md bg-ui-bg-field"
                   min={0}
                 />
-                {(minPriceInput || maxPriceInput) && (
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setMinPriceInput("")
-                      setMaxPriceInput("")
-                    }}
-                    className="text-xs text-ui-fg-muted hover:text-ui-fg-base"
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
-            </div>
-          )}
+            </FilterSection>
 
-          {/* Option facets (Storage, Color, etc.) */}
-          {optionFacets.length > 0 && (
-            <div className="px-4 py-3 border-b border-ui-border-base">
-              <p className="text-xs text-ui-fg-muted mb-2">Filter by options</p>
-              <div className="space-y-3">
-                {optionFacets.map((option) => (
-                  <div key={option.name}>
-                    <p className="text-xs font-medium text-ui-fg-base mb-1.5">
-                      {option.name}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {option.values.map(({ value, count }) => {
-                        const isSelected =
-                          selectedOptions[option.name]?.includes(value) ?? false
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => toggleOption(option.name, value)}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
-                              isSelected
-                                ? "bg-ui-fg-base text-ui-bg-base"
-                                : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
-                            }`}
-                          >
-                            {value}
-                            <span
-                              className={`${
-                                isSelected
-                                  ? "text-ui-bg-base/70"
-                                  : "text-ui-fg-muted"
-                              }`}
-                            >
-                              ({count})
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            {/* Options */}
+            {optionFacets.map((option) => (
+              <FilterSection key={option.name} title={option.name}>
+                <div className="flex flex-wrap gap-2">
+                  {option.values.map(({ value, count }) => (
+                    <FilterPill
+                      key={value}
+                      label={value}
+                      count={count}
+                      selected={
+                        selectedOptions[option.name]?.includes(value) ?? false
+                      }
+                      onClick={() => onToggleOption(option.name, value)}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+            ))}
+          </div>
 
-          <div className="max-h-96 overflow-y-auto py-2">
-            {error && (
-              <p className="px-4 py-3 text-sm text-rose-600">{error}</p>
-            )}
-
-            {!error &&
-              trimmedQuery.length > 0 &&
-              trimmedQuery.length < MIN_QUERY_LENGTH && (
-                <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                  Type at least {MIN_QUERY_LENGTH} characters to search
-                </p>
-              )}
-
-            {!error &&
-              trimmedQuery.length >= MIN_QUERY_LENGTH &&
-              results.map((hit) => (
-                <button
-                  key={hit.id}
-                  type="button"
-                  className="w-full text-left px-4 py-3 hover:bg-ui-bg-subtle transition-colors flex items-center gap-3"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => handleResultNavigation(hit)}
-                  data-testid="search-result"
-                >
-                  <ThumbnailPreview hit={hit} />
-                  <div className="min-w-0">
-                    <p className="txt-compact-small-plus text-ui-fg-base truncate">
-                      {hit.product.title ?? "Untitled product"}
-                    </p>
-                    <p className="txt-compact-small text-ui-fg-subtle truncate">
-                      {hit.product.subtitle ||
-                        hit.product.description ||
-                        hit.metadata?.embedded_text ||
-                        "View details"}
-                    </p>
-                  </div>
-                </button>
-              ))}
-
-            {!error &&
-              !isLoading &&
-              trimmedQuery.length >= MIN_QUERY_LENGTH &&
-              results.length === 0 && (
-                <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                  No products matched your search.
-                </p>
-              )}
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-ui-border-base bg-ui-bg-base">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="w-full py-3 bg-ui-fg-base text-ui-bg-base rounded-lg font-medium"
+            >
+              Show Results
+            </button>
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
-const ThumbnailPreview = ({ hit }: { hit: SemanticSearchHit }) => {
-  const thumbnail = hit.product.thumbnail
+// Filter Pill Component (for mobile)
+const FilterPill = ({
+  label,
+  count,
+  selected,
+  onClick,
+}: {
+  label: string
+  count: number
+  selected: boolean
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+      selected
+        ? "bg-ui-fg-base text-ui-bg-base"
+        : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
+    }`}
+  >
+    {label}
+    <span className={selected ? "text-ui-bg-base/70" : "text-ui-fg-muted"}>
+      ({count})
+    </span>
+  </button>
+)
 
-  return thumbnail ? (
-    <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-md bg-ui-bg-subtle">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={thumbnail}
-        alt={hit.product.title ?? "Product thumbnail"}
-        className="w-full h-full object-cover"
-        loading="lazy"
-      />
-    </div>
-  ) : (
-    <div className="w-12 h-12 flex-shrink-0 rounded-md bg-ui-bg-subtle flex items-center justify-center text-ui-fg-muted text-xs">
-      No image
-    </div>
-  )
-}
-
-const SearchIcon = () => (
+// Icons
+const SearchIcon = ({ size = 16 }: { size?: number }) => (
   <svg
-    width="16"
-    height="16"
+    width={size}
+    height={size}
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className="text-ui-fg-muted"
-    aria-hidden="true"
+    className="text-ui-fg-muted flex-shrink-0"
   >
     <path
-      d="M21 21L16.65 16.65M6 11C6 8.23858 8.23858 6 11 6C13.7614 6 16 8.23858 16 11C16 13.7614 13.7614 16 11 16C8.23858 16 6 13.7614 6 11Z"
+      d="M21 21L16.65 16.65M11 6C13.7614 6 16 8.23858 16 11M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const CloseIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-current"
+  >
+    <path
+      d="M18 6L6 18M6 6L18 18"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const FilterIcon = () => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-current"
+  >
+    <path
+      d="M3 6H21M7 12H17M11 18H13"
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"
