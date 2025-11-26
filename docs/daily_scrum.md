@@ -171,3 +171,24 @@
  - Hvilke metrikker skal vi måle på, og hvordan skal vi visualisere dem?
  - Fixe product script så den giver god data
  - Aleksander skal finde ud af hvorfor fanden hans VScode laver .2 filer
+
+
+ ## 📅 Daily Scrum 11-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Fået Grafana op at køre.
+ - Sat Terraform op til at provisione VM.
+ - Dashboard med embedding tests i Python.
+ - Lavet karussel til anbefalede produkter og integreret vektorlogik i denne. 
+ - Coderabbit kører nu kun med label på PR
+ - Fordelt et par emner mere vi hver især skal skrive om. 
+### Hvad skal vi lave i dag?
+ - Få Ansible op at køre, og deploye vores backend
+ - Merget både Python og Terraform ind i dev
+ - Sikre at alle stadig kan køre programmet
+ - Arbejder på filterfunktion til søgning
+ - Overveje hvad der ellers skal vises på Grafana
+ - Få strømlinet produkter - brug Klaus' template og udfyld med 150 produkter
+### Hvilke udfordringer forudser vi?
+ - Forstå filtrering i Elastic
+ - Ansible driller
