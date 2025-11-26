@@ -11,7 +11,6 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 
-const MIN_QUERY_LENGTH = 2
 const RESULT_LIMIT = 12
 const DEBOUNCE_DELAY = 350
 
@@ -76,21 +75,13 @@ const SearchBar = () => {
     }
   }, [isModalOpen])
 
-  // Search effect
+  // Search effect - triggers on modal open, query change, or filter change
   useEffect(() => {
+    // Don't search if modal is closed
+    if (!isModalOpen) return
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
-    }
-
-    if (trimmedQuery.length < MIN_QUERY_LENGTH) {
-      setIsLoading(false)
-      setError(null)
-      setResults([])
-      setFacets([])
-      setBrandFacets([])
-      setOptionFacets([])
-      setPriceRange(null)
-      return
     }
 
     setIsLoading(true)
@@ -106,7 +97,7 @@ const SearchBar = () => {
         )
 
         const response = await semanticProductSearch({
-          query: trimmedQuery,
+          query: trimmedQuery, // Can be empty - backend will use "*" for browse mode
           limit: RESULT_LIMIT,
           categoryIds:
             selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -148,6 +139,7 @@ const SearchBar = () => {
       }
     }
   }, [
+    isModalOpen,
     trimmedQuery,
     selectedCategories,
     selectedBrands,
@@ -321,173 +313,170 @@ const SearchBar = () => {
           {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              {trimmedQuery.length < MIN_QUERY_LENGTH ? (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
-                  <SearchIcon size={32} />
+              {error ? (
+                <div className="text-center py-16">
+                  <p className="text-rose-600">{error}</p>
                 </div>
-                <p className="text-ui-fg-muted text-lg">
-                  Type at least {MIN_QUERY_LENGTH} characters to search
-                </p>
-              </div>
-            ) : error ? (
-              <div className="text-center py-16">
-                <p className="text-rose-600">{error}</p>
-              </div>
-            ) : (
-              <div className="flex gap-8">
-                {/* Filters Sidebar */}
-                <div className="w-64 flex-shrink-0 hidden lg:block">
-                  <div className="sticky top-32 space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto pr-4">
-                    {/* Categories */}
-                    {facets.length > 0 && (
-                      <FilterSection title="Categories">
-                        <div className="space-y-1">
-                          {facets.map((cat) => (
-                            <FilterCheckbox
-                              key={cat.id}
-                              label={cat.name}
-                              count={cat.count}
-                              checked={selectedCategories.includes(cat.id)}
-                              onChange={() => toggleCategory(cat.id)}
+              ) : (
+                <div className="flex gap-8">
+                  {/* Filters Sidebar */}
+                  <div className="w-64 flex-shrink-0 hidden lg:block">
+                    <div className="sticky top-32 space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto pr-4">
+                      {/* Categories */}
+                      {facets.length > 0 && (
+                        <FilterSection title="Categories">
+                          <div className="space-y-1">
+                            {facets.map((cat) => (
+                              <FilterCheckbox
+                                key={cat.id}
+                                label={cat.name}
+                                count={cat.count}
+                                checked={selectedCategories.includes(cat.id)}
+                                onChange={() => toggleCategory(cat.id)}
+                              />
+                            ))}
+                          </div>
+                        </FilterSection>
+                      )}
+
+                      {/* Brands */}
+                      {brandFacets.length > 0 && (
+                        <FilterSection
+                          title="Brands"
+                          count={brandFacets.length}
+                        >
+                          <div className="space-y-1 max-h-48 overflow-y-auto">
+                            {brandFacets.map((brand) => (
+                              <FilterCheckbox
+                                key={brand.name}
+                                label={brand.name}
+                                count={brand.count}
+                                checked={selectedBrands.includes(brand.name)}
+                                onChange={() => toggleBrand(brand.name)}
+                              />
+                            ))}
+                          </div>
+                        </FilterSection>
+                      )}
+
+                      {/* Price Range */}
+                      <FilterSection title="Price">
+                        <div className="space-y-2">
+                          {priceRange && (
+                            <p className="text-xs text-ui-fg-subtle">
+                              Range: ${priceRange.min.toFixed(0)} - $
+                              {priceRange.max.toFixed(0)}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              placeholder="Min"
+                              value={minPriceInput}
+                              onChange={(e) => setMinPriceInput(e.target.value)}
+                              className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                              min={0}
                             />
-                          ))}
+                            <span className="text-ui-fg-muted">–</span>
+                            <input
+                              type="number"
+                              placeholder="Max"
+                              value={maxPriceInput}
+                              onChange={(e) => setMaxPriceInput(e.target.value)}
+                              className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
+                              min={0}
+                            />
+                          </div>
                         </div>
                       </FilterSection>
-                    )}
 
-                    {/* Brands */}
-                    {brandFacets.length > 0 && (
-                      <FilterSection title="Brands" count={brandFacets.length}>
-                        <div className="space-y-1 max-h-48 overflow-y-auto">
-                          {brandFacets.map((brand) => (
-                            <FilterCheckbox
-                              key={brand.name}
-                              label={brand.name}
-                              count={brand.count}
-                              checked={selectedBrands.includes(brand.name)}
-                              onChange={() => toggleBrand(brand.name)}
-                            />
-                          ))}
-                        </div>
-                      </FilterSection>
-                    )}
-
-                    {/* Price Range */}
-                    <FilterSection title="Price">
-                      <div className="space-y-2">
-                        {priceRange && (
-                          <p className="text-xs text-ui-fg-subtle">
-                            Range: ${priceRange.min.toFixed(0)} - $
-                            {priceRange.max.toFixed(0)}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="Min"
-                            value={minPriceInput}
-                            onChange={(e) => setMinPriceInput(e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
-                            min={0}
-                          />
-                          <span className="text-ui-fg-muted">–</span>
-                          <input
-                            type="number"
-                            placeholder="Max"
-                            value={maxPriceInput}
-                            onChange={(e) => setMaxPriceInput(e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
-                            min={0}
-                          />
-                        </div>
-                      </div>
-                    </FilterSection>
-
-                    {/* Options */}
-                    {optionFacets.map((option) => (
-                      <FilterSection key={option.name} title={option.name}>
-                        <div className="space-y-1">
-                          {option.values.map(({ value, count }) => (
-                            <FilterCheckbox
-                              key={value}
-                              label={value}
-                              count={count}
-                              checked={
-                                selectedOptions[option.name]?.includes(value) ??
-                                false
-                              }
-                              onChange={() => toggleOption(option.name, value)}
-                            />
-                          ))}
-                        </div>
-                      </FilterSection>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Results Grid */}
-                <div className="flex-1 min-w-0">
-                  {/* Mobile Filters */}
-                  <div className="lg:hidden mb-4">
-                    <MobileFilters
-                      facets={facets}
-                      brandFacets={brandFacets}
-                      optionFacets={optionFacets}
-                      priceRange={priceRange}
-                      selectedCategories={selectedCategories}
-                      selectedBrands={selectedBrands}
-                      selectedOptions={selectedOptions}
-                      minPriceInput={minPriceInput}
-                      maxPriceInput={maxPriceInput}
-                      onToggleCategory={toggleCategory}
-                      onToggleBrand={toggleBrand}
-                      onToggleOption={toggleOption}
-                      onMinPriceChange={setMinPriceInput}
-                      onMaxPriceChange={setMaxPriceInput}
-                    />
-                  </div>
-
-                  {/* Results Count */}
-                  <div className="mb-4">
-                    <p className="text-sm text-ui-fg-muted">
-                      {isLoading
-                        ? "Searching..."
-                        : `${results.length} result${
-                            results.length !== 1 ? "s" : ""
-                          } found`}
-                    </p>
-                  </div>
-
-                  {/* Results */}
-                  {results.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {results.map((hit) => (
-                        <ProductCard
-                          key={hit.id}
-                          hit={hit}
-                          onClick={() => handleResultNavigation(hit)}
-                        />
+                      {/* Options */}
+                      {optionFacets.map((option) => (
+                        <FilterSection key={option.name} title={option.name}>
+                          <div className="space-y-1">
+                            {option.values.map(({ value, count }) => (
+                              <FilterCheckbox
+                                key={value}
+                                label={value}
+                                count={count}
+                                checked={
+                                  selectedOptions[option.name]?.includes(
+                                    value
+                                  ) ?? false
+                                }
+                                onChange={() =>
+                                  toggleOption(option.name, value)
+                                }
+                              />
+                            ))}
+                          </div>
+                        </FilterSection>
                       ))}
                     </div>
-                  ) : (
-                    !isLoading && (
-                      <div className="text-center py-16">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
-                          <SearchIcon size={32} />
-                        </div>
-                        <p className="text-ui-fg-muted text-lg">
-                          No products found
-                        </p>
-                        <p className="text-ui-fg-subtle text-sm mt-1">
-                          Try adjusting your search or filters
-                        </p>
+                  </div>
+
+                  {/* Results Grid */}
+                  <div className="flex-1 min-w-0">
+                    {/* Mobile Filters */}
+                    <div className="lg:hidden mb-4">
+                      <MobileFilters
+                        facets={facets}
+                        brandFacets={brandFacets}
+                        optionFacets={optionFacets}
+                        priceRange={priceRange}
+                        selectedCategories={selectedCategories}
+                        selectedBrands={selectedBrands}
+                        selectedOptions={selectedOptions}
+                        minPriceInput={minPriceInput}
+                        maxPriceInput={maxPriceInput}
+                        onToggleCategory={toggleCategory}
+                        onToggleBrand={toggleBrand}
+                        onToggleOption={toggleOption}
+                        onMinPriceChange={setMinPriceInput}
+                        onMaxPriceChange={setMaxPriceInput}
+                      />
+                    </div>
+
+                    {/* Results Count */}
+                    <div className="mb-4">
+                      <p className="text-sm text-ui-fg-muted">
+                        {isLoading
+                          ? "Searching..."
+                          : `${results.length} result${
+                              results.length !== 1 ? "s" : ""
+                            } found`}
+                      </p>
+                    </div>
+
+                    {/* Results */}
+                    {results.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {results.map((hit) => (
+                          <ProductCard
+                            key={hit.id}
+                            hit={hit}
+                            onClick={() => handleResultNavigation(hit)}
+                          />
+                        ))}
                       </div>
-                    )
-                  )}
+                    ) : (
+                      !isLoading && (
+                        <div className="text-center py-16">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
+                            <SearchIcon size={32} />
+                          </div>
+                          <p className="text-ui-fg-muted text-lg">
+                            No products found
+                          </p>
+                          <p className="text-ui-fg-subtle text-sm mt-1">
+                            Try adjusting your search or filters
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
         </div>

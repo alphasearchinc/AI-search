@@ -88,10 +88,6 @@ export async function semanticProductSearch(
 
   const sanitizedQuery = opts.query.trim()
 
-  if (!sanitizedQuery) {
-    throw new Error("Search query must not be empty")
-  }
-
   const backendUrl = getBackendUrl()
   const publishableKey = getPublishableKey()
 

@@ -35,11 +35,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
   const requestStartTime = Date.now();
 
-  if (!query) {
-    return res
-      .status(400)
-      .json({ message: "Body must include a non-empty 'query' string" });
-  }
+  // Allow empty query for browse mode (filter-only searches)
+  // Use "*" as wildcard when no query provided
+  const searchQuery = query || "*";
 
   if (query.length > MAX_QUERY_LENGTH) {
     return res.status(400).json({
@@ -121,7 +119,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const { result } = await searchProductsWorkflow(req.scope).run({
       input: {
-        query,
+        query: searchQuery,
         limit,
         min_confidence: minConfidence,
         filters,
