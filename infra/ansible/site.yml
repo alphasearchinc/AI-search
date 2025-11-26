@@ -2,8 +2,8 @@
 - name: Provision Medusa hybrid search VM
   hosts: medusa
   become: true
-  vars:
-    # You could override vars here if needed
+  vars_files:
+    - group_vars/secrets.yml
   roles:
     - common
     - docker

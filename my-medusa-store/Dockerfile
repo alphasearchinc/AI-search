@@ -19,4 +19,4 @@ EXPOSE 9000
 
 # Adjust this to whatever your Medusa start script is
 # e.g. if package.json has "start": "medusa start"
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "dev"]
