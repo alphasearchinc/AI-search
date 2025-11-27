@@ -7,6 +7,11 @@ medusa_project_root: /opt/medusa
 medusa_image: "ghcr.io/alphasearchinc/my-medusa-store"
 medusa_image_tag: "latest"
 
+# Docker image for the Python embedder in GHCR
+# TODO: replace with your real org/repo
+embedder_image: "ghcr.io/alphasearchinc/python-embedder"
+embedder_image_tag: "latest"
+
 # Medusa port on the host
 medusa_port: 9000
 
