@@ -7,6 +7,7 @@ on:
       - feature/python-embedder-vm
     paths:
       - "my-medusa-store/**"
+      - "python-embedder/**"
       - ".github/workflows/medusa-backend.yml"
 
   workflow_dispatch:
@@ -18,6 +19,7 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/alphasearchinc/my-medusa-store
+  EMBEDDER_IMAGE_NAME: ghcr.io/alphasearchinc/python-embedder
 
 jobs:
   build-and-push:
@@ -35,7 +37,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push Medusa Docker image
         uses: docker/build-push-action@v6
         with:
           context: ./my-medusa-store
@@ -43,6 +45,15 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Build and push Python embedder Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./python-embedder
+          push: true
+          tags: |
+            ${{ env.EMBEDDER_IMAGE_NAME }}:latest
+            ${{ env.EMBEDDER_IMAGE_NAME }}:${{ github.sha }}
 
   deploy:
     name: Deploy to Azure VM
