@@ -203,3 +203,24 @@
 ### Hvilke udfordringer forudser vi?
  - Forstå filtrering i Elastic
  - Ansible driller
+
+
+ ## 📅 Daily Scrum 27-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Lavet et nyt endpoint til reccomendations
+ - Sat Terraform op til at provisione vores VM
+ - Sat Ansible op til at lave mappestruktur og installere docker og docker compose på vores VM
+ - Lavet CD workflow til automatisk deployment
+ - Deployet vores database på Neon
+ - Filtrering af produkter i vores søgning
+ - Lavet produkt script med god reel data
+### Hvad skal vi lave i dag?
+ - Få Medusa til at virke i Docker på VM
+ - Finpudset modal til filtrering
+ - Ryddet op i endpoint til reccomendations
+ - Refaktorere modal komponenter
+ - Spise burger og flødeboller
+ - Deployet til Vercel
+### Hvilke udfordringer forudser vi?
+ - Hvorfor Medusa ikke vil køre på vores VM, fordi den mangler en tom fil!?!

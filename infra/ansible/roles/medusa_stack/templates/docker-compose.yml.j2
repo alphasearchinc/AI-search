@@ -34,8 +34,13 @@ services:
     depends_on:
       - redis
       - elasticsearch
+    environment:
+      NODE_ENV: "{{ node_env }}"
+      DATABASE_URL: "{{ medusa_database_url }}"
+      REDIS_URL: "{{ medusa_redis_url }}"
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
     ports:
-      - "{{ medusa_port }}:{{ medusa_port }}"
+      - "{{ medusa_port }}:9000"
     networks:
       - medusa_net
 
