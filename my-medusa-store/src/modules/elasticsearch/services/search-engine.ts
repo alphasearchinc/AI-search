@@ -64,6 +64,10 @@ export class SearchEngine {
       )
     );
 
+    // When building facets, we need to fetch more documents to get accurate counts
+    // Otherwise facets only reflect the limited result set
+    const facetFetchSize = options.includeFacets ? 500 : size;
+
     const sourceFields = [
       "product_id",
       "embedded_text",
@@ -173,7 +177,7 @@ export class SearchEngine {
     if (resolvedMode !== "vector") {
       const bm25Response = await this.client.search({
         index: this.indexName,
-        size: Math.max(size, size * searchConfig.overfetchMultiplier),
+        size: facetFetchSize,
         track_total_hits: true,
         query: bm25Query,
         _source: sourceFields,
@@ -195,7 +199,7 @@ export class SearchEngine {
     if (resolvedMode !== "bm25" && hasEmbedding && options.embedding) {
       const vectorResponse = await this.client.search({
         index: this.indexName,
-        size: Math.max(size, size * searchConfig.overfetchMultiplier),
+        size: facetFetchSize,
         track_total_hits: true,
         query: {
           script_score: {
