@@ -10,6 +10,14 @@ import {
 } from "@lib/search"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
+import {
+  CloseIcon,
+  FiltersSidebar,
+  MobileFilters,
+  Pagination,
+  ProductCard,
+  SearchIcon,
+} from "./search"
 
 const RESULT_LIMIT = 24
 const DEBOUNCE_DELAY = 350
@@ -71,7 +79,6 @@ const SearchBar = () => {
   useEffect(() => {
     if (isModalOpen) {
       document.body.style.overflow = "hidden"
-      // Focus input when modal opens
       setTimeout(() => modalInputRef.current?.focus(), 50)
     } else {
       document.body.style.overflow = ""
@@ -81,9 +88,8 @@ const SearchBar = () => {
     }
   }, [isModalOpen])
 
-  // Search effect - triggers on modal open, query change, filter change, or page change
+  // Search effect
   useEffect(() => {
-    // Don't search if modal is closed
     if (!isModalOpen) return
 
     if (debounceRef.current) {
@@ -103,7 +109,7 @@ const SearchBar = () => {
         )
 
         const response = await semanticProductSearch({
-          query: trimmedQuery, // Can be empty - backend will use "*" for browse mode
+          query: trimmedQuery,
           limit: RESULT_LIMIT,
           offset,
           categoryIds:
@@ -113,11 +119,10 @@ const SearchBar = () => {
           maxPrice: validMaxPrice,
           options:
             Object.keys(activeOptions).length > 0 ? activeOptions : undefined,
-          includeFacets: currentPage === 1, // Only fetch facets on first page
+          includeFacets: currentPage === 1,
         })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
-          // Only update totalCount and facets on first page (they don't change with pagination)
           if (currentPage === 1) {
             setTotalCount(response.total)
             setFacets(response.facets?.categories ?? [])
@@ -185,8 +190,6 @@ const SearchBar = () => {
       ? `/${countryCode}/products/${handle}`
       : `/products/${handle}`
 
-    // Just navigate - the pathname change effect will close the modal
-    // This keeps the modal visible until the new page loads, preventing flash of homepage
     router.push(destination)
   }
 
@@ -339,7 +342,7 @@ const SearchBar = () => {
             </div>
           </div>
 
-          {/* Content - Scrollable */}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
               {error ? (
@@ -348,105 +351,23 @@ const SearchBar = () => {
                 </div>
               ) : (
                 <div className="flex gap-8">
-                  {/* Filters Sidebar */}
-                  <div className="w-64 flex-shrink-0 hidden lg:block">
-                    <div className="space-y-5">
-                      {/* Categories */}
-                      {facets.length > 0 && (
-                        <FilterSection title="Categories" count={facets.length}>
-                          <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
-                            {facets.map((cat) => (
-                              <FilterCheckbox
-                                key={cat.id}
-                                label={cat.name}
-                                count={cat.count}
-                                checked={selectedCategories.includes(cat.id)}
-                                onChange={() => toggleCategory(cat.id)}
-                              />
-                            ))}
-                          </div>
-                        </FilterSection>
-                      )}
-
-                      {/* Brands */}
-                      {brandFacets.length > 0 && (
-                        <FilterSection
-                          title="Brands"
-                          count={brandFacets.length}
-                        >
-                          <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
-                            {brandFacets.map((brand) => (
-                              <FilterCheckbox
-                                key={brand.name}
-                                label={brand.name}
-                                count={brand.count}
-                                checked={selectedBrands.includes(brand.name)}
-                                onChange={() => toggleBrand(brand.name)}
-                              />
-                            ))}
-                          </div>
-                        </FilterSection>
-                      )}
-
-                      {/* Price Range */}
-                      <FilterSection title="Price">
-                        <div className="space-y-2">
-                          {priceRange && (
-                            <p className="text-xs text-ui-fg-subtle">
-                              Range: ${priceRange.min.toFixed(0)} - $
-                              {priceRange.max.toFixed(0)}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              placeholder="Min"
-                              value={minPriceInput}
-                              onChange={(e) => setMinPriceInput(e.target.value)}
-                              className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
-                              min={0}
-                            />
-                            <span className="text-ui-fg-muted">–</span>
-                            <input
-                              type="number"
-                              placeholder="Max"
-                              value={maxPriceInput}
-                              onChange={(e) => setMaxPriceInput(e.target.value)}
-                              className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
-                              min={0}
-                            />
-                          </div>
-                        </div>
-                      </FilterSection>
-
-                      {/* Options */}
-                      {optionFacets.map((option) => (
-                        <FilterSection
-                          key={option.name}
-                          title={option.name}
-                          count={option.values.length}
-                        >
-                          <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
-                            {option.values.map(({ value, count }) => (
-                              <FilterCheckbox
-                                key={value}
-                                label={value}
-                                count={count}
-                                checked={
-                                  selectedOptions[option.name]?.includes(
-                                    value
-                                  ) ?? false
-                                }
-                                onChange={() =>
-                                  toggleOption(option.name, value)
-                                }
-                              />
-                            ))}
-                          </div>
-                        </FilterSection>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Filters Sidebar (Desktop) */}
+                  <FiltersSidebar
+                    facets={facets}
+                    brandFacets={brandFacets}
+                    optionFacets={optionFacets}
+                    priceRange={priceRange}
+                    selectedCategories={selectedCategories}
+                    selectedBrands={selectedBrands}
+                    selectedOptions={selectedOptions}
+                    minPriceInput={minPriceInput}
+                    maxPriceInput={maxPriceInput}
+                    onToggleCategory={toggleCategory}
+                    onToggleBrand={toggleBrand}
+                    onToggleOption={toggleOption}
+                    onMinPriceChange={setMinPriceInput}
+                    onMaxPriceChange={setMaxPriceInput}
+                  />
 
                   {/* Results Grid */}
                   <div className="flex-1 min-w-0">
@@ -502,7 +423,6 @@ const SearchBar = () => {
                           ))}
                         </div>
 
-                        {/* Pagination Controls */}
                         {totalPages > 1 && (
                           <Pagination
                             currentPage={currentPage}
@@ -536,484 +456,5 @@ const SearchBar = () => {
     </>
   )
 }
-
-// Filter Section Component
-const FilterSection = ({
-  title,
-  count,
-  children,
-}: {
-  title: string
-  count?: number
-  children: React.ReactNode
-}) => (
-  <div className="border-b border-ui-border-base pb-5 last:border-b-0">
-    <h3 className="text-sm font-medium text-ui-fg-base mb-3 flex items-center justify-between">
-      <span>{title}</span>
-      {count !== undefined && count > 6 && (
-        <span className="text-xs text-ui-fg-muted font-normal">
-          {count} options
-        </span>
-      )}
-    </h3>
-    {children}
-  </div>
-)
-
-// Filter Checkbox Component
-const FilterCheckbox = ({
-  label,
-  count,
-  checked,
-  onChange,
-}: {
-  label: string
-  count: number
-  checked: boolean
-  onChange: () => void
-}) => (
-  <label className="flex items-center gap-2 py-1 cursor-pointer group">
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={onChange}
-      className="w-4 h-4 rounded border-ui-border-base text-ui-fg-base focus:ring-ui-fg-base focus:ring-offset-0"
-    />
-    <span className="flex-1 text-sm text-ui-fg-base group-hover:text-ui-fg-base/80 truncate">
-      {label}
-    </span>
-    <span className="text-xs text-ui-fg-muted">{count}</span>
-  </label>
-)
-
-// Product Card Component
-const ProductCard = ({
-  hit,
-  onClick,
-}: {
-  hit: SemanticSearchHit
-  onClick: () => void
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="group text-left bg-ui-bg-subtle rounded-lg p-4 hover:bg-ui-bg-subtle-hover transition-colors"
-  >
-    {/* Thumbnail */}
-    <div className="aspect-square w-full overflow-hidden rounded-md bg-ui-bg-base mb-3">
-      {hit.product.thumbnail ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={hit.product.thumbnail}
-          alt={hit.product.title ?? "Product"}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-ui-fg-muted">
-          <span className="text-sm">No image</span>
-        </div>
-      )}
-    </div>
-
-    {/* Info */}
-    <h4 className="text-sm font-medium text-ui-fg-base line-clamp-2 mb-1">
-      {hit.product.title ?? "Untitled"}
-    </h4>
-    <p className="text-xs text-ui-fg-subtle line-clamp-2">
-      {hit.product.subtitle || hit.product.description || "View product"}
-    </p>
-  </button>
-)
-
-// Mobile Filters Component
-const MobileFilters = ({
-  facets,
-  brandFacets,
-  optionFacets,
-  priceRange,
-  selectedCategories,
-  selectedBrands,
-  selectedOptions,
-  minPriceInput,
-  maxPriceInput,
-  onToggleCategory,
-  onToggleBrand,
-  onToggleOption,
-  onMinPriceChange,
-  onMaxPriceChange,
-}: {
-  facets: CategoryFacet[]
-  brandFacets: BrandFacet[]
-  optionFacets: OptionFacet[]
-  priceRange: PriceRange | null
-  selectedCategories: string[]
-  selectedBrands: string[]
-  selectedOptions: Record<string, string[]>
-  minPriceInput: string
-  maxPriceInput: string
-  onToggleCategory: (id: string) => void
-  onToggleBrand: (brand: string) => void
-  onToggleOption: (name: string, value: string) => void
-  onMinPriceChange: (value: string) => void
-  onMaxPriceChange: (value: string) => void
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const hasFilters =
-    facets.length > 0 ||
-    brandFacets.length > 0 ||
-    optionFacets.length > 0 ||
-    priceRange
-
-  if (!hasFilters) return null
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-ui-border-base bg-ui-bg-subtle text-sm text-ui-fg-base"
-      >
-        <FilterIcon />
-        Filters
-        {(selectedCategories.length > 0 ||
-          selectedBrands.length > 0 ||
-          Object.keys(selectedOptions).length > 0) && (
-          <span className="bg-ui-fg-base text-ui-bg-base text-xs px-1.5 py-0.5 rounded-full">
-            {selectedCategories.length +
-              selectedBrands.length +
-              Object.values(selectedOptions).reduce(
-                (sum, arr) => sum + arr.length,
-                0
-              )}
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="fixed inset-0 z-50 bg-ui-bg-base">
-          <div className="flex items-center justify-between px-4 py-4 border-b border-ui-border-base">
-            <h2 className="text-lg font-medium">Filters</h2>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="p-2"
-            >
-              <CloseIcon size={20} />
-            </button>
-          </div>
-
-          <div className="p-4 space-y-6 overflow-y-auto max-h-[calc(100vh-8rem)]">
-            {/* Categories */}
-            {facets.length > 0 && (
-              <FilterSection title="Categories">
-                <div className="flex flex-wrap gap-2">
-                  {facets.map((cat) => (
-                    <FilterPill
-                      key={cat.id}
-                      label={cat.name}
-                      count={cat.count}
-                      selected={selectedCategories.includes(cat.id)}
-                      onClick={() => onToggleCategory(cat.id)}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            )}
-
-            {/* Brands */}
-            {brandFacets.length > 0 && (
-              <FilterSection title="Brands">
-                <div className="flex flex-wrap gap-2">
-                  {brandFacets.map((brand) => (
-                    <FilterPill
-                      key={brand.name}
-                      label={brand.name}
-                      count={brand.count}
-                      selected={selectedBrands.includes(brand.name)}
-                      onClick={() => onToggleBrand(brand.name)}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            )}
-
-            {/* Price */}
-            <FilterSection title="Price">
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={minPriceInput}
-                  onChange={(e) => onMinPriceChange(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-ui-border-base rounded-md bg-ui-bg-field"
-                  min={0}
-                />
-                <span className="text-ui-fg-muted">–</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={maxPriceInput}
-                  onChange={(e) => onMaxPriceChange(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-ui-border-base rounded-md bg-ui-bg-field"
-                  min={0}
-                />
-              </div>
-            </FilterSection>
-
-            {/* Options */}
-            {optionFacets.map((option) => (
-              <FilterSection key={option.name} title={option.name}>
-                <div className="flex flex-wrap gap-2">
-                  {option.values.map(({ value, count }) => (
-                    <FilterPill
-                      key={value}
-                      label={value}
-                      count={count}
-                      selected={
-                        selectedOptions[option.name]?.includes(value) ?? false
-                      }
-                      onClick={() => onToggleOption(option.name, value)}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            ))}
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-ui-border-base bg-ui-bg-base">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="w-full py-3 bg-ui-fg-base text-ui-bg-base rounded-lg font-medium"
-            >
-              Show Results
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
-// Filter Pill Component (for mobile)
-const FilterPill = ({
-  label,
-  count,
-  selected,
-  onClick,
-}: {
-  label: string
-  count: number
-  selected: boolean
-  onClick: () => void
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
-      selected
-        ? "bg-ui-fg-base text-ui-bg-base"
-        : "bg-ui-bg-subtle text-ui-fg-base hover:bg-ui-bg-subtle-hover"
-    }`}
-  >
-    {label}
-    <span className={selected ? "text-ui-bg-base/70" : "text-ui-fg-muted"}>
-      ({count})
-    </span>
-  </button>
-)
-
-// Icons
-const SearchIcon = ({ size = 16 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="text-ui-fg-muted flex-shrink-0"
-  >
-    <path
-      d="M21 21L16.65 16.65M11 6C13.7614 6 16 8.23858 16 11M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
-
-const CloseIcon = ({ size = 16 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="text-current"
-  >
-    <path
-      d="M18 6L6 18M6 6L18 18"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
-
-const FilterIcon = () => (
-  <svg
-    width={16}
-    height={16}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="text-current"
-  >
-    <path
-      d="M3 6H21M7 12H17M11 18H13"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
-
-// Pagination Component
-const Pagination = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: {
-  currentPage: number
-  totalPages: number
-  onPageChange: (page: number) => void
-}) => {
-  // Generate page numbers to show
-  const getPageNumbers = () => {
-    const pages: (number | "...")[] = []
-    const showPages = 5 // Max page buttons to show
-
-    if (totalPages <= showPages + 2) {
-      // Show all pages if total is small
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
-    } else {
-      // Always show first page
-      pages.push(1)
-
-      if (currentPage > 3) {
-        pages.push("...")
-      }
-
-      // Show pages around current
-      const start = Math.max(2, currentPage - 1)
-      const end = Math.min(totalPages - 1, currentPage + 1)
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i)
-      }
-
-      if (currentPage < totalPages - 2) {
-        pages.push("...")
-      }
-
-      // Always show last page
-      pages.push(totalPages)
-    }
-
-    return pages
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-1 mt-8">
-      {/* Previous Button */}
-      <button
-        type="button"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="flex items-center justify-center w-9 h-9 rounded-md border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        aria-label="Previous page"
-      >
-        <ChevronLeftIcon />
-      </button>
-
-      {/* Page Numbers */}
-      {getPageNumbers().map((page, idx) =>
-        page === "..." ? (
-          <span
-            key={`ellipsis-${idx}`}
-            className="w-9 h-9 flex items-center justify-center text-ui-fg-muted"
-          >
-            …
-          </span>
-        ) : (
-          <button
-            key={page}
-            type="button"
-            onClick={() => onPageChange(page)}
-            className={`w-9 h-9 rounded-md text-sm font-medium transition-colors ${
-              currentPage === page
-                ? "bg-ui-fg-base text-ui-bg-base"
-                : "border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle"
-            }`}
-          >
-            {page}
-          </button>
-        )
-      )}
-
-      {/* Next Button */}
-      <button
-        type="button"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="flex items-center justify-center w-9 h-9 rounded-md border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        aria-label="Next page"
-      >
-        <ChevronRightIcon />
-      </button>
-    </div>
-  )
-}
-
-const ChevronLeftIcon = () => (
-  <svg
-    width={16}
-    height={16}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
-
-const ChevronRightIcon = () => (
-  <svg
-    width={16}
-    height={16}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M9 18L15 12L9 6"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
 
 export default SearchBar
