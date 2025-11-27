@@ -438,12 +438,9 @@ export class SearchEngine {
       // Price facets: apply category + brand + options filters (exclude price)
       const hitsForPriceFacets = applyFilters(filteredHits, ["price"]);
 
-      // For option facets, we need per-option-type cascading:
-      // Each option type should be built from hits with all OTHER option types applied
+      // Build option facets with per-type cascading:
+      // Each option type is built from hits with all OTHER option types applied
       // This way selecting "Color: Black" narrows down "Storage" options and vice versa
-      const hitsForOptionFacets = applyFilters(filteredHits, ["options"]);
-
-      // Build option facets with per-type exclusion for proper cascading
       const optionFacets = this.buildOptionFacetsWithCascading(
         filteredHits,
         categoryIds,
@@ -555,47 +552,6 @@ export class SearchEngine {
     return Array.from(brandMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-  }
-
-  /**
-   * Build option facets from search hits.
-   * Discovers all unique option types and their values with counts.
-   */
-  private buildOptionFacetsFromHits(
-    hits: Array<{ metadata?: Record<string, any> }>
-  ): OptionFacet[] {
-    const optionMap = new Map<string, Map<string, number>>();
-
-    for (const hit of hits) {
-      const hitOptions = hit.metadata?.options as
-        | Record<string, string[]>
-        | undefined;
-      if (!hitOptions) continue;
-
-      for (const [optionName, values] of Object.entries(hitOptions)) {
-        if (!Array.isArray(values)) continue;
-
-        let valueMap = optionMap.get(optionName);
-        if (!valueMap) {
-          valueMap = new Map<string, number>();
-          optionMap.set(optionName, valueMap);
-        }
-
-        for (const value of values) {
-          const currentCount = valueMap.get(value) ?? 0;
-          valueMap.set(value, currentCount + 1);
-        }
-      }
-    }
-
-    return Array.from(optionMap.entries())
-      .map(([name, valueMap]) => ({
-        name,
-        values: Array.from(valueMap.entries())
-          .map(([value, count]) => ({ value, count }))
-          .sort((a, b) => b.count - a.count),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
