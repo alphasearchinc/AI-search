@@ -119,17 +119,16 @@ const SearchBar = () => {
           maxPrice: validMaxPrice,
           options:
             Object.keys(activeOptions).length > 0 ? activeOptions : undefined,
-          includeFacets: currentPage === 1,
+          includeFacets: true, // Always include facets to support cascading
         })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
-          if (currentPage === 1) {
-            setTotalCount(response.total)
-            setFacets(response.facets?.categories ?? [])
-            setBrandFacets(response.facets?.brands ?? [])
-            setOptionFacets(response.facets?.options ?? [])
-            setPriceRange(response.facets?.priceRange ?? null)
-          }
+          // Always update facets to reflect current filter state
+          setTotalCount(response.total)
+          setFacets(response.facets?.categories ?? [])
+          setBrandFacets(response.facets?.brands ?? [])
+          setOptionFacets(response.facets?.options ?? [])
+          setPriceRange(response.facets?.priceRange ?? null)
         }
       } catch (err: unknown) {
         if (latestQueryRef.current === trimmedQuery) {
