@@ -14,6 +14,13 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     },
   },
+  // Explicitly configure admin so the bundler
+  // doesn't try to load local src/admin extensions
+  // (like i18n) in Docker unless we opt in.
+  admin: {
+    path: "/app",
+    sources: [],
+  },
   modules: [
     {
       resolve: "./src/modules/elasticsearch",
