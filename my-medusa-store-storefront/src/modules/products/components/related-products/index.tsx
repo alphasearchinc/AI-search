@@ -25,8 +25,6 @@ export default async function RelatedProducts({
     countryCode,
   })
 
-  console.log(`[RelatedProducts] Fetched ${products.length} recommendations for product ${product.id}`)
-
   if (!products.length) {
     return null
   }
