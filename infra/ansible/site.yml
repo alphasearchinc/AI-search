@@ -1,0 +1,10 @@
+---
+- name: Provision Medusa hybrid search VM
+  hosts: medusa
+  become: true
+  vars:
+    # You could override vars here if needed
+  roles:
+    - common
+    - docker
+    - medusa_stack

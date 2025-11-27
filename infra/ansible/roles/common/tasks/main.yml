@@ -1,0 +1,18 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade packages (safe upgrade)
+  ansible.builtin.apt:
+    upgrade: safe
+
+- name: Install basic tools
+  ansible.builtin.apt:
+    name:
+      - curl
+      - git
+      - ca-certificates
+      - htop
+    state: present
