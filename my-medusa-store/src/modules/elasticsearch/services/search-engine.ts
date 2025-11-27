@@ -356,18 +356,34 @@ export class SearchEngine {
       });
     }
 
-    // Build facets with proper cascading:
-    // - Categories: from all hits (so user can always change category)
-    // - Brands: from category-filtered hits (cascade from category, but allow multi-select)
-    // - Options: from brand-filtered hits (cascade from brand selection)
-    // - Price: from brand-filtered hits (cascade from brand selection)
+    // Build facets with proper two-way cascading:
+    // - Categories: from brand-filtered hits (so selecting a brand narrows categories)
+    // - Brands: from category-filtered hits (so selecting a category narrows brands)
+    // - Options: from category+brand filtered hits
+    // - Price: from category+brand filtered hits
+    // This prevents dead-ends in either direction
     let facets: SearchFacets | undefined;
     if (options.includeFacets) {
-      // Category facets from all hits (before any filter) so user can see all categories
-      const categoryFacets = this.buildCategoryFacetsFromHits(filteredHits);
-      // Brand facets from category-filtered hits (allows multi-select within brands)
-      const brands = this.buildBrandFacetsFromHits(categoryFilteredHits);
-      // Options and price cascade from brand selection
+      // For category facets: show categories available for selected brands
+      // Use priceFilteredHits (after category filter, before brand filter) when brands selected
+      // But if no brands selected, use price-filtered hits
+      const hitsForCategoryFacets =
+        brandsFilter.length > 0
+          ? priceFilteredHits.filter((hit) => {
+              const hitBrand = hit.metadata?.brand as string | undefined;
+              if (!hitBrand) return false;
+              return brandsFilter.includes(hitBrand);
+            })
+          : priceFilteredHits;
+
+      // For brand facets: show brands available for selected categories
+      const hitsForBrandFacets = categoryFilteredHits;
+
+      const categoryFacets = this.buildCategoryFacetsFromHits(
+        hitsForCategoryFacets
+      );
+      const brands = this.buildBrandFacetsFromHits(hitsForBrandFacets);
+      // Options and price cascade from both category and brand selection
       const priceRange = this.buildPriceRangeFromHits(brandFilteredHits);
       const optionFacets = this.buildOptionFacetsFromHits(brandFilteredHits);
 
