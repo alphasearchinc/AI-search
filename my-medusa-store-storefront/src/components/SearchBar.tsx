@@ -321,11 +321,11 @@ const SearchBar = () => {
                 <div className="flex gap-8">
                   {/* Filters Sidebar */}
                   <div className="w-64 flex-shrink-0 hidden lg:block">
-                    <div className="sticky top-32 space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto pr-4">
+                    <div className="space-y-5">
                       {/* Categories */}
                       {facets.length > 0 && (
-                        <FilterSection title="Categories">
-                          <div className="space-y-1">
+                        <FilterSection title="Categories" count={facets.length}>
+                          <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
                             {facets.map((cat) => (
                               <FilterCheckbox
                                 key={cat.id}
@@ -345,7 +345,7 @@ const SearchBar = () => {
                           title="Brands"
                           count={brandFacets.length}
                         >
-                          <div className="space-y-1 max-h-48 overflow-y-auto">
+                          <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
                             {brandFacets.map((brand) => (
                               <FilterCheckbox
                                 key={brand.name}
@@ -392,8 +392,12 @@ const SearchBar = () => {
 
                       {/* Options */}
                       {optionFacets.map((option) => (
-                        <FilterSection key={option.name} title={option.name}>
-                          <div className="space-y-1">
+                        <FilterSection
+                          key={option.name}
+                          title={option.name}
+                          count={option.values.length}
+                        >
+                          <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
                             {option.values.map(({ value, count }) => (
                               <FilterCheckbox
                                 key={value}
@@ -495,11 +499,13 @@ const FilterSection = ({
   count?: number
   children: React.ReactNode
 }) => (
-  <div>
-    <h3 className="text-sm font-medium text-ui-fg-base mb-3 flex items-center gap-2">
-      {title}
-      {count !== undefined && count > 10 && (
-        <span className="text-xs text-ui-fg-muted">({count})</span>
+  <div className="border-b border-ui-border-base pb-5 last:border-b-0">
+    <h3 className="text-sm font-medium text-ui-fg-base mb-3 flex items-center justify-between">
+      <span>{title}</span>
+      {count !== undefined && count > 6 && (
+        <span className="text-xs text-ui-fg-muted font-normal">
+          {count} options
+        </span>
       )}
     </h3>
     {children}
