@@ -8,7 +8,6 @@ on:
       - "my-medusa-store/**"
       - "python-embedder/**"
       - ".github/workflows/medusa-backend.yml"
-
   workflow_dispatch:
 
 permissions:
