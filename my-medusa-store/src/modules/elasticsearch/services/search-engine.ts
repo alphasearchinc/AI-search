@@ -99,7 +99,6 @@ export class SearchEngine {
 
     const filterClauses: any[] = [];
     const productIds = options.filters?.product_ids?.filter(Boolean) ?? [];
-    const categoryIds = options.filters?.category_ids?.filter(Boolean) ?? [];
 
     // Only apply product_id filter at ES level
     // Category filtering is done in-memory to allow smart facets
@@ -280,13 +279,30 @@ export class SearchEngine {
 
     filteredHits.sort((a, b) => b.score - a.score);
 
-    // Apply price range filter first (before building facets)
+    // Filter order for proper cascading:
+    // 1. Category filter first (main cascade - narrows down brand/option/price facets)
+    // 2. Then brand, options, price filters for final results
+    // Facets are built from category-filtered hits so users can multi-select within each facet type
+
+    const categoryIds = options.filters?.category_ids?.filter(Boolean) ?? [];
+    const brandsFilter = options.filters?.brands ?? [];
+    const optionsFilter = options.filters?.options;
     const minPrice = options.filters?.min_price;
     const maxPrice = options.filters?.max_price;
-    let priceFilteredHits = filteredHits;
 
+    // Step 1: Apply category filter first
+    let categoryFilteredHits = filteredHits;
+    if (categoryIds.length > 0) {
+      categoryFilteredHits = filteredHits.filter((hit) => {
+        const hitCategoryIds = hit.metadata?.category_ids ?? [];
+        return categoryIds.some((catId) => hitCategoryIds.includes(catId));
+      });
+    }
+
+    // Step 2: Apply price filter
+    let priceFilteredHits = categoryFilteredHits;
     if (minPrice !== undefined || maxPrice !== undefined) {
-      priceFilteredHits = filteredHits.filter((hit) => {
+      priceFilteredHits = categoryFilteredHits.filter((hit) => {
         const hitMinPrice = hit.metadata?.min_price;
         const hitMaxPrice = hit.metadata?.max_price;
 
@@ -303,10 +319,8 @@ export class SearchEngine {
       });
     }
 
-    // Apply brand filter (before options filter)
-    const brandsFilter = options.filters?.brands ?? [];
+    // Step 3: Apply brand filter
     let brandFilteredHits = priceFilteredHits;
-
     if (brandsFilter.length > 0) {
       brandFilteredHits = priceFilteredHits.filter((hit) => {
         const hitBrand = hit.metadata?.brand as string | undefined;
@@ -315,12 +329,10 @@ export class SearchEngine {
       });
     }
 
-    // Apply options filter (before building facets)
-    const optionsFilter = options.filters?.options;
-    let optionsFilteredHits = brandFilteredHits;
-
+    // Step 4: Apply options filter
+    let finalFilteredHits = brandFilteredHits;
     if (optionsFilter && Object.keys(optionsFilter).length > 0) {
-      optionsFilteredHits = brandFilteredHits.filter((hit) => {
+      finalFilteredHits = brandFilteredHits.filter((hit) => {
         const hitOptions = hit.metadata?.options as
           | Record<string, string[]>
           | undefined;
@@ -344,38 +356,37 @@ export class SearchEngine {
       });
     }
 
-    // Now apply category filter
-    let categoryFilteredHits = optionsFilteredHits;
-    if (categoryIds.length > 0) {
-      categoryFilteredHits = optionsFilteredHits.filter((hit) => {
-        const hitCategoryIds = hit.metadata?.category_ids ?? [];
-        return categoryIds.some((catId) => hitCategoryIds.includes(catId));
-      });
-    }
-
-    // Build facets from category-filtered hits
-    // This ensures brands/options/price update when a category is selected
+    // Build facets with proper cascading:
+    // - Categories: from all hits (so user can always change category)
+    // - Brands: from category-filtered hits (cascade from category, but allow multi-select)
+    // - Options: from brand-filtered hits (cascade from brand selection)
+    // - Price: from brand-filtered hits (cascade from brand selection)
     let facets: SearchFacets | undefined;
     if (options.includeFacets) {
-      // Category facets from pre-category-filter hits (so user can see all categories)
-      const categoryFacets =
-        this.buildCategoryFacetsFromHits(optionsFilteredHits);
-      // Other facets from post-category-filter hits (so they reflect selected category)
+      // Category facets from all hits (before any filter) so user can see all categories
+      const categoryFacets = this.buildCategoryFacetsFromHits(filteredHits);
+      // Brand facets from category-filtered hits (allows multi-select within brands)
       const brands = this.buildBrandFacetsFromHits(categoryFilteredHits);
-      const priceRange = this.buildPriceRangeFromHits(categoryFilteredHits);
-      const options = this.buildOptionFacetsFromHits(categoryFilteredHits);
+      // Options and price cascade from brand selection
+      const priceRange = this.buildPriceRangeFromHits(brandFilteredHits);
+      const optionFacets = this.buildOptionFacetsFromHits(brandFilteredHits);
 
-      facets = { categories: categoryFacets, brands, priceRange, options };
+      facets = {
+        categories: categoryFacets,
+        brands,
+        priceRange,
+        options: optionFacets,
+      };
     }
 
     // Apply pagination (offset and limit)
     const offset = options.offset ?? 0;
-    const finalHits = categoryFilteredHits.slice(offset, offset + size);
-    const count = categoryFilteredHits.length;
+    const paginatedHits = finalFilteredHits.slice(offset, offset + size);
+    const count = finalFilteredHits.length;
     const took = tookParts.reduce((sum, value) => sum + value, 0);
 
     return {
-      hits: finalHits,
+      hits: paginatedHits,
       count,
       took,
       mode: resolvedMode,
