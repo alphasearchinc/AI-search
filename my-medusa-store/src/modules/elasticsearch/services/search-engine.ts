@@ -4,6 +4,11 @@ import {
   SemanticSearchOptions,
   SemanticSearchResult,
   SearchMode,
+  CategoryFacet,
+  BrandFacet,
+  SearchFacets,
+  PriceRange,
+  OptionFacet,
 } from "../types";
 import {
   getSearchConfig,
@@ -59,6 +64,28 @@ export class SearchEngine {
       )
     );
 
+    const requestedOffset = options.offset ?? 0;
+
+    // Check if any in-memory filters are applied
+    const hasInMemoryFilters =
+      (options.filters?.category_ids?.length ?? 0) > 0 ||
+      (options.filters?.brands?.length ?? 0) > 0 ||
+      options.filters?.min_price !== undefined ||
+      options.filters?.max_price !== undefined ||
+      (options.filters?.options &&
+        Object.keys(options.filters.options).length > 0);
+
+    // When building facets OR when filters are applied, we need to fetch more documents
+    // to ensure we have enough results after in-memory filtering for pagination
+    // Otherwise facets only reflect the limited result set
+    const facetFetchSize =
+      options.includeFacets || hasInMemoryFilters
+        ? 500
+        : Math.max(
+            requestedOffset + size,
+            size * searchConfig.overfetchMultiplier
+          );
+
     const sourceFields = [
       "product_id",
       "embedded_text",
@@ -73,6 +100,8 @@ export class SearchEngine {
     const filterClauses: any[] = [];
     const productIds = options.filters?.product_ids?.filter(Boolean) ?? [];
 
+    // Only apply product_id filter at ES level
+    // Category filtering is done in-memory to allow smart facets
     if (productIds.length) {
       filterClauses.push({
         terms: {
@@ -165,7 +194,7 @@ export class SearchEngine {
     if (resolvedMode !== "vector") {
       const bm25Response = await this.client.search({
         index: this.indexName,
-        size: Math.max(size, size * searchConfig.overfetchMultiplier),
+        size: facetFetchSize,
         track_total_hits: true,
         query: bm25Query,
         _source: sourceFields,
@@ -187,7 +216,7 @@ export class SearchEngine {
     if (resolvedMode !== "bm25" && hasEmbedding && options.embedding) {
       const vectorResponse = await this.client.search({
         index: this.indexName,
-        size: Math.max(size, size * searchConfig.overfetchMultiplier),
+        size: facetFetchSize,
         track_total_hits: true,
         query: {
           script_score: {
@@ -250,15 +279,390 @@ export class SearchEngine {
 
     filteredHits.sort((a, b) => b.score - a.score);
 
-    const finalHits = filteredHits.slice(0, size);
-    const count = filteredHits.length;
+    // Filter order for proper cascading:
+    // 1. Category filter first (main cascade - narrows down brand/option/price facets)
+    // 2. Then brand, options, price filters for final results
+    // Facets are built from category-filtered hits so users can multi-select within each facet type
+
+    const categoryIds = options.filters?.category_ids?.filter(Boolean) ?? [];
+    const brandsFilter = options.filters?.brands ?? [];
+    const optionsFilter = options.filters?.options;
+    const minPrice = options.filters?.min_price;
+    const maxPrice = options.filters?.max_price;
+
+    // Step 1: Apply category filter first
+    let categoryFilteredHits = filteredHits;
+    if (categoryIds.length > 0) {
+      categoryFilteredHits = filteredHits.filter((hit) => {
+        const hitCategoryIds = hit.metadata?.category_ids ?? [];
+        return categoryIds.some((catId) => hitCategoryIds.includes(catId));
+      });
+    }
+
+    // Step 2: Apply price filter
+    let priceFilteredHits = categoryFilteredHits;
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      priceFilteredHits = categoryFilteredHits.filter((hit) => {
+        const hitMinPrice = hit.metadata?.min_price;
+        const hitMaxPrice = hit.metadata?.max_price;
+
+        // If product has no price indexed, include it (don't exclude due to missing data)
+        if (hitMinPrice === undefined && hitMaxPrice === undefined) return true;
+
+        const productMinPrice = hitMinPrice ?? 0;
+        const productMaxPrice = hitMaxPrice ?? productMinPrice;
+
+        // Check if product's price range overlaps with the filter range
+        if (minPrice !== undefined && productMaxPrice < minPrice) return false;
+        if (maxPrice !== undefined && productMinPrice > maxPrice) return false;
+        return true;
+      });
+    }
+
+    // Step 3: Apply brand filter
+    let brandFilteredHits = priceFilteredHits;
+    if (brandsFilter.length > 0) {
+      brandFilteredHits = priceFilteredHits.filter((hit) => {
+        const hitBrand = hit.metadata?.brand as string | undefined;
+        if (!hitBrand) return false;
+        return brandsFilter.includes(hitBrand);
+      });
+    }
+
+    // Step 4: Apply options filter
+    let finalFilteredHits = brandFilteredHits;
+    if (optionsFilter && Object.keys(optionsFilter).length > 0) {
+      finalFilteredHits = brandFilteredHits.filter((hit) => {
+        const hitOptions = hit.metadata?.options as
+          | Record<string, string[]>
+          | undefined;
+        if (!hitOptions) return false;
+
+        // Product must match ALL selected option filters (AND between option types)
+        // But can match ANY value within an option type (OR within option values)
+        for (const [optionName, selectedValues] of Object.entries(
+          optionsFilter
+        )) {
+          if (!selectedValues || selectedValues.length === 0) continue;
+
+          const productOptionValues = hitOptions[optionName] ?? [];
+          // Check if product has at least one of the selected values for this option
+          const hasMatch = selectedValues.some((val) =>
+            productOptionValues.includes(val)
+          );
+          if (!hasMatch) return false;
+        }
+        return true;
+      });
+    }
+
+    // Build facets with full cascading:
+    // Each facet type is built from hits with ALL OTHER filters applied (except its own)
+    // This ensures selecting any filter updates all other facet counts
+    let facets: SearchFacets | undefined;
+    if (options.includeFacets) {
+      // Helper to apply filters selectively (excluding specific filter types)
+      const applyFilters = (
+        hits: typeof filteredHits,
+        exclude: ("category" | "brand" | "price" | "options")[]
+      ) => {
+        let result = hits;
+
+        if (!exclude.includes("category") && categoryIds.length > 0) {
+          result = result.filter((hit) => {
+            const hitCategoryIds = hit.metadata?.category_ids ?? [];
+            return categoryIds.some((catId) => hitCategoryIds.includes(catId));
+          });
+        }
+
+        if (
+          !exclude.includes("price") &&
+          (minPrice !== undefined || maxPrice !== undefined)
+        ) {
+          result = result.filter((hit) => {
+            const hitMinPrice = hit.metadata?.min_price;
+            const hitMaxPrice = hit.metadata?.max_price;
+            if (hitMinPrice === undefined && hitMaxPrice === undefined)
+              return true;
+            const productMinPrice = hitMinPrice ?? 0;
+            const productMaxPrice = hitMaxPrice ?? productMinPrice;
+            if (minPrice !== undefined && productMaxPrice < minPrice)
+              return false;
+            if (maxPrice !== undefined && productMinPrice > maxPrice)
+              return false;
+            return true;
+          });
+        }
+
+        if (!exclude.includes("brand") && brandsFilter.length > 0) {
+          result = result.filter((hit) => {
+            const hitBrand = hit.metadata?.brand as string | undefined;
+            if (!hitBrand) return false;
+            return brandsFilter.includes(hitBrand);
+          });
+        }
+
+        if (
+          !exclude.includes("options") &&
+          optionsFilter &&
+          Object.keys(optionsFilter).length > 0
+        ) {
+          result = result.filter((hit) => {
+            const hitOptions = hit.metadata?.options as
+              | Record<string, string[]>
+              | undefined;
+            if (!hitOptions) return false;
+            for (const [optionName, selectedValues] of Object.entries(
+              optionsFilter
+            )) {
+              if (!selectedValues || selectedValues.length === 0) continue;
+              const productOptionValues = hitOptions[optionName] ?? [];
+              const hasMatch = selectedValues.some((val) =>
+                productOptionValues.includes(val)
+              );
+              if (!hasMatch) return false;
+            }
+            return true;
+          });
+        }
+
+        return result;
+      };
+
+      // Category facets: apply brand + price + options filters (exclude category)
+      const hitsForCategoryFacets = applyFilters(filteredHits, ["category"]);
+
+      // Brand facets: apply category + price + options filters (exclude brand)
+      const hitsForBrandFacets = applyFilters(filteredHits, ["brand"]);
+
+      // Price facets: apply category + brand + options filters (exclude price)
+      const hitsForPriceFacets = applyFilters(filteredHits, ["price"]);
+
+      // Build option facets with per-type cascading:
+      // Each option type is built from hits with all OTHER option types applied
+      // This way selecting "Color: Black" narrows down "Storage" options and vice versa
+      const optionFacets = this.buildOptionFacetsWithCascading(
+        filteredHits,
+        categoryIds,
+        brandsFilter,
+        minPrice,
+        maxPrice,
+        optionsFilter
+      );
+
+      const categoryFacets = this.buildCategoryFacetsFromHits(
+        hitsForCategoryFacets
+      );
+      const brands = this.buildBrandFacetsFromHits(hitsForBrandFacets);
+      const priceRange = this.buildPriceRangeFromHits(hitsForPriceFacets);
+
+      facets = {
+        categories: categoryFacets,
+        brands,
+        priceRange,
+        options: optionFacets,
+      };
+    }
+
+    // Apply pagination (offset and limit)
+    const offset = options.offset ?? 0;
+    const paginatedHits = finalFilteredHits.slice(offset, offset + size);
+    const count = finalFilteredHits.length;
     const took = tookParts.reduce((sum, value) => sum + value, 0);
 
     return {
-      hits: finalHits,
+      hits: paginatedHits,
       count,
       took,
       mode: resolvedMode,
+      facets,
     };
+  }
+
+  /**
+   * Build category facets from search hits.
+   */
+  private buildCategoryFacetsFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): CategoryFacet[] {
+    const categoryMap = new Map<string, { name: string; count: number }>();
+
+    for (const hit of hits) {
+      const categoryIds = hit.metadata?.category_ids ?? [];
+      const categoryNames = hit.metadata?.categories ?? [];
+
+      for (let i = 0; i < categoryIds.length; i++) {
+        const id = categoryIds[i];
+        const name = categoryNames[i] || id;
+
+        const existing = categoryMap.get(id);
+        if (existing) {
+          existing.count++;
+        } else {
+          categoryMap.set(id, { name, count: 1 });
+        }
+      }
+    }
+
+    return Array.from(categoryMap.entries())
+      .map(([id, { name, count }]) => ({ id, name, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Build price range from search hits.
+   */
+  private buildPriceRangeFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): PriceRange | undefined {
+    const prices: number[] = [];
+    for (const hit of hits) {
+      if (typeof hit.metadata?.min_price === "number") {
+        prices.push(hit.metadata.min_price);
+      }
+      if (typeof hit.metadata?.max_price === "number") {
+        prices.push(hit.metadata.max_price);
+      }
+    }
+    if (prices.length > 0) {
+      return {
+        min: Math.min(...prices),
+        max: Math.max(...prices),
+      };
+    }
+    return undefined;
+  }
+
+  /**
+   * Build brand facets from search hits.
+   */
+  private buildBrandFacetsFromHits(
+    hits: Array<{ metadata?: Record<string, any> }>
+  ): BrandFacet[] {
+    const brandMap = new Map<string, number>();
+
+    for (const hit of hits) {
+      const brand = hit.metadata?.brand as string | undefined;
+      if (!brand) continue;
+
+      const currentCount = brandMap.get(brand) ?? 0;
+      brandMap.set(brand, currentCount + 1);
+    }
+
+    return Array.from(brandMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Build option facets with per-option-type cascading.
+   * Each option type is built from hits that match all OTHER selected option types.
+   * This ensures selecting "Color: Black" narrows down "Storage" options and vice versa.
+   */
+  private buildOptionFacetsWithCascading(
+    hits: Array<{ score: number; metadata?: Record<string, any> }>,
+    categoryIds: string[],
+    brandsFilter: string[],
+    minPrice: number | undefined,
+    maxPrice: number | undefined,
+    optionsFilter: Record<string, string[]> | undefined
+  ): OptionFacet[] {
+    // First, apply category, brand, and price filters (these always apply)
+    let baseHits = hits;
+
+    if (categoryIds.length > 0) {
+      baseHits = baseHits.filter((hit) => {
+        const hitCategoryIds = hit.metadata?.category_ids ?? [];
+        return categoryIds.some((catId) => hitCategoryIds.includes(catId));
+      });
+    }
+
+    if (brandsFilter.length > 0) {
+      baseHits = baseHits.filter((hit) => {
+        const hitBrand = hit.metadata?.brand as string | undefined;
+        return hitBrand && brandsFilter.includes(hitBrand);
+      });
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      baseHits = baseHits.filter((hit) => {
+        const hitMinPrice = hit.metadata?.min_price;
+        const hitMaxPrice = hit.metadata?.max_price;
+        if (hitMinPrice === undefined && hitMaxPrice === undefined) return true;
+        const productMinPrice = hitMinPrice ?? 0;
+        const productMaxPrice = hitMaxPrice ?? productMinPrice;
+        if (minPrice !== undefined && productMaxPrice < minPrice) return false;
+        if (maxPrice !== undefined && productMinPrice > maxPrice) return false;
+        return true;
+      });
+    }
+
+    // Discover all option types from the base hits
+    const allOptionTypes = new Set<string>();
+    for (const hit of baseHits) {
+      const hitOptions = hit.metadata?.options as
+        | Record<string, string[]>
+        | undefined;
+      if (hitOptions) {
+        for (const optionName of Object.keys(hitOptions)) {
+          allOptionTypes.add(optionName);
+        }
+      }
+    }
+
+    // Build facets for each option type
+    const optionFacets: OptionFacet[] = [];
+    const selectedOptionTypes = Object.keys(optionsFilter ?? {}).filter(
+      (key) => (optionsFilter?.[key]?.length ?? 0) > 0
+    );
+
+    for (const optionType of allOptionTypes) {
+      // Apply all OTHER option filters (exclude this option type)
+      let hitsForThisOption = baseHits;
+
+      for (const otherOptionType of selectedOptionTypes) {
+        if (otherOptionType === optionType) continue; // Skip self
+
+        const selectedValues = optionsFilter?.[otherOptionType] ?? [];
+        if (selectedValues.length === 0) continue;
+
+        hitsForThisOption = hitsForThisOption.filter((hit) => {
+          const hitOptions = hit.metadata?.options as
+            | Record<string, string[]>
+            | undefined;
+          if (!hitOptions) return false;
+          const productValues = hitOptions[otherOptionType] ?? [];
+          return selectedValues.some((val) => productValues.includes(val));
+        });
+      }
+
+      // Build the facet values for this option type
+      const valueMap = new Map<string, number>();
+      for (const hit of hitsForThisOption) {
+        const hitOptions = hit.metadata?.options as
+          | Record<string, string[]>
+          | undefined;
+        if (!hitOptions) continue;
+        const values = hitOptions[optionType];
+        if (!Array.isArray(values)) continue;
+
+        for (const value of values) {
+          const currentCount = valueMap.get(value) ?? 0;
+          valueMap.set(value, currentCount + 1);
+        }
+      }
+
+      // Only include option types that have values
+      if (valueMap.size > 0) {
+        optionFacets.push({
+          name: optionType,
+          values: Array.from(valueMap.entries())
+            .map(([value, count]) => ({ value, count }))
+            .sort((a, b) => b.count - a.count),
+        });
+      }
+    }
+
+    return optionFacets.sort((a, b) => a.name.localeCompare(b.name));
   }
 }

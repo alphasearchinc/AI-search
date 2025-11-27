@@ -9,7 +9,16 @@ import { hydrateSearchHitsStep } from "./steps/hydrate-search-hits";
 type SearchProductsWorkflowInput = {
   query: string;
   limit: number;
+  offset?: number;
   min_confidence?: number;
+  filters?: {
+    category_ids?: string[];
+    brands?: string[];
+    min_price?: number;
+    max_price?: number;
+    options?: Record<string, string[]>;
+  };
+  include_facets?: boolean;
 };
 
 export const searchProductsWorkflow = createWorkflow(
@@ -25,8 +34,11 @@ export const searchProductsWorkflow = createWorkflow(
       query: input.query,
       embedding,
       limit: input.limit,
+      offset: input.offset,
       mode,
       minConfidence: input.min_confidence,
+      filters: input.filters,
+      includeFacets: input.include_facets,
     });
 
     const hits = hydrateSearchHitsStep({
@@ -41,6 +53,7 @@ export const searchProductsWorkflow = createWorkflow(
       embeddingDuration,
       searchDuration: searchResult.duration,
       embeddingDimensions: embedding.dimensions,
+      facets: searchResult.facets,
     });
   }
 );

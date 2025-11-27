@@ -67,6 +67,8 @@ jobs:
           tags: |
             ${{ env.EMBEDDER_IMAGE_NAME }}:latest
             ${{ env.EMBEDDER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha,scope=python-embedder
+          cache-to: type=gha,mode=max,scope=python-embedder
 
   deploy:
     name: Deploy to Azure VM

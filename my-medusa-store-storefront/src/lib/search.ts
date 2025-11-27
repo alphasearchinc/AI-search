@@ -14,6 +14,34 @@ export type SemanticSearchHit = {
   metadata?: Record<string, unknown>
 }
 
+export type CategoryFacet = {
+  id: string
+  name: string
+  count: number
+}
+
+export type OptionFacet = {
+  name: string
+  values: Array<{ value: string; count: number }>
+}
+
+export type BrandFacet = {
+  name: string
+  count: number
+}
+
+export type PriceRange = {
+  min: number
+  max: number
+}
+
+export type SearchFacets = {
+  categories: CategoryFacet[]
+  brands?: BrandFacet[]
+  priceRange?: PriceRange
+  options?: OptionFacet[]
+}
+
 export type SemanticSearchResponse = {
   query: string
   limit: number
@@ -21,6 +49,7 @@ export type SemanticSearchResponse = {
   total: number
   count: number
   hits: SemanticSearchHit[]
+  facets?: SearchFacets
 }
 
 const getBackendUrl = (): string => {
@@ -38,15 +67,27 @@ const getBackendUrl = (): string => {
 const getPublishableKey = (): string | undefined =>
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
+export type SemanticSearchOptions = {
+  query: string
+  limit?: number
+  offset?: number
+  categoryIds?: string[]
+  brands?: string[]
+  minPrice?: number
+  maxPrice?: number
+  options?: Record<string, string[]>
+  includeFacets?: boolean
+}
+
 export async function semanticProductSearch(
-  query: string,
+  options: SemanticSearchOptions | string,
   limit = 5
 ): Promise<SemanticSearchResponse> {
-  const sanitizedQuery = query.trim()
+  // Support both old (query, limit) and new (options) signature
+  const opts: SemanticSearchOptions =
+    typeof options === "string" ? { query: options, limit } : options
 
-  if (!sanitizedQuery) {
-    throw new Error("Search query must not be empty")
-  }
+  const sanitizedQuery = opts.query.trim()
 
   const backendUrl = getBackendUrl()
   const publishableKey = getPublishableKey()
@@ -59,7 +100,17 @@ export async function semanticProductSearch(
     },
     body: JSON.stringify({
       query: sanitizedQuery,
-      limit,
+      limit: opts.limit ?? limit,
+      ...(opts.offset !== undefined && { offset: opts.offset }),
+      ...(opts.categoryIds?.length && { category_ids: opts.categoryIds }),
+      ...(opts.brands?.length && { brands: opts.brands }),
+      ...(opts.minPrice !== undefined && { min_price: opts.minPrice }),
+      ...(opts.maxPrice !== undefined && { max_price: opts.maxPrice }),
+      ...(opts.options &&
+        Object.keys(opts.options).length > 0 && { options: opts.options }),
+      ...(opts.includeFacets !== undefined && {
+        include_facets: opts.includeFacets,
+      }),
     }),
     cache: "no-store",
   })

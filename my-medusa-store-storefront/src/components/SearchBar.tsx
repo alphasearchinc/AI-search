@@ -1,75 +1,99 @@
 "use client"
 
-import { semanticProductSearch, type SemanticSearchHit } from "@lib/search"
+import {
+  semanticProductSearch,
+  type BrandFacet,
+  type CategoryFacet,
+  type OptionFacet,
+  type PriceRange,
+  type SemanticSearchHit,
+} from "@lib/search"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
+import {
+  CloseIcon,
+  FiltersSidebar,
+  MobileFilters,
+  Pagination,
+  ProductCard,
+  SearchIcon,
+} from "./search"
 
-const MIN_QUERY_LENGTH = 2
-const RESULT_LIMIT = 6
+const RESULT_LIMIT = 24
 const DEBOUNCE_DELAY = 350
 
 const SearchBar = () => {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SemanticSearchHit[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [facets, setFacets] = useState<CategoryFacet[]>([])
+  const [brandFacets, setBrandFacets] = useState<BrandFacet[]>([])
+  const [optionFacets, setOptionFacets] = useState<OptionFacet[]>([])
+  const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string[]>
+  >({})
+  const [minPriceInput, setMinPriceInput] = useState("")
+  const [maxPriceInput, setMaxPriceInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const modalInputRef = useRef<HTMLInputElement | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const latestQueryRef = useRef("")
 
+  // Pagination calculations
+  const totalPages = Math.ceil(totalCount / RESULT_LIMIT)
+  const offset = (currentPage - 1) * RESULT_LIMIT
+
+  // Parse price inputs to numbers
+  const minPrice = minPriceInput ? parseFloat(minPriceInput) : undefined
+  const maxPrice = maxPriceInput ? parseFloat(maxPriceInput) : undefined
+  const validMinPrice =
+    minPrice !== undefined && !isNaN(minPrice) ? minPrice : undefined
+  const validMaxPrice =
+    maxPrice !== undefined && !isNaN(maxPrice) ? maxPrice : undefined
+
   const trimmedQuery = query.trim()
-  const showDropdown =
-    isOpen &&
-    (trimmedQuery.length > 0 ||
-      isLoading ||
-      !!error ||
-      results.length > 0)
 
+  // Count active filters
+  const activeFilterCount =
+    selectedCategories.length +
+    selectedBrands.length +
+    Object.values(selectedOptions).reduce((sum, arr) => sum + arr.length, 0) +
+    (validMinPrice !== undefined ? 1 : 0) +
+    (validMaxPrice !== undefined ? 1 : 0)
+
+  // Close modal on route change
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [])
-
-  useEffect(() => {
-    setIsOpen(false)
+    setIsModalOpen(false)
   }, [pathname])
 
+  // Lock body scroll when modal is open
   useEffect(() => {
-    return () => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current)
-      }
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden"
+      setTimeout(() => modalInputRef.current?.focus(), 50)
+    } else {
+      document.body.style.overflow = ""
     }
-  }, [])
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [isModalOpen])
 
+  // Search effect
   useEffect(() => {
+    if (!isModalOpen) return
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
-    }
-
-    if (trimmedQuery.length < MIN_QUERY_LENGTH) {
-      setIsLoading(false)
-      setError(null)
-      setResults([])
-      return
     }
 
     setIsLoading(true)
@@ -78,18 +102,44 @@ const SearchBar = () => {
     debounceRef.current = setTimeout(async () => {
       latestQueryRef.current = trimmedQuery
       try {
-        const response = await semanticProductSearch(
-          trimmedQuery,
-          RESULT_LIMIT
+        const activeOptions = Object.fromEntries(
+          Object.entries(selectedOptions).filter(
+            ([, values]) => values.length > 0
+          )
         )
+
+        const response = await semanticProductSearch({
+          query: trimmedQuery,
+          limit: RESULT_LIMIT,
+          offset,
+          categoryIds:
+            selectedCategories.length > 0 ? selectedCategories : undefined,
+          brands: selectedBrands.length > 0 ? selectedBrands : undefined,
+          minPrice: validMinPrice,
+          maxPrice: validMaxPrice,
+          options:
+            Object.keys(activeOptions).length > 0 ? activeOptions : undefined,
+          includeFacets: true, // Always include facets to support cascading
+        })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
+          // Always update facets to reflect current filter state
+          setTotalCount(response.total)
+          setFacets(response.facets?.categories ?? [])
+          setBrandFacets(response.facets?.brands ?? [])
+          setOptionFacets(response.facets?.options ?? [])
+          setPriceRange(response.facets?.priceRange ?? null)
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (latestQueryRef.current === trimmedQuery) {
           const message =
             err instanceof Error ? err.message : "Unable to search right now"
           setResults([])
+          setTotalCount(0)
+          setFacets([])
+          setBrandFacets([])
+          setOptionFacets([])
+          setPriceRange(null)
           setError(message)
         }
       } finally {
@@ -104,13 +154,33 @@ const SearchBar = () => {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [trimmedQuery])
+  }, [
+    isModalOpen,
+    trimmedQuery,
+    currentPage,
+    offset,
+    selectedCategories,
+    selectedBrands,
+    selectedOptions,
+    validMinPrice,
+    validMaxPrice,
+  ])
+
+  // Reset to page 1 when filters or query change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [
+    trimmedQuery,
+    selectedCategories,
+    selectedBrands,
+    selectedOptions,
+    validMinPrice,
+    validMaxPrice,
+  ])
 
   const handleResultNavigation = (hit: SemanticSearchHit) => {
     const handle = hit.product.handle
-    if (!handle) {
-      return
-    }
+    if (!handle) return
 
     const segments = pathname?.split("/").filter(Boolean) ?? []
     const countryCode =
@@ -120,191 +190,270 @@ const SearchBar = () => {
       : `/products/${handle}`
 
     router.push(destination)
-    setIsOpen(false)
-    setQuery("")
-    setResults([])
   }
 
-  const handleClear = () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-    latestQueryRef.current = ""
+  const closeModal = () => {
+    setIsModalOpen(false)
     setQuery("")
     setResults([])
+    setTotalCount(0)
+    setCurrentPage(1)
+    setFacets([])
+    setBrandFacets([])
+    setOptionFacets([])
+    setPriceRange(null)
+    setSelectedCategories([])
+    setSelectedBrands([])
+    setSelectedOptions({})
+    setMinPriceInput("")
+    setMaxPriceInput("")
     setError(null)
     setIsLoading(false)
-    setIsOpen(true)
-    inputRef.current?.focus()
+  }
+
+  const clearFilters = () => {
+    setSelectedCategories([])
+    setSelectedBrands([])
+    setSelectedOptions({})
+    setMinPriceInput("")
+    setMaxPriceInput("")
+  }
+
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }
+
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    )
+  }
+
+  const toggleOption = (optionName: string, value: string) => {
+    setSelectedOptions((prev) => {
+      const currentValues = prev[optionName] ?? []
+      const isSelected = currentValues.includes(value)
+
+      if (isSelected) {
+        const newValues = currentValues.filter((v) => v !== value)
+        if (newValues.length === 0) {
+          const { [optionName]: _, ...rest } = prev
+          return rest
+        }
+        return { ...prev, [optionName]: newValues }
+      } else {
+        return { ...prev, [optionName]: [...currentValues, value] }
+      }
+    })
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
-      setIsOpen(false)
+      closeModal()
       return
     }
-
     if (event.key === "Enter" && results.length && trimmedQuery.length) {
       handleResultNavigation(results[0])
     }
   }
 
-  const handleBlur = () => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current)
-    }
+  return (
+    <>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className="flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest hover:shadow-elevation-card-hover hover:border-ui-fg-base transition-all w-full max-w-md"
+      >
+        <SearchIcon />
+        <span className="text-ui-fg-muted text-sm">Search products...</span>
+        <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 rounded border border-ui-border-base bg-ui-bg-subtle px-1.5 py-0.5 text-[10px] text-ui-fg-muted">
+          <span className="text-xs">⌘</span>K
+        </kbd>
+      </button>
 
-    blurTimeoutRef.current = setTimeout(() => {
-      setIsOpen(false)
-    }, 120)
-  }
-
-  const handleFocus = () => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current)
-    }
-    setIsOpen(true)
-  }
-
- return (
-  <div ref={containerRef} className="relative w-full">
-    <label htmlFor="header-search" className="sr-only">
-      Search products
-    </label>
-    <div className="relative flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest focus-within:border-ui-fg-base focus-within:shadow-elevation-card-hover transition-shadow">
-      <SearchIcon />
-      <div className="relative flex-1">
-        <input
-          id="header-search"
-          ref={inputRef}
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setIsOpen(true)
-          }}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          onFocus={handleFocus}
-          placeholder="Search products"
-          className="w-full bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none pr-24"
-          autoComplete="off"
-        />
-
-        {isLoading && (
-          <span className="pointer-events-none absolute right-6 top-1 text-xs text-ui-fg-muted">
-            Searching…
-          </span>
-        )}
-
- {trimmedQuery.length > 0 && (
-  <button
-    type="button"
-    onMouseDown={(event) => event.preventDefault()}
-    onClick={handleClear}
-    className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1 text-ui-fg-muted hover:text-ui-fg-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg-base/50"
-    aria-label="Clear search"
-  >
-    <span aria-hidden="true">&times;</span>
-  </button>
-)}
-
-      </div>
-    </div>
-
-    {showDropdown && (
-      <div className="absolute left-0 right-0 mt-2 rounded-large border border-ui-border-base bg-ui-bg-base shadow-elevation-card-rest z-50">
-        <div className="max-h-96 overflow-y-auto py-2">
-          {error && (
-            <p className="px-4 py-3 text-sm text-rose-600">{error}</p>
-          )}
-
-          {!error &&
-            trimmedQuery.length > 0 &&
-            trimmedQuery.length < MIN_QUERY_LENGTH && (
-              <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                Type at least {MIN_QUERY_LENGTH} characters to search
-              </p>
-            )}
-
-          {!error &&
-            trimmedQuery.length >= MIN_QUERY_LENGTH &&
-            results.map((hit) => (
-              <button
-                key={hit.id}
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-ui-bg-subtle transition-colors flex items-center gap-3"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => handleResultNavigation(hit)}
-                data-testid="search-result"
-              >
-                <ThumbnailPreview hit={hit} />
-                <div className="min-w-0">
-                  <p className="txt-compact-small-plus text-ui-fg-base truncate">
-                    {hit.product.title ?? "Untitled product"}
-                  </p>
-                  <p className="txt-compact-small text-ui-fg-subtle truncate">
-                    {hit.product.subtitle ||
-                      hit.product.description ||
-                      hit.metadata?.embedded_text ||
-                      "View details"}
-                  </p>
+      {/* Fullscreen Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-ui-bg-base flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex-shrink-0 bg-ui-bg-base border-b border-ui-border-base">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-4 py-4">
+                {/* Search Input */}
+                <div className="flex-1 relative">
+                  <div className="flex items-center gap-3 rounded-lg border border-ui-border-base bg-ui-bg-field px-4 py-3 focus-within:border-ui-fg-base transition-colors">
+                    <SearchIcon />
+                    <input
+                      ref={modalInputRef}
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Search for products..."
+                      className="flex-1 bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none text-base"
+                      autoComplete="off"
+                    />
+                    {isLoading && (
+                      <div className="animate-spin h-4 w-4 border-2 border-ui-fg-muted border-t-transparent rounded-full" />
+                    )}
+                    {query && !isLoading && (
+                      <button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        className="text-ui-fg-muted hover:text-ui-fg-base p-1"
+                      >
+                        <CloseIcon size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </button>
-            ))}
 
-          {!error &&
-            !isLoading &&
-            trimmedQuery.length >= MIN_QUERY_LENGTH &&
-            results.length === 0 && (
-              <p className="px-4 py-3 text-sm text-ui-fg-muted">
-                No products matched your search.
-              </p>
-            )}
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex items-center justify-center w-10 h-10 rounded-lg border border-ui-border-base bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover text-ui-fg-base transition-colors"
+                >
+                  <CloseIcon size={20} />
+                </button>
+              </div>
+
+              {/* Active Filters Summary */}
+              {activeFilterCount > 0 && (
+                <div className="flex items-center gap-2 pb-3">
+                  <span className="text-xs text-ui-fg-muted">
+                    {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}{" "}
+                    active
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs text-ui-fg-interactive hover:text-ui-fg-interactive-hover underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {error ? (
+                <div className="text-center py-16">
+                  <p className="text-rose-600">{error}</p>
+                </div>
+              ) : (
+                <div className="flex gap-8">
+                  {/* Filters Sidebar (Desktop) */}
+                  <FiltersSidebar
+                    facets={facets}
+                    brandFacets={brandFacets}
+                    optionFacets={optionFacets}
+                    priceRange={priceRange}
+                    selectedCategories={selectedCategories}
+                    selectedBrands={selectedBrands}
+                    selectedOptions={selectedOptions}
+                    minPriceInput={minPriceInput}
+                    maxPriceInput={maxPriceInput}
+                    onToggleCategory={toggleCategory}
+                    onToggleBrand={toggleBrand}
+                    onToggleOption={toggleOption}
+                    onMinPriceChange={setMinPriceInput}
+                    onMaxPriceChange={setMaxPriceInput}
+                  />
+
+                  {/* Results Grid */}
+                  <div className="flex-1 min-w-0">
+                    {/* Mobile Filters */}
+                    <div className="lg:hidden mb-4">
+                      <MobileFilters
+                        facets={facets}
+                        brandFacets={brandFacets}
+                        optionFacets={optionFacets}
+                        priceRange={priceRange}
+                        selectedCategories={selectedCategories}
+                        selectedBrands={selectedBrands}
+                        selectedOptions={selectedOptions}
+                        minPriceInput={minPriceInput}
+                        maxPriceInput={maxPriceInput}
+                        onToggleCategory={toggleCategory}
+                        onToggleBrand={toggleBrand}
+                        onToggleOption={toggleOption}
+                        onMinPriceChange={setMinPriceInput}
+                        onMaxPriceChange={setMaxPriceInput}
+                      />
+                    </div>
+
+                    {/* Results Count */}
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="text-sm text-ui-fg-muted">
+                        {isLoading
+                          ? "Searching..."
+                          : totalCount > 0
+                          ? `Showing ${offset + 1}-${Math.min(
+                              offset + results.length,
+                              totalCount
+                            )} of ${totalCount} results`
+                          : "0 results found"}
+                      </p>
+                      {totalPages > 1 && (
+                        <p className="text-sm text-ui-fg-muted">
+                          Page {currentPage} of {totalPages}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Results */}
+                    {results.length > 0 ? (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {results.map((hit) => (
+                            <ProductCard
+                              key={hit.id}
+                              hit={hit}
+                              onClick={() => handleResultNavigation(hit)}
+                            />
+                          ))}
+                        </div>
+
+                        {totalPages > 1 && (
+                          <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      !isLoading && (
+                        <div className="text-center py-16">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
+                            <SearchIcon size={32} />
+                          </div>
+                          <p className="text-ui-fg-muted text-lg">
+                            No products found
+                          </p>
+                          <p className="text-ui-fg-subtle text-sm mt-1">
+                            Try adjusting your search or filters
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    )}
-  </div>
-)}
-
-
-const ThumbnailPreview = ({ hit }: { hit: SemanticSearchHit }) => {
-  const thumbnail = hit.product.thumbnail
-
-  return thumbnail ? (
-    <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-md bg-ui-bg-subtle">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={thumbnail}
-        alt={hit.product.title ?? "Product thumbnail"}
-        className="w-full h-full object-cover"
-        loading="lazy"
-      />
-    </div>
-  ) : (
-    <div className="w-12 h-12 flex-shrink-0 rounded-md bg-ui-bg-subtle flex items-center justify-center text-ui-fg-muted text-xs">
-      No image
-    </div>
+      )}
+    </>
   )
 }
-
-const SearchIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="text-ui-fg-muted"
-    aria-hidden="true"
-  >
-    <path
-      d="M21 21L16.65 16.65M6 11C6 8.23858 8.23858 6 11 6C13.7614 6 16 8.23858 16 11C16 13.7614 13.7614 16 11 16C8.23858 16 6 13.7614 6 11Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
 
 export default SearchBar
