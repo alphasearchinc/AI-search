@@ -8,6 +8,7 @@ type SearchIndexInput = {
   query: string;
   embedding: EmbeddingResult;
   limit: number;
+  offset?: number;
   mode: SearchMode | "bm25-only";
   minConfidence?: number;
   filters?: {
@@ -35,6 +36,7 @@ export const searchIndexStep = createStep(
       query: input.query,
       embedding: input.embedding,
       limit: input.limit,
+      offset: input.offset,
       includeEmbedding: false,
       mode: input.mode === "bm25-only" ? "bm25" : "hybrid",
       minConfidence: input.minConfidence,

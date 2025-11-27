@@ -64,9 +64,27 @@ export class SearchEngine {
       )
     );
 
-    // When building facets, we need to fetch more documents to get accurate counts
+    const requestedOffset = options.offset ?? 0;
+
+    // Check if any in-memory filters are applied
+    const hasInMemoryFilters =
+      (options.filters?.category_ids?.length ?? 0) > 0 ||
+      (options.filters?.brands?.length ?? 0) > 0 ||
+      options.filters?.min_price !== undefined ||
+      options.filters?.max_price !== undefined ||
+      (options.filters?.options &&
+        Object.keys(options.filters.options).length > 0);
+
+    // When building facets OR when filters are applied, we need to fetch more documents
+    // to ensure we have enough results after in-memory filtering for pagination
     // Otherwise facets only reflect the limited result set
-    const facetFetchSize = options.includeFacets ? 500 : size;
+    const facetFetchSize =
+      options.includeFacets || hasInMemoryFilters
+        ? 500
+        : Math.max(
+            requestedOffset + size,
+            size * searchConfig.overfetchMultiplier
+          );
 
     const sourceFields = [
       "product_id",
@@ -350,7 +368,9 @@ export class SearchEngine {
       facets = { categories: categoryFacets, brands, priceRange, options };
     }
 
-    const finalHits = categoryFilteredHits.slice(0, size);
+    // Apply pagination (offset and limit)
+    const offset = options.offset ?? 0;
+    const finalHits = categoryFilteredHits.slice(offset, offset + size);
     const count = categoryFilteredHits.length;
     const took = tookParts.reduce((sum, value) => sum + value, 0);
 

@@ -11,12 +11,14 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 
-const RESULT_LIMIT = 12
+const RESULT_LIMIT = 24
 const DEBOUNCE_DELAY = 350
 
 const SearchBar = () => {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SemanticSearchHit[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
   const [facets, setFacets] = useState<CategoryFacet[]>([])
   const [brandFacets, setBrandFacets] = useState<BrandFacet[]>([])
   const [optionFacets, setOptionFacets] = useState<OptionFacet[]>([])
@@ -37,6 +39,10 @@ const SearchBar = () => {
   const modalInputRef = useRef<HTMLInputElement | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const latestQueryRef = useRef("")
+
+  // Pagination calculations
+  const totalPages = Math.ceil(totalCount / RESULT_LIMIT)
+  const offset = (currentPage - 1) * RESULT_LIMIT
 
   // Parse price inputs to numbers
   const minPrice = minPriceInput ? parseFloat(minPriceInput) : undefined
@@ -75,7 +81,7 @@ const SearchBar = () => {
     }
   }, [isModalOpen])
 
-  // Search effect - triggers on modal open, query change, or filter change
+  // Search effect - triggers on modal open, query change, filter change, or page change
   useEffect(() => {
     // Don't search if modal is closed
     if (!isModalOpen) return
@@ -99,6 +105,7 @@ const SearchBar = () => {
         const response = await semanticProductSearch({
           query: trimmedQuery, // Can be empty - backend will use "*" for browse mode
           limit: RESULT_LIMIT,
+          offset,
           categoryIds:
             selectedCategories.length > 0 ? selectedCategories : undefined,
           brands: selectedBrands.length > 0 ? selectedBrands : undefined,
@@ -106,20 +113,25 @@ const SearchBar = () => {
           maxPrice: validMaxPrice,
           options:
             Object.keys(activeOptions).length > 0 ? activeOptions : undefined,
-          includeFacets: true,
+          includeFacets: currentPage === 1, // Only fetch facets on first page
         })
         if (latestQueryRef.current === trimmedQuery) {
           setResults(response.hits)
-          setFacets(response.facets?.categories ?? [])
-          setBrandFacets(response.facets?.brands ?? [])
-          setOptionFacets(response.facets?.options ?? [])
-          setPriceRange(response.facets?.priceRange ?? null)
+          // Only update totalCount and facets on first page (they don't change with pagination)
+          if (currentPage === 1) {
+            setTotalCount(response.total)
+            setFacets(response.facets?.categories ?? [])
+            setBrandFacets(response.facets?.brands ?? [])
+            setOptionFacets(response.facets?.options ?? [])
+            setPriceRange(response.facets?.priceRange ?? null)
+          }
         }
       } catch (err: unknown) {
         if (latestQueryRef.current === trimmedQuery) {
           const message =
             err instanceof Error ? err.message : "Unable to search right now"
           setResults([])
+          setTotalCount(0)
           setFacets([])
           setBrandFacets([])
           setOptionFacets([])
@@ -140,6 +152,20 @@ const SearchBar = () => {
     }
   }, [
     isModalOpen,
+    trimmedQuery,
+    currentPage,
+    offset,
+    selectedCategories,
+    selectedBrands,
+    selectedOptions,
+    validMinPrice,
+    validMaxPrice,
+  ])
+
+  // Reset to page 1 when filters or query change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [
     trimmedQuery,
     selectedCategories,
     selectedBrands,
@@ -167,6 +193,8 @@ const SearchBar = () => {
     setIsModalOpen(false)
     setQuery("")
     setResults([])
+    setTotalCount(0)
+    setCurrentPage(1)
     setFacets([])
     setBrandFacets([])
     setOptionFacets([])
@@ -442,27 +470,46 @@ const SearchBar = () => {
                     </div>
 
                     {/* Results Count */}
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center justify-between">
                       <p className="text-sm text-ui-fg-muted">
                         {isLoading
                           ? "Searching..."
-                          : `${results.length} result${
-                              results.length !== 1 ? "s" : ""
-                            } found`}
+                          : totalCount > 0
+                          ? `Showing ${offset + 1}-${Math.min(
+                              offset + results.length,
+                              totalCount
+                            )} of ${totalCount} results`
+                          : "0 results found"}
                       </p>
+                      {totalPages > 1 && (
+                        <p className="text-sm text-ui-fg-muted">
+                          Page {currentPage} of {totalPages}
+                        </p>
+                      )}
                     </div>
 
                     {/* Results */}
                     {results.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {results.map((hit) => (
-                          <ProductCard
-                            key={hit.id}
-                            hit={hit}
-                            onClick={() => handleResultNavigation(hit)}
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {results.map((hit) => (
+                            <ProductCard
+                              key={hit.id}
+                              hit={hit}
+                              onClick={() => handleResultNavigation(hit)}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
                           />
-                        ))}
-                      </div>
+                        )}
+                      </>
                     ) : (
                       !isLoading && (
                         <div className="text-center py-16">
@@ -827,6 +874,139 @@ const FilterIcon = () => (
   >
     <path
       d="M3 6H21M7 12H17M11 18H13"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+// Pagination Component
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}) => {
+  // Generate page numbers to show
+  const getPageNumbers = () => {
+    const pages: (number | "...")[] = []
+    const showPages = 5 // Max page buttons to show
+
+    if (totalPages <= showPages + 2) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      // Always show first page
+      pages.push(1)
+
+      if (currentPage > 3) {
+        pages.push("...")
+      }
+
+      // Show pages around current
+      const start = Math.max(2, currentPage - 1)
+      const end = Math.min(totalPages - 1, currentPage + 1)
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push("...")
+      }
+
+      // Always show last page
+      pages.push(totalPages)
+    }
+
+    return pages
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-8">
+      {/* Previous Button */}
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="flex items-center justify-center w-9 h-9 rounded-md border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        aria-label="Previous page"
+      >
+        <ChevronLeftIcon />
+      </button>
+
+      {/* Page Numbers */}
+      {getPageNumbers().map((page, idx) =>
+        page === "..." ? (
+          <span
+            key={`ellipsis-${idx}`}
+            className="w-9 h-9 flex items-center justify-center text-ui-fg-muted"
+          >
+            …
+          </span>
+        ) : (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`w-9 h-9 rounded-md text-sm font-medium transition-colors ${
+              currentPage === page
+                ? "bg-ui-fg-base text-ui-bg-base"
+                : "border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle"
+            }`}
+          >
+            {page}
+          </button>
+        )
+      )}
+
+      {/* Next Button */}
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="flex items-center justify-center w-9 h-9 rounded-md border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        aria-label="Next page"
+      >
+        <ChevronRightIcon />
+      </button>
+    </div>
+  )
+}
+
+const ChevronLeftIcon = () => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M15 18L9 12L15 6"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const ChevronRightIcon = () => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M9 18L15 12L9 6"
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"

@@ -70,6 +70,7 @@ const getPublishableKey = (): string | undefined =>
 export type SemanticSearchOptions = {
   query: string
   limit?: number
+  offset?: number
   categoryIds?: string[]
   brands?: string[]
   minPrice?: number
@@ -100,6 +101,7 @@ export async function semanticProductSearch(
     body: JSON.stringify({
       query: sanitizedQuery,
       limit: opts.limit ?? limit,
+      ...(opts.offset !== undefined && { offset: opts.offset }),
       ...(opts.categoryIds?.length && { category_ids: opts.categoryIds }),
       ...(opts.brands?.length && { brands: opts.brands }),
       ...(opts.minPrice !== undefined && { min_price: opts.minPrice }),

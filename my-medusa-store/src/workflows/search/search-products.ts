@@ -9,6 +9,7 @@ import { hydrateSearchHitsStep } from "./steps/hydrate-search-hits";
 type SearchProductsWorkflowInput = {
   query: string;
   limit: number;
+  offset?: number;
   min_confidence?: number;
   filters?: {
     category_ids?: string[];
@@ -32,6 +33,7 @@ export const searchProductsWorkflow = createWorkflow(
       query: input.query,
       embedding,
       limit: input.limit,
+      offset: input.offset,
       mode,
       minConfidence: input.min_confidence,
       filters: input.filters,

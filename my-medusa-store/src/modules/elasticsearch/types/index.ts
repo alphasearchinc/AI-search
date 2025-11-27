@@ -38,6 +38,7 @@ export type SemanticSearchOptions = {
   query: string;
   embedding?: EmbeddingInput;
   limit?: number;
+  offset?: number;
   filters?: SemanticSearchFilters;
   includeEmbedding?: boolean;
   includeFacets?: boolean;

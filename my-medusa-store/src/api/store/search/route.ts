@@ -9,6 +9,7 @@ const MAX_QUERY_LENGTH = 2000;
 type StoreSemanticSearchBody = {
   query?: string;
   limit?: number;
+  offset?: number;
   min_confidence?: number;
   category_ids?: string[];
   brands?: string[];
@@ -25,6 +26,13 @@ const sanitizeLimit = (rawLimit: unknown): number => {
   }
 
   return DEFAULT_LIMIT;
+};
+
+const sanitizeOffset = (rawOffset: unknown): number => {
+  if (typeof rawOffset === "number" && Number.isFinite(rawOffset)) {
+    return Math.max(0, Math.trunc(rawOffset));
+  }
+  return 0;
 };
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
@@ -46,6 +54,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   const limit = sanitizeLimit(body.limit);
+  const offset = sanitizeOffset(body.offset);
   let minConfidence: number | undefined = undefined;
   if (body.min_confidence !== undefined) {
     if (
@@ -121,6 +130,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       input: {
         query: searchQuery,
         limit,
+        offset,
         min_confidence: minConfidence,
         filters,
         include_facets: includeFacets,
