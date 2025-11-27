@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/medusa-image-workflow
+      - feature/python-embedder-vm
     paths:
       - "my-medusa-store/**"
       - ".github/workflows/medusa-backend.yml"
@@ -48,7 +48,7 @@ jobs:
     name: Deploy to Azure VM
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/medusa-image-workflow'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/python-embedder-vm'
 
     steps:
       - name: SSH and deploy

@@ -27,6 +27,15 @@ services:
     networks:
       - medusa_net
 
+  python-embedder:
+    image: "{{ embedder_image }}:{{ embedder_image_tag }}"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "1337:1337"
+    networks:
+      - medusa_net
+
   medusa:
     image: "{{ medusa_image }}:{{ medusa_image_tag }}"
     env_file:
@@ -39,6 +48,7 @@ services:
       DATABASE_URL: "{{ medusa_database_url }}"
       REDIS_URL: "{{ medusa_redis_url }}"
       ELASTICSEARCH_URL: "http://elasticsearch:9200"
+      LOCAL_EMBEDDING_SERVICE_URL: "http://python-embedder:1337"
     ports:
       - "{{ medusa_port }}:9000"
     networks:
