@@ -10,8 +10,7 @@ RUN npm ci || npm install
 # Copy the rest of the app
 COPY . .
 
-# Set env for production-ish runtime
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV PORT=9000
 
 EXPOSE 9000
