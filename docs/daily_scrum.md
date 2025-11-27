@@ -171,3 +171,56 @@
  - Hvilke metrikker skal vi måle på, og hvordan skal vi visualisere dem?
  - Fixe product script så den giver god data
  - Aleksander skal finde ud af hvorfor fanden hans VScode laver .2 filer
+
+
+
+## Møde med Søren 24-11/2025
+ - Søgning skal kunne ske over forskellige kategorier, pris, størrelse etc. 
+ - Valg af en kategori skal ikke udelukke en anden, men udelukke dead ends
+ - Researche hvordan man gør dette i ElasticSearch
+ - UI udvide søgefelt/lave til en modal
+ - Deploye
+ - Få monitorering helt op at køre
+ - Bedre og ensrettet produktdata
+ - Et par modeller mere til Embedding analyse
+ - 
+ ## 📅 Daily Scrum 11-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Fået Grafana op at køre.
+ - Sat Terraform op til at provisione VM.
+ - Dashboard med embedding tests i Python.
+ - Lavet karussel til anbefalede produkter og integreret vektorlogik i denne. 
+ - Coderabbit kører nu kun med label på PR
+ - Fordelt et par emner mere vi hver især skal skrive om. 
+### Hvad skal vi lave i dag?
+ - Få Ansible op at køre, og deploye vores backend
+ - Merget både Python og Terraform ind i dev
+ - Sikre at alle stadig kan køre programmet
+ - Arbejder på filterfunktion til søgning
+ - Overveje hvad der ellers skal vises på Grafana
+ - Få strømlinet produkter - brug Klaus' template og udfyld med 150 produkter
+### Hvilke udfordringer forudser vi?
+ - Forstå filtrering i Elastic
+ - Ansible driller
+
+
+ ## 📅 Daily Scrum 27-11-2025
+
+### Hvad har vi lavet siden sidst?
+ - Lavet et nyt endpoint til reccomendations
+ - Sat Terraform op til at provisione vores VM
+ - Sat Ansible op til at lave mappestruktur og installere docker og docker compose på vores VM
+ - Lavet CD workflow til automatisk deployment
+ - Deployet vores database på Neon
+ - Filtrering af produkter i vores søgning
+ - Lavet produkt script med god reel data
+### Hvad skal vi lave i dag?
+ - Få Medusa til at virke i Docker på VM
+ - Finpudset modal til filtrering
+ - Ryddet op i endpoint til reccomendations
+ - Refaktorere modal komponenter
+ - Spise burger og flødeboller
+ - Deployet til Vercel
+### Hvilke udfordringer forudser vi?
+ - Hvorfor Medusa ikke vil køre på vores VM, fordi den mangler en tom fil!?!

@@ -1,0 +1,48 @@
+---
+- name: Create project root directory
+  ansible.builtin.file:
+    path: "{{ medusa_project_root }}"
+    state: directory
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0755"
+
+- name: Create data directories
+  ansible.builtin.file:
+    path: "{{ medusa_project_root }}/data/{{ item }}"
+    state: directory
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0755"
+  loop:
+    - elasticsearch
+    - redis
+    - medusa
+
+- name: Template docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ medusa_project_root }}/docker-compose.yml"
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0644"
+
+- name: Template Medusa env file
+  ansible.builtin.template:
+    src: medusa.env.j2
+    dest: "{{ medusa_project_root }}/.env"
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0600"
+
+- name: Pull latest images
+  ansible.builtin.command:
+    cmd: docker compose -f {{ medusa_project_root }}/docker-compose.yml pull
+  args:
+    chdir: "{{ medusa_project_root }}"
+
+- name: Start Docker stack
+  ansible.builtin.command:
+    cmd: docker compose -f {{ medusa_project_root }}/docker-compose.yml up -d
+  args:
+    chdir: "{{ medusa_project_root }}"

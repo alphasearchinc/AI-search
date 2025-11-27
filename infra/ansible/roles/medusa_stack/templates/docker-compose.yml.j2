@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.1
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms{{ es_heap }} -Xmx{{ es_heap }}
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - medusa_net
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - medusa_net
+
+  python-embedder:
+    image: "{{ embedder_image }}:{{ embedder_image_tag }}"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "1337:1337"
+    networks:
+      - medusa_net
+
+  medusa:
+    image: "{{ medusa_image }}:{{ medusa_image_tag }}"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - elasticsearch
+    environment:
+      NODE_ENV: "{{ node_env }}"
+      DATABASE_URL: "{{ medusa_database_url }}"
+      REDIS_URL: "{{ medusa_redis_url }}"
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
+      LOCAL_EMBEDDING_SERVICE_URL: "http://python-embedder:1337"
+    ports:
+      - "{{ medusa_port }}:9000"
+    networks:
+      - medusa_net
+
+networks:
+  medusa_net:
+
+volumes:
+  esdata:
+    driver: local
+  redisdata:
+    driver: local

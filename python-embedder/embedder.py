@@ -1,10 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 
 from evaluation import (
     LOCAL_MODELS,
     ModelUnavailable,
     embed_local,
     evaluate_models,
+    is_openai_configured,
 )
 
 app = Flask(__name__)
@@ -61,7 +62,7 @@ def embed():
 
 @app.route("/eval-summary", methods=["GET"])
 def eval_summary():
-    include_openai = True
+    include_openai = is_openai_configured()
     results = evaluate_models(include_openai=include_openai)
 
     return jsonify(
@@ -71,6 +72,17 @@ def eval_summary():
             "openai_included": include_openai,
             "local_models": {k: v["name"] for k, v in LOCAL_MODELS.items()},
         }
+    )
+
+
+@app.route("/eval-dashboard", methods=["GET"])
+def eval_dashboard():
+    include_openai = True
+    results = evaluate_models(include_openai=include_openai)
+    return render_template(
+        "eval_dashboard.html",
+        models=results,
+        weights={"quality": 0.7, "latency": 0.3},
     )
 
 

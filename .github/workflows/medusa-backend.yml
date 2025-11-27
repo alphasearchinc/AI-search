@@ -1,0 +1,91 @@
+name: Build and Deploy Medusa Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "my-medusa-store/**"
+      - "python-embedder/**"
+      - ".github/workflows/medusa-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  IMAGE_NAME: ghcr.io/alphasearchinc/my-medusa-store
+  EMBEDDER_IMAGE_NAME: ghcr.io/alphasearchinc/python-embedder
+
+jobs:
+  build-medusa:
+    name: Build and push Medusa image to GHCR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Medusa Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./my-medusa-store
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  build-embedder:
+    name: Build and push Python embedder image to GHCR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Python embedder Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./python-embedder
+          push: true
+          tags: |
+            ${{ env.EMBEDDER_IMAGE_NAME }}:latest
+            ${{ env.EMBEDDER_IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to Azure VM
+    runs-on: ubuntu-latest
+    needs:
+      - build-medusa
+      - build-embedder
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.MEDUSA_VM_HOST }}
+          username: ${{ secrets.MEDUSA_VM_USER }}
+          key: ${{ secrets.MEDUSA_VM_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /opt/medusa
+            docker compose pull
+            docker compose up -d
