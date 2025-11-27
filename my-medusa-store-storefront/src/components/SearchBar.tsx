@@ -185,8 +185,9 @@ const SearchBar = () => {
       ? `/${countryCode}/products/${handle}`
       : `/products/${handle}`
 
+    // Just navigate - the pathname change effect will close the modal
+    // This keeps the modal visible until the new page loads, preventing flash of homepage
     router.push(destination)
-    closeModal()
   }
 
   const closeModal = () => {
