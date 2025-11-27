@@ -1,4 +1,4 @@
-import { getSemanticRecommendations } from "@lib/data/products"
+import { getProductRecommendations } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import { HttpTypes } from "@medusajs/types"
 import { RelatedProductsCarousel } from "./carousel"
@@ -18,12 +18,10 @@ export default async function RelatedProducts({
     return null
   }
 
-  // Get semantically similar products based on product title and description
-  const products = await getSemanticRecommendations({
-    productTitle: product.title,
-    productDescription: product.description,
-    excludeProductId: product.id,
-    limit: 12, // Fetch 12 products for the carousel
+  // Get product recommendations using existing embedding (no search metrics pollution)
+  const products = await getProductRecommendations({
+    productId: product.id,
+    limit: 12,
     countryCode,
   })
 

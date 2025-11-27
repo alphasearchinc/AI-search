@@ -71,3 +71,21 @@ export type ProductEmbeddingJobData = {
   };
   metadata?: Record<string, any>;
 };
+
+export type RecommendationHit = {
+  id: string;
+  product_id: string;
+  score: number;
+  vector_score: number;
+  confidence: number;
+  embedded_text: string;
+  metadata?: Record<string, any>;
+  generated_at?: string;
+};
+
+export type RecommendationsResult = {
+  product_id: string;
+  hits: RecommendationHit[];
+  count: number;
+  searchDuration: number;
+};
