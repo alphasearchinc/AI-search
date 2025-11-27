@@ -13,6 +13,7 @@ type SearchProductsWorkflowInput = {
   min_confidence?: number;
   filters?: {
     category_ids?: string[];
+    brands?: string[];
     min_price?: number;
     max_price?: number;
     options?: Record<string, string[]>;

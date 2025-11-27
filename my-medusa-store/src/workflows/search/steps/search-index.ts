@@ -13,6 +13,10 @@ type SearchIndexInput = {
   minConfidence?: number;
   filters?: {
     category_ids?: string[];
+    brands?: string[];
+    min_price?: number;
+    max_price?: number;
+    options?: Record<string, string[]>;
   };
   includeFacets?: boolean;
 };
