@@ -118,7 +118,6 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
     product_id: string;
     embedded_text: string;
     embedding?: { vectors: number[]; dimensions: number };
-    embedding_vector?: number[];
     metadata?: Record<string, any>;
     generated_at?: string;
   } | null> {
@@ -135,22 +134,35 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
 
   /**
    * Get a product's embedding vector by ID
-   * Uses direct document retrieval for reliability
+   * Uses search with term query for reliability
+   * Note: dense_vector fields are not stored in _source by default in Elasticsearch,
+   * so we must use the fields parameter to retrieve them
    */
   async getProductEmbedding(productId: string): Promise<number[]> {
-    const result = await this.client.get({
+    const result = await this.client.search({
       index: this.PRODUCT_EMBEDDINGS_INDEX,
-      id: productId,
-      _source: ["embedding"],
+      query: {
+        term: { product_id: productId },
+      },
+      _source: false,
+      fields: ["embedding.vectors"],
+      size: 1,
     });
 
-    const embedding = (result._source as any)?.embedding;
+    if (result.hits.hits.length === 0) {
+      throw new Error(`Product ${productId} not found`);
+    }
 
-    if (!embedding || !Array.isArray(embedding)) {
+    const hit = result.hits.hits[0];
+    
+    // Elasticsearch returns the dense_vector field directly as an array
+    const embeddingVectors = (hit.fields as any)?.["embedding.vectors"];
+
+    if (!embeddingVectors || !Array.isArray(embeddingVectors) || embeddingVectors.length === 0) {
       throw new Error(`Product ${productId} has no embedding`);
     }
 
-    return embedding;
+    return embeddingVectors;
   }
 
   /**
@@ -168,7 +180,7 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
       index: this.PRODUCT_EMBEDDINGS_INDEX,
       size: options.limit,
       knn: {
-        field: "embedding",
+        field: "embedding.vectors",
         query_vector: options.queryVector,
         k: options.limit,
         num_candidates: Math.max(options.limit * 2, 50),

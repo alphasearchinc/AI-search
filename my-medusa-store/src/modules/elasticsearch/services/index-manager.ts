@@ -110,7 +110,10 @@ export class IndexManager {
       document: {
         product_id,
         embedded_text,
-        embedding,
+        embedding: {
+          vectors: embedding.vectors,
+          dimensions: embedding.dimensions,
+        },
         embedding_vector: embedding.vectors,
         metadata: metadata || {},
         generated_at: new Date().toISOString(),
