@@ -14,8 +14,6 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI */
   workers: process.env.CI ? 1 : undefined,
-  /* Test timeout - longer in CI due to slower services */
-  timeout: process.env.CI ? 60000 : 30000,
   /* Reporter to use */
   reporter: [["html", { open: "never" }], ["list"]],
   /* Shared settings for all the projects below */

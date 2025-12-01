@@ -5,28 +5,24 @@ on:
     branches: [master, dev, playwright]
   pull_request:
     branches: [master, dev, playwright]
-  workflow_dispatch: # Allow manual triggers
+  workflow_dispatch:
 
 env:
-  NODE_ENV: development
   DATABASE_URL: postgres://medusa_user:medusa_pass@localhost:5432/medusa_hovedopgave
   REDIS_URL: redis://localhost:6379
   ELASTICSEARCH_URL: http://localhost:9200
   LOCAL_EMBEDDING_SERVICE_URL: http://localhost:1337
   NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
   NEXT_PUBLIC_BASE_URL: http://localhost:8000
-  # Medusa config requirements
   STORE_CORS: http://localhost:8000
   ADMIN_CORS: http://localhost:9000
   AUTH_CORS: http://localhost:9000
   JWT_SECRET: supersecret
   COOKIE_SECRET: supersecret
-  PRODUCT_EMBEDDINGS_INDEX: product-embeddings
-  PRODUCT_EMBEDDING_QUEUE: product-embedding
 
 jobs:
   e2e-tests:
-    name: Playwright E2E Tests
+    name: Playwright E2E
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -39,21 +35,13 @@ jobs:
           POSTGRES_DB: medusa_hovedopgave
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U medusa_user -d medusa_hovedopgave"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: --health-cmd "pg_isready -U medusa_user" --health-interval 10s --health-timeout 5s --health-retries 5
 
       redis:
         image: redis:6-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 
       elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -63,34 +51,23 @@ jobs:
           ES_JAVA_OPTS: "-Xms512m -Xmx512m"
         ports:
           - 9200:9200
-        options: >-
-          --health-cmd "curl -s http://localhost:9200/_cluster/health || exit 1"
-          --health-interval 15s
-          --health-timeout 10s
-          --health-retries 10
+        options: --health-cmd "curl -s http://localhost:9200" --health-interval 15s --health-timeout 10s --health-retries 10
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Python Embedder
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: python-embedder/requirements.txt
 
-      - name: Start Python embedder
+      - name: Start embedder
         working-directory: python-embedder
         run: |
           pip install -r requirements.txt
           python embedder.py &
-          timeout 120 bash -c 'until curl -s http://localhost:1337/health > /dev/null 2>&1; do sleep 2; done'
+          timeout 120 bash -c 'until curl -s http://localhost:1337/health; do sleep 2; done'
 
-      # Medusa Backend
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -105,16 +82,15 @@ jobs:
           npm run seed
           npm run reindex
           npm run start &
-          timeout 120 bash -c 'until curl -s http://localhost:9000/health > /dev/null 2>&1; do sleep 2; done'
+          timeout 120 bash -c 'until curl -s http://localhost:9000/health; do sleep 2; done'
 
-      # Next.js Storefront + Playwright
       - name: Build and start storefront
         working-directory: my-medusa-store-storefront
         run: |
           yarn install --frozen-lockfile
           npm run build
           npm run start &
-          timeout 60 bash -c 'until curl -s http://localhost:8000 > /dev/null 2>&1; do sleep 2; done'
+          timeout 60 bash -c 'until curl -s http://localhost:8000; do sleep 2; done'
 
       - name: Run Playwright tests
         working-directory: my-medusa-store-storefront
@@ -124,8 +100,7 @@ jobs:
         env:
           CI: true
 
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
