@@ -43,12 +43,18 @@ export const FiltersSidebar = ({
   onMaxPriceChange,
 }: FiltersSidebarProps) => {
   return (
-    <div className="w-64 flex-shrink-0 hidden lg:block">
+    <div
+      data-testid="filters-sidebar"
+      className="w-64 flex-shrink-0 hidden lg:block"
+    >
       <div className="space-y-5">
         {/* Categories */}
         {facets.length > 0 && (
           <FilterSection title="Categories" count={facets.length}>
-            <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+            <div
+              data-testid="category-filters"
+              className="space-y-1 max-h-52 overflow-y-auto pr-1"
+            >
               {facets.map((cat) => (
                 <FilterCheckbox
                   key={cat.id}
@@ -65,7 +71,10 @@ export const FiltersSidebar = ({
         {/* Brands */}
         {brandFacets.length > 0 && (
           <FilterSection title="Brands" count={brandFacets.length}>
-            <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+            <div
+              data-testid="brand-filters"
+              className="space-y-1 max-h-52 overflow-y-auto pr-1"
+            >
               {brandFacets.map((brand) => (
                 <FilterCheckbox
                   key={brand.name}
@@ -94,6 +103,7 @@ export const FiltersSidebar = ({
                 placeholder="Min"
                 value={minPriceInput}
                 onChange={(e) => onMinPriceChange(e.target.value)}
+                data-testid="price-min"
                 className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
                 min={0}
               />
@@ -103,6 +113,7 @@ export const FiltersSidebar = ({
                 placeholder="Max"
                 value={maxPriceInput}
                 onChange={(e) => onMaxPriceChange(e.target.value)}
+                data-testid="price-max"
                 className="w-full px-2 py-1.5 text-sm border border-ui-border-base rounded-md bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:border-ui-fg-base"
                 min={0}
               />
@@ -117,7 +128,10 @@ export const FiltersSidebar = ({
             title={option.name}
             count={option.values.length}
           >
-            <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+            <div
+              data-testid={`option-filter-${option.name}`}
+              className="space-y-1 max-h-52 overflow-y-auto pr-1"
+            >
               {option.values.map(({ value, count }) => (
                 <FilterCheckbox
                   key={value}

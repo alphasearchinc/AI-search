@@ -267,6 +267,7 @@ const SearchBar = () => {
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
+        data-testid="search-trigger"
         className="flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest hover:shadow-elevation-card-hover hover:border-ui-fg-base transition-all w-full max-w-md"
       >
         <SearchIcon />
@@ -278,7 +279,10 @@ const SearchBar = () => {
 
       {/* Fullscreen Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-ui-bg-base flex flex-col overflow-hidden">
+        <div
+          data-testid="search-modal"
+          className="fixed inset-0 z-50 bg-ui-bg-base flex flex-col overflow-hidden"
+        >
           {/* Header */}
           <div className="flex-shrink-0 bg-ui-bg-base border-b border-ui-border-base">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -294,11 +298,15 @@ const SearchBar = () => {
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Search for products..."
+                      data-testid="search-input"
                       className="flex-1 bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none text-base"
                       autoComplete="off"
                     />
                     {isLoading && (
-                      <div className="animate-spin h-4 w-4 border-2 border-ui-fg-muted border-t-transparent rounded-full" />
+                      <div
+                        data-testid="search-loading"
+                        className="animate-spin h-4 w-4 border-2 border-ui-fg-muted border-t-transparent rounded-full"
+                      />
                     )}
                     {query && !isLoading && (
                       <button
@@ -316,6 +324,7 @@ const SearchBar = () => {
                 <button
                   type="button"
                   onClick={closeModal}
+                  data-testid="search-close"
                   className="flex items-center justify-center w-10 h-10 rounded-lg border border-ui-border-base bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover text-ui-fg-base transition-colors"
                 >
                   <CloseIcon size={20} />
@@ -325,13 +334,17 @@ const SearchBar = () => {
               {/* Active Filters Summary */}
               {activeFilterCount > 0 && (
                 <div className="flex items-center gap-2 pb-3">
-                  <span className="text-xs text-ui-fg-muted">
+                  <span
+                    data-testid="active-filter-count"
+                    className="text-xs text-ui-fg-muted"
+                  >
                     {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}{" "}
                     active
                   </span>
                   <button
                     type="button"
                     onClick={clearFilters}
+                    data-testid="clear-filters"
                     className="text-xs text-ui-fg-interactive hover:text-ui-fg-interactive-hover underline"
                   >
                     Clear all
@@ -392,7 +405,10 @@ const SearchBar = () => {
 
                     {/* Results Count */}
                     <div className="mb-4 flex items-center justify-between">
-                      <p className="text-sm text-ui-fg-muted">
+                      <p
+                        data-testid="result-count"
+                        className="text-sm text-ui-fg-muted"
+                      >
                         {isLoading
                           ? "Searching..."
                           : totalCount > 0
@@ -412,7 +428,10 @@ const SearchBar = () => {
                     {/* Results */}
                     {results.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div
+                          data-testid="search-results"
+                          className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
+                        >
                           {results.map((hit) => (
                             <ProductCard
                               key={hit.id}
@@ -432,7 +451,10 @@ const SearchBar = () => {
                       </>
                     ) : (
                       !isLoading && (
-                        <div className="text-center py-16">
+                        <div
+                          data-testid="no-results"
+                          className="text-center py-16"
+                        >
                           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
                             <SearchIcon size={32} />
                           </div>
