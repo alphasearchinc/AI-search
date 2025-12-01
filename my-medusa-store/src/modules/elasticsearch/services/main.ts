@@ -43,6 +43,7 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
 
     this.client = new Client({
       node: ELASTICSEARCH_URL,
+      compatibleWith: 8,
     });
 
     this.indexManager = new IndexManager(
