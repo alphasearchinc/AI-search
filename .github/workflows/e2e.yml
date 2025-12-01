@@ -8,13 +8,21 @@ on:
   workflow_dispatch: # Allow manual triggers
 
 env:
-  NODE_ENV: production
+  NODE_ENV: development
   DATABASE_URL: postgres://medusa_user:medusa_pass@localhost:5432/medusa_hovedopgave
   REDIS_URL: redis://localhost:6379
   ELASTICSEARCH_URL: http://localhost:9200
   LOCAL_EMBEDDING_SERVICE_URL: http://localhost:1337
   NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
   NEXT_PUBLIC_BASE_URL: http://localhost:8000
+  # Medusa config requirements
+  STORE_CORS: http://localhost:8000
+  ADMIN_CORS: http://localhost:9000
+  AUTH_CORS: http://localhost:9000
+  JWT_SECRET: supersecret
+  COOKIE_SECRET: supersecret
+  PRODUCT_EMBEDDINGS_INDEX: product-embeddings
+  PRODUCT_EMBEDDING_QUEUE: product-embedding
 
 jobs:
   e2e-tests:
