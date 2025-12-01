@@ -23,6 +23,14 @@ medusa_database_url: "postgres://placeholder:placeholder@localhost:5432/postgres
 medusa_redis_url: "redis://redis:6379"
 node_env: "production"
 
+# CORS configuration for Medusa HTTP server
+# Comma-separated list of allowed origins for the Store API.
+store_cors: "https://ai-search-lime.vercel.app,https://dynasearch.dk"
+# Comma-separated list of allowed origins for the Admin API.
+admin_cors: "https://dynasearch.dk"
+# Comma-separated list of allowed origins for Auth routes (if used).
+auth_cors: "https://ai-search-lime.vercel.app,https://dynasearch.dk"
+
 # HTTPS / reverse proxy
 medusa_domain: "dynasearch.dk"
 letsencrypt_email: "admin@dynasearch.dk"
