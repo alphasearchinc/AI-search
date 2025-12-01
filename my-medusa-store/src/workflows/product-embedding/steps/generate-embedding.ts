@@ -59,7 +59,7 @@ export const generateEmbeddingStep = createStep(
         product_id: input.product_id || '',
         query: text,
         generation_ms: duration,
-        embedding_dimensions: success ? embedding.dimensions : getEmbeddingDimensions(),
+        embedding_dimensions: success ? embedding.dimensions : 0,
         success,
         error_message: errorMessage,
         provider: process.env.LOCAL_EMBEDDING_SERVICE_URL ? 'local' : 'openai',

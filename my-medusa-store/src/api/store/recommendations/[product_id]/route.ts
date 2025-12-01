@@ -8,6 +8,13 @@ type StoreRecommendationsQuery = {
   limit?: string;
 };
 
+type RecommendationsResult = {
+  product_id: string;
+  hits: Array<{ product_id: string; score: number }>;
+  count: number;
+  searchDuration: number;
+};
+
 const sanitizeLimit = (rawLimit: unknown): number => {
   if (typeof rawLimit === "string") {
     const parsed = parseInt(rawLimit, 10);
@@ -36,7 +43,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const { result } = await getProductRecommendationsWorkflow(req.scope).run({
       input: { product_id, limit },
-    });
+    }) as { result: RecommendationsResult };
 
     const duration = Date.now() - startTime;
 

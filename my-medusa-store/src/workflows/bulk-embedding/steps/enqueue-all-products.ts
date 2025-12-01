@@ -66,7 +66,7 @@ export const enqueueAllProductsStep = createStep(
 
           result.enqueued++;
           logger.info(
-            `[Bulk Embedding] Queued job ${workflowResult.job_id} for product: ${product.id}`
+            `[Bulk Embedding] Queued embedding for product: ${product.id}`
           );
         } catch (error: any) {
           result.failed++;
