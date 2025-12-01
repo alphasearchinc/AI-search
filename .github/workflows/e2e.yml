@@ -65,9 +65,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ─────────────────────────────────────────────────────────────
-      # Python Embedder Service
-      # ─────────────────────────────────────────────────────────────
+      # Python Embedder
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -75,21 +73,14 @@ jobs:
           cache: "pip"
           cache-dependency-path: python-embedder/requirements.txt
 
-      - name: Install Python dependencies
-        working-directory: python-embedder
-        run: pip install -r requirements.txt
-
       - name: Start Python embedder
         working-directory: python-embedder
         run: |
+          pip install -r requirements.txt
           python embedder.py &
-          echo "Waiting for embedder to start..."
           timeout 120 bash -c 'until curl -s http://localhost:1337/health > /dev/null 2>&1; do sleep 2; done'
-          echo "Embedder is ready"
 
-      # ─────────────────────────────────────────────────────────────
       # Medusa Backend
-      # ─────────────────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -97,63 +88,31 @@ jobs:
           cache: "npm"
           cache-dependency-path: my-medusa-store/package-lock.json
 
-      - name: Install Medusa dependencies
-        working-directory: my-medusa-store
-        run: npm ci --no-fund --no-audit
-
-      - name: Build Medusa backend
-        working-directory: my-medusa-store
-        run: npm run build
-
-      - name: Run database migrations
-        working-directory: my-medusa-store
-        run: npx medusa db:migrate
-
-      - name: Seed database
-        working-directory: my-medusa-store
-        run: npm run seed
-
-      - name: Reindex Elasticsearch
-        working-directory: my-medusa-store
-        run: npm run reindex
-
-      - name: Start Medusa backend
+      - name: Build and start Medusa
         working-directory: my-medusa-store
         run: |
+          npm ci --no-fund --no-audit
+          npm run build
+          npx medusa db:migrate
+          npm run seed
+          npm run reindex
           npm run start &
-          echo "Waiting for Medusa backend to start..."
           timeout 120 bash -c 'until curl -s http://localhost:9000/health > /dev/null 2>&1; do sleep 2; done'
-          echo "Medusa backend is ready"
 
-      # ─────────────────────────────────────────────────────────────
-      # Next.js Storefront
-      # ─────────────────────────────────────────────────────────────
-      - name: Install storefront dependencies
-        working-directory: my-medusa-store-storefront
-        run: yarn install --frozen-lockfile
-
-      - name: Build Next.js storefront
-        working-directory: my-medusa-store-storefront
-        run: npm run build
-
-      - name: Start Next.js storefront
+      # Next.js Storefront + Playwright
+      - name: Build and start storefront
         working-directory: my-medusa-store-storefront
         run: |
+          yarn install --frozen-lockfile
+          npm run build
           npm run start &
-          echo "Waiting for storefront to start..."
           timeout 60 bash -c 'until curl -s http://localhost:8000 > /dev/null 2>&1; do sleep 2; done'
-          echo "Storefront is ready"
-
-      # ─────────────────────────────────────────────────────────────
-      # Playwright Tests
-      # ─────────────────────────────────────────────────────────────
-      - name: Install Playwright browsers
-        working-directory: my-medusa-store-storefront
-        run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         working-directory: my-medusa-store-storefront
-        run: npm run test:e2e:chromium
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e:chromium
         env:
           CI: true
 
@@ -164,11 +123,3 @@ jobs:
           name: playwright-report
           path: my-medusa-store-storefront/playwright-report/
           retention-days: 14
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: test-results
-          path: my-medusa-store-storefront/test-results/
-          retention-days: 7
