@@ -22,3 +22,10 @@ es_heap: "512m"
 medusa_database_url: "postgres://placeholder:placeholder@localhost:5432/postgres"
 medusa_redis_url: "redis://redis:6379"
 node_env: "production"
+
+# HTTPS / reverse proxy
+medusa_domain: "dynasearch.dk"
+letsencrypt_email: "admin@dynasearch.dk"
+medusa_tls_cert_path: "/etc/letsencrypt/live/{{ medusa_domain }}/fullchain.pem"
+medusa_tls_key_path: "/etc/letsencrypt/live/{{ medusa_domain }}/privkey.pem"
+enable_hsts: false
