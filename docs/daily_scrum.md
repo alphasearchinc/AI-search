@@ -224,3 +224,21 @@
  - Deployet til Vercel
 ### Hvilke udfordringer forudser vi?
  - Hvorfor Medusa ikke vil køre på vores VM, fordi den mangler en tom fil!?!
+
+
+## 📅 Daily Scrum 01-12-2025
+
+### Hvad har vi lavet siden sidst?
+ - Fået Medusa backend op at køre i VM og fået den til at køre på domæne dynasearch.dk
+ - Finpudset modal til filtrering
+ - Deployet til vercel - søgefunktionen virker dog ikke
+ - Refaktoreret reccomendations
+ - Refaktorere search engine
+### Hvad skal vi lave i dag?
+ - Få Vercel til at køre på frontend
+ - Møde med ian
+ - Sætte NginX op til reverse proxy så man kan tilgå dynasearch.dk og ikke dynasearch.dk:9000
+ - Playwright test til frontend
+ - Kigge på teknologivalgs afsnittet i rapporten, så vi kan strømline hvordan vi laver disse beskrivelser
+### Hvilke udfordringer forudser vi?
+ - Debugge Vercel
