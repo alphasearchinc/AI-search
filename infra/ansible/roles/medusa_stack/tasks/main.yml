@@ -19,6 +19,21 @@
     - redis
     - medusa
 
+- name: Ensure nginx config directory exists
+  ansible.builtin.file:
+    path: "{{ medusa_project_root }}/nginx"
+    state: directory
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0755"
+
+- name: Ensure Docker volumes for TLS exist
+  ansible.builtin.command:
+    cmd: docker volume create {{ item }}
+  loop:
+    - certbot-www
+    - certs
+
 - name: Template docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -34,6 +49,14 @@
     owner: "{{ ansible_user | default('aleksander') }}"
     group: "{{ ansible_user | default('aleksander') }}"
     mode: "0600"
+
+- name: Template nginx reverse proxy config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "{{ medusa_project_root }}/nginx/nginx.conf"
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0644"
 
 - name: Pull latest images
   ansible.builtin.command:
