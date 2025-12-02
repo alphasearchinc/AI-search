@@ -62,7 +62,8 @@ jobs:
           port: 22
           script: |
             set -e
-            mkdir -p /opt/grafana
+            sudo mkdir -p /opt/grafana
+            sudo chown $USER:$USER /opt/grafana
 
       - name: Copy Grafana stack files
         uses: appleboy/scp-action@v0.1.7
@@ -73,6 +74,7 @@ jobs:
           port: 22
           source: "grafana/docker-compose.grafana.yml,grafana/loki-config.yml"
           target: "/opt/grafana"
+          strip_components: 1
 
       - name: Deploy Grafana stack
         uses: appleboy/ssh-action@v1.0.0
