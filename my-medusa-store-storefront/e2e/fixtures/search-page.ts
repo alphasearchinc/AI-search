@@ -117,7 +117,7 @@ export class SearchPage {
     // Wait for debounce + API response
     await this.page.waitForTimeout(500)
     // Wait for loading to complete (increase timeout for slow responses)
-    await expect(this.loadingIndicator).not.toBeVisible({ timeout: 30000 })
+    await expect(this.loadingIndicator).not.toBeVisible({ timeout: 50000 })
   }
 
   /**
