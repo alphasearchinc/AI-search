@@ -25,4 +25,4 @@ COPY . .
 EXPOSE 1337
 
 # Default command: run your Flask script
-CMD ["python", "embedder.py"]
+CMD ["python", "wsgi.py"]

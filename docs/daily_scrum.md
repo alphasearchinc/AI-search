@@ -3,7 +3,7 @@
 ---
 
 ## 📋 Kladde
-## 📅 Daily Scrum 11-11-2025
+## 📅 Daily Scrum 11-12-2025
 
 ### Hvad har vi lavet siden sidst?
 ### Hvad skal vi lave i dag?
@@ -242,3 +242,21 @@
  - Kigge på teknologivalgs afsnittet i rapporten, så vi kan strømline hvordan vi laver disse beskrivelser
 ### Hvilke udfordringer forudser vi?
  - Debugge Vercel
+
+
+
+## 📅 Daily Scrum 02-12-2025
+
+### Hvad har vi lavet siden sidst?
+ - Fået Vercel op at køre med fungerende søge og filterfunktionalitet
+ - Møde med Ian
+ - Sat Nginx op til reverse proxy
+ - Arbejdet på Playwright, virker men ikke i CI, da vi ikke kan få workeren til at køre 
+### Hvad skal vi lave i dag?
+ - Deploye monitorering
+ - Reccomendations ind på Master
+ - Forsøge at få workeren til at fungerere på GitHub actions runneren
+ - Fixe /eval-dashboard endpoint i Python
+ - Refaktorere python-embedder til at følge struktur fra den nævnte person i opgaven
+ - Gennemgå opgaven 
+### Hvilke udfordringer forudser vi?
