@@ -1,113 +1,16 @@
-import os
 import statistics
-import time
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List
 
 import numpy as np
 
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None  # type: ignore
-
-try:
-    from sentence_transformers import SentenceTransformer
-except ImportError:
-    SentenceTransformer = None  # type: ignore
-
-
-class OpenAIUnavailable(Exception):
-    pass
-
-
-class ModelUnavailable(Exception):
-    pass
-
-
-EmbedResult = Tuple[List[float], int, float]  # vectors, dimensions, latency_ms
-
-
-WEIGHTS = {
-    "quality": 0.7,
-    "latency": 0.3,
-}
-
-LOCAL_MODELS = {
-    "local_384": {
-        "name": "all-MiniLM-L6-v2",
-        "dimensions": 384,
-    },
-    "local_768": {
-        "name": "all-mpnet-base-v2",
-        "dimensions": 768,
-    },
-}
-
-OPENAI_MODEL = "text-embedding-3-small"  # 1536d
-
-_local_model_cache: Dict[str, SentenceTransformer] = {}
-_openai_client: Optional["OpenAI"] = None
-
-
-def is_openai_configured() -> bool:
-    """
-    Return True when the OpenAI client can be used (API key + package installed).
-    """
-    return bool(os.getenv("OPENAI_API_KEY")) and OpenAI is not None
-
-
-def _get_local_model(key: str) -> SentenceTransformer:
-    if SentenceTransformer is None:
-        raise ModelUnavailable("sentence-transformers is not installed")
-
-    if key not in LOCAL_MODELS:
-        raise ModelUnavailable(f"Unknown local model key: {key}")
-
-    if key not in _local_model_cache:
-        model_name = LOCAL_MODELS[key]["name"]
-        _local_model_cache[key] = SentenceTransformer(model_name)
-
-    return _local_model_cache[key]
-
-
-def _get_openai_client() -> "OpenAI":
-    global _openai_client
-    if _openai_client:
-        return _openai_client
-
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise OpenAIUnavailable("OPENAI_API_KEY is not configured")
-
-    if OpenAI is None:
-        raise OpenAIUnavailable("openai package is not installed")
-
-    _openai_client = OpenAI(api_key=api_key)
-    return _openai_client
-
-
-def embed_local(model_key: str, text: str) -> EmbedResult:
-    model = _get_local_model(model_key)
-    start = time.perf_counter()
-    vector = model.encode(text)
-    duration_ms = (time.perf_counter() - start) * 1000
-
-    return vector.tolist(), model.get_sentence_embedding_dimension(), duration_ms
-
-
-def embed_openai(text: str) -> EmbedResult:
-    client = _get_openai_client()
-
-    start = time.perf_counter()
-    response = client.embeddings.create(
-        model=OPENAI_MODEL,
-        input=text,
-        encoding_format="float",
-    )
-    duration_ms = (time.perf_counter() - start) * 1000
-
-    vector = response.data[0].embedding
-    return vector, len(vector), duration_ms
+from ..config import LOCAL_MODELS, OPENAI_MODEL, WEIGHTS
+from .embedding_service import (
+    EmbedResult,
+    ModelUnavailable,
+    OpenAIUnavailable,
+    embed_local,
+    embed_openai,
+)
 
 
 def cosine_distance(v1: List[float], v2: List[float]) -> float:
@@ -150,46 +53,46 @@ def _get_default_samples() -> List[Dict[str, Dict[str, str]]]:
     """
     return [
         {
-          "similar_a": {
-              "title": "High-Performance Laptop",
-              "description": "A powerful computer with 32GB RAM and a 1TB SSD. Ideal for programming and gaming.",
-          },
-          "similar_b": {
-              "title": "Modern Smartphone",
-              "description": "The latest mobile device with a 5G chip and a stunning 120Hz display. Send messages and browse.",
-          },
-          "dissimilar": {
-              "title": "Red Rose Bouquet",
-              "description": "A beautiful arrangement of one dozen fresh flowers, perfect for anniversaries or home decor.",
-          },
+            "similar_a": {
+                "title": "High-Performance Laptop",
+                "description": "A powerful computer with 32GB RAM and a 1TB SSD. Ideal for programming and gaming.",
+            },
+            "similar_b": {
+                "title": "Modern Smartphone",
+                "description": "The latest mobile device with a 5G chip and a stunning 120Hz display. Send messages and browse.",
+            },
+            "dissimilar": {
+                "title": "Red Rose Bouquet",
+                "description": "A beautiful arrangement of one dozen fresh flowers, perfect for anniversaries or home decor.",
+            },
         },
         {
-          "similar_a": {
-              "title": "Noise-Cancelling Headphones",
-              "description": "Over-ear headphones with active noise cancellation and 30 hours of battery life.",
-          },
-          "similar_b": {
-              "title": "Wireless Earbuds",
-              "description": "Compact earbuds with ANC, wireless charging, and clear call quality.",
-          },
-          "dissimilar": {
-              "title": "Organic Coffee Beans",
-              "description": "Single-origin arabica beans with a smooth, chocolatey flavor. Perfect for espresso machines.",
-          },
+            "similar_a": {
+                "title": "Noise-Cancelling Headphones",
+                "description": "Over-ear headphones with active noise cancellation and 30 hours of battery life.",
+            },
+            "similar_b": {
+                "title": "Wireless Earbuds",
+                "description": "Compact earbuds with ANC, wireless charging, and clear call quality.",
+            },
+            "dissimilar": {
+                "title": "Organic Coffee Beans",
+                "description": "Single-origin arabica beans with a smooth, chocolatey flavor. Perfect for espresso machines.",
+            },
         },
         {
-          "similar_a": {
-              "title": "Ergonomic Office Chair",
-              "description": "Adjustable lumbar support, breathable mesh, and 4D armrests for comfortable work sessions.",
-          },
-          "similar_b": {
-              "title": "Standing Desk",
-              "description": "Height-adjustable desk with memory presets, stable frame, and cable management for office setups.",
-          },
-          "dissimilar": {
-              "title": "Cast Iron Skillet",
-              "description": "Pre-seasoned skillet suitable for stovetop and oven cooking with excellent heat retention.",
-          },
+            "similar_a": {
+                "title": "Ergonomic Office Chair",
+                "description": "Adjustable lumbar support, breathable mesh, and 4D armrests for comfortable work sessions.",
+            },
+            "similar_b": {
+                "title": "Standing Desk",
+                "description": "Height-adjustable desk with memory presets, stable frame, and cable management for office setups.",
+            },
+            "dissimilar": {
+                "title": "Cast Iron Skillet",
+                "description": "Pre-seasoned skillet suitable for stovetop and oven cooking with excellent heat retention.",
+            },
         },
     ]
 

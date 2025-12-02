@@ -3,12 +3,10 @@
 medusa_project_root: /opt/medusa
 
 # Docker image for your Medusa backend in GHCR
-# TODO: replace with your real org/repo
 medusa_image: "ghcr.io/alphasearchinc/my-medusa-store"
 medusa_image_tag: "latest"
 
 # Docker image for the Python embedder in GHCR
-# TODO: replace with your real org/repo
 embedder_image: "ghcr.io/alphasearchinc/python-embedder"
 embedder_image_tag: "latest"
 
