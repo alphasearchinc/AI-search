@@ -3,13 +3,25 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk";
 import { getProductDataStep } from "./steps/get-product-data";
-import { generateEmbeddingStep } from "./steps/generate-embedding";
 import { storeEmbeddingStep } from "./steps/store-embedding";
 
 type EmbedProductInput = {
   product_id: string;
 };
 
+/**
+ * Queue a product for embedding.
+ * 
+ * This workflow:
+ * 1. Fetches product data
+ * 2. Queues the job to BullMQ
+ * 3. Worker generates embedding and indexes to Elasticsearch
+ * 
+ * Used by:
+ * - Product subscriber (automatic indexing on create/update)
+ * - Bulk reindex endpoint
+ * - Bulk re-embed endpoint
+ */
 export const embedProductWorkflow = createWorkflow(
   "embed-product-workflow",
   (input: EmbedProductInput) => {
@@ -18,20 +30,14 @@ export const embedProductWorkflow = createWorkflow(
       product_id: input.product_id,
     });
 
-    // Step 2: Generate embedding from the product text
-    const embeddingResult = generateEmbeddingStep({
+    // Step 2: Queue the job
+    // Worker will generate embedding and index to Elasticsearch
+    const queuedJob = storeEmbeddingStep({
       product_id: productData.product_id,
-      text: productData.embedded_text,
-    });
-
-    // Step 3: Queue the embedding for storage
-    const queuedEmbeddingJob = storeEmbeddingStep({
-      product_id: productData.product_id,
-      embedding: embeddingResult.embedding,  // Access the embedding property
-      embedded_text: productData.embedded_text,
+      text_to_embed: productData.embedded_text,
       metadata: productData.metadata,
     });
 
-    return new WorkflowResponse(queuedEmbeddingJob);
+    return new WorkflowResponse(queuedJob);
   }
 );

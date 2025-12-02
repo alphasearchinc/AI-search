@@ -147,23 +147,20 @@ medusaIntegrationTestRunner({
         // (filters are applied in the bool query alongside fuzzy match)
       });
 
-      it("returns proper error for empty query", async () => {
-        try {
-          await api.post(
-            "/store/search",
-            {
-              query: "",
-              limit: 5,
-            },
-            { headers: authHeaders }
-          );
-          // Should not reach here
-          fail("Expected request to fail with 400 error");
-        } catch (error: any) {
-          // Should reject empty queries even with fuzzy enabled
-          expect(error.response.status).toBe(400);
-          expect(error.response.data).toHaveProperty("message");
-        }
+      it("accepts empty query for browse mode", async () => {
+        const response = await api.post(
+          "/store/search",
+          {
+            query: "",
+            limit: 5,
+          },
+          { headers: authHeaders }
+        );
+
+        // Empty query should work (browse mode with wildcard)
+        expect(response.status).toBe(200);
+        expect(response.data).toHaveProperty("hits");
+        expect(Array.isArray(response.data.hits)).toBe(true);
       });
 
       it("respects limit parameter with fuzzy queries", async () => {

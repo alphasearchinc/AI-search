@@ -18,14 +18,14 @@ export const POST = async (
     });
 
     return res.json({
-      message: "Bulk embedding jobs enqueued",
+      message: "Bulk re-embedding jobs enqueued successfully",
       results: result,
     });
   } catch (error: any) {
-    logger.error("[Bulk Embedding] Failed to enqueue products:", error);
+    logger.error("[Bulk Re-embed] Failed to enqueue products:", error);
 
     return res.status(500).json({
-      message: "Failed to enqueue bulk embedding jobs",
+      message: "Failed to enqueue bulk re-embedding jobs",
       error: error.message,
     });
   }
