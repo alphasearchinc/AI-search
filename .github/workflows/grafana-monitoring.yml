@@ -71,9 +71,7 @@ jobs:
           username: ${{ secrets.GRAFANA_VM_USER }}
           key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
           port: 22
-          source: |
-            grafana/docker-compose.grafana.yml
-            grafana/loki-config.yml
+          source: "grafana/docker-compose.grafana.yml,grafana/loki-config.yml"
           target: "/opt/grafana"
 
       - name: Deploy Grafana stack
