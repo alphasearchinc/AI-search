@@ -103,12 +103,9 @@ export type SemanticSearchResult = {
 
 export type ProductEmbeddingJobData = {
   product_id: string;
-  embedded_text: string;
-  embedding: {
-    vectors: number[];
-    dimensions: number;
-  };
+  text_to_embed: string;
   metadata?: Record<string, any>;
+  // Worker will generate embedding when processing this job
 };
 
 export type RecommendationHit = {

@@ -4,14 +4,15 @@ import ElasticsearchModuleService from "../../../modules/elasticsearch/services/
 
 type StoreEmbeddingInput = {
   product_id: string;
-  embedding: {
-    vectors: number[];
-    dimensions: number;
-  };
-  embedded_text: string;
+  text_to_embed: string;
   metadata?: Record<string, any>;
 };
 
+/**
+ * Queue an embedding job to BullMQ.
+ * 
+ * Worker will generate the embedding and index to Elasticsearch.
+ */
 export const storeEmbeddingStep = createStep(
   "store-embedding-step",
   async (input: StoreEmbeddingInput, { container }) => {
@@ -21,8 +22,7 @@ export const storeEmbeddingStep = createStep(
 
     await elasticsearchService.queueEmbedding({
       product_id: input.product_id,
-      embedding: input.embedding,
-      embedded_text: input.embedded_text,
+      text_to_embed: input.text_to_embed,
       metadata: input.metadata,
     });
 

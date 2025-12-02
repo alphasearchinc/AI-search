@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import { createRedisConnection } from "../../../lib/redis-connection";
 import { ProductEmbeddingJobData } from "../types";
 import { IndexManager } from "../services/index-manager";
+import { embedText } from "../../../lib/embedding-client";
 
 export class ElasticsearchWorker {
   private worker: Worker<ProductEmbeddingJobData> | null = null;
@@ -24,20 +25,37 @@ export class ElasticsearchWorker {
     this.worker = new Worker<ProductEmbeddingJobData>(
       this.queueName,
       async (job: Job<ProductEmbeddingJobData>) => {
-        const { product_id, embedding } = job.data;
+        const { product_id, text_to_embed, metadata } = job.data;
 
         console.log(
           `[ELASTICSEARCH MODULE WORKER] 🔍 Processing job ${job.id} for product ${product_id}`
         );
-        console.log(
-          `[ELASTICSEARCH MODULE WORKER] 🔍 Embedding vector: ${
-            embedding.vectors
-              ? `Array of ${embedding.vectors.length} values`
-              : "MISSING!"
-          }`
-        );
 
-        await this.indexManager.indexEmbedding(job.data);
+        // Generate embedding
+        console.log(
+          `[ELASTICSEARCH MODULE WORKER] 🔗 Generating embedding for product ${product_id}...`
+        );
+        
+        let embedding;
+        try {
+          embedding = await embedText(text_to_embed);
+          console.log(
+            `[ELASTICSEARCH MODULE WORKER] ✅ Generated ${embedding.dimensions}D embedding`
+          );
+        } catch (error: any) {
+          console.error(
+            `[ELASTICSEARCH MODULE WORKER] ❌ Failed to generate embedding for product ${product_id}: ${error.message}`
+          );
+          throw error;
+        }
+
+        // Index the embedding
+        await this.indexManager.indexEmbedding({
+          product_id,
+          text_to_embed,
+          metadata,
+          embedding,
+        });
 
         console.log(
           `[ELASTICSEARCH MODULE WORKER] ✅ Indexed embedding for product ${product_id} (job ${job.id})`

@@ -101,15 +101,19 @@ export class IndexManager {
     }
   }
 
-  async indexEmbedding(data: ProductEmbeddingJobData): Promise<void> {
-    const { product_id, embedded_text, embedding, metadata } = data;
+  async indexEmbedding(
+    data: ProductEmbeddingJobData & {
+      embedding: { vectors: number[]; dimensions: number };
+    }
+  ): Promise<void> {
+    const { product_id, text_to_embed, embedding, metadata } = data;
 
     await this.client.index({
       index: this.indexName,
       id: product_id,
       document: {
         product_id,
-        embedded_text,
+        embedded_text: text_to_embed, // Store as 'embedded_text' since it's now been embedded
         embedding: {
           vectors: embedding.vectors,
           dimensions: embedding.dimensions,
