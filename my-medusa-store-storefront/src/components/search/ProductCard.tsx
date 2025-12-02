@@ -11,6 +11,7 @@ export const ProductCard = ({ hit, onClick }: ProductCardProps) => (
   <button
     type="button"
     onClick={onClick}
+    data-testid="product-card"
     className="group text-left bg-ui-bg-subtle rounded-lg p-4 hover:bg-ui-bg-subtle-hover transition-colors"
   >
     {/* Thumbnail */}
@@ -31,7 +32,10 @@ export const ProductCard = ({ hit, onClick }: ProductCardProps) => (
     </div>
 
     {/* Info */}
-    <h4 className="text-sm font-medium text-ui-fg-base line-clamp-2 mb-1">
+    <h4
+      data-testid="product-title"
+      className="text-sm font-medium text-ui-fg-base line-clamp-2 mb-1"
+    >
       {hit.product.title ?? "Untitled"}
     </h4>
     <p className="text-xs text-ui-fg-subtle line-clamp-2">

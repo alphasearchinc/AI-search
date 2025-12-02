@@ -64,6 +64,7 @@ export const MobileFilters = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
+        data-testid="mobile-filter-button"
         className="flex items-center gap-2 px-4 py-2 rounded-lg border border-ui-border-base bg-ui-bg-subtle text-sm text-ui-fg-base"
       >
         <FilterIcon />
@@ -76,7 +77,10 @@ export const MobileFilters = ({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-ui-bg-base">
+        <div
+          data-testid="mobile-filter-drawer"
+          className="fixed inset-0 z-50 bg-ui-bg-base"
+        >
           <div className="flex items-center justify-between px-4 py-4 border-b border-ui-border-base">
             <h2 className="text-lg font-medium">Filters</h2>
             <button
@@ -170,6 +174,7 @@ export const MobileFilters = ({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
+              data-testid="mobile-apply-filters"
               className="w-full py-3 bg-ui-fg-base text-ui-bg-base rounded-lg font-medium"
             >
               Show Results
