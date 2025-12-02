@@ -1,3 +1,7 @@
+permissions:
+  contents: read
+  packages: write
+
 name: Build and Deploy Grafana
 
 on:
