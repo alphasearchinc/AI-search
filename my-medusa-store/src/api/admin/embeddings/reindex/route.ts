@@ -2,10 +2,9 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http";
-import { Modules } from "@medusajs/framework/utils";
 import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
 import ElasticsearchModuleService from "../../../../modules/elasticsearch/services/main";
-import { embedProductWorkflow } from "../../../../workflows/product-embedding/embed-product";
+import { bulkEmbedProductsWorkflow } from "../../../../workflows/bulk-embedding/bulk-embed-products";
 
 export const POST = async (
   req: AuthenticatedMedusaRequest,
@@ -29,65 +28,24 @@ export const POST = async (
     await elasticsearchService.initializeIndex();
     logger.info("[Reindex] Index recreated successfully");
 
-    // Step 3: Get all products and queue embeddings
-    logger.info("[Reindex] Fetching all products...");
-    const productModuleService = req.scope.resolve(Modules.PRODUCT);
-    const [products] = await productModuleService.listAndCountProducts({}, {});
-
-    logger.info(`[Reindex] Found ${products.length} products`);
-
-    if (products.length === 0) {
-      return res.json({
-        message: "No products to embed",
-        results: {
-          total: 0,
-          enqueued: 0,
-          failed: 0,
-        },
-      });
-    }
-
-    logger.info(`[Reindex] Queueing ${products.length} products for embedding...`);
-
-    let successCount = 0;
-    let failCount = 0;
-    const errors: Array<{ product_id: string; error: string }> = [];
-
-    // Use the workflow to queue jobs
-    for (const product of products) {
-      try {
-        await embedProductWorkflow(req.scope).run({
-          input: { product_id: product.id },
-        });
-
-        successCount++;
-        
-        if (successCount % 50 === 0 || successCount === products.length) {
-          logger.info(`[Reindex] Queued ${successCount}/${products.length} products`);
-        }
-      } catch (error: any) {
-        failCount++;
-        errors.push({
-          product_id: product.id,
-          error: error.message || "Unknown error",
-        });
-        logger.error(
-          `[Reindex] Failed to queue product ${product.id}: ${error.message}`
-        );
-      }
-    }
+    // Step 3: Queue all products for embedding using bulk workflow
+    logger.info("[Reindex] Queueing products for embedding...");
+    
+    const { result } = await bulkEmbedProductsWorkflow(req.scope).run({
+      input: { batch_size: 100 },
+    });
 
     logger.info(
-      `[Reindex] Complete: ${successCount} enqueued, ${failCount} failed. Worker will process embeddings.`
+      `[Reindex] Complete: ${result.enqueued} enqueued, ${result.failed} failed. Worker will process embeddings.`
     );
 
     return res.json({
       message: "Reindex jobs queued successfully. Worker will process embeddings asynchronously.",
       results: {
-        total: products.length,
-        enqueued: successCount,
-        failed: failCount,
-        errors: errors.length > 0 ? errors : undefined,
+        total: result.total,
+        enqueued: result.enqueued,
+        failed: result.failed,
+        errors: result.errors.length > 0 ? result.errors : undefined,
       },
     });
   } catch (error: any) {
