@@ -1,11 +1,8 @@
 import pytest
 
-from evaluation import (
-    LOCAL_MODELS,
-    OPENAI_MODEL,
-    evaluate_models,
-    is_openai_configured,
-)
+from app.config import LOCAL_MODELS, OPENAI_MODEL
+from app.services.evaluation_service import evaluate_models
+from app.services.embedding_service import is_openai_configured
 
 
 def _get_result(results, key):
@@ -19,7 +16,6 @@ def test_local_models_evaluation_runs():
     results = evaluate_models(include_openai=False)
     keys = [item.get("key") for item in results]
 
-    # Expect both local models to be present and not skipped
     assert "local_384" in keys
     assert "local_768" in keys
 
@@ -28,9 +24,7 @@ def test_local_models_evaluation_runs():
         assert result is not None
         assert not result.get("skipped"), f"{model_key} was skipped unexpectedly"
         assert result.get("dimensions") == LOCAL_MODELS[model_key]["dimensions"]
-        # Basic quality expectation: dissimilar distance should exceed similar
         assert result["distance_gap"] > 0
-        # Combined score should land in [0, 1] given our normalization
         assert 0.0 <= result["combined_score"] <= 1.0
 
 
