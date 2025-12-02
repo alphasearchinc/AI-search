@@ -42,7 +42,7 @@ This guide explains how to manually verify that product embeddings flow through 
    ```bash
    curl http://localhost:9200/product-embeddings/_doc/{product_id}?pretty
    ```
-   You should see the `embedded_text`, `embedding_vector`, metadata, and `generated_at` fields.
+   You should see the `embedded_text`, `embedding` (with `vectors` and `dimensions`), metadata, and `generated_at` fields.
 
 ## 3. Bulk Embedding Test
 1. Call the bulk endpoint to enqueue every product:

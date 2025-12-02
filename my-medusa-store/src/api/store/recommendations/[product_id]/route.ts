@@ -36,7 +36,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const { result } = await getProductRecommendationsWorkflow(req.scope).run({
       input: { product_id, limit },
-    });
+    }) as any;
 
     const duration = Date.now() - startTime;
 
@@ -55,17 +55,22 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     });
   } catch (error: any) {
     const duration = Date.now() - startTime;
-    const isNotFound = error?.message?.includes("not found");
 
     logger.error(
       `[Store Recommendations] Failed for product_id="${product_id}" ` +
         `after ${duration}ms: ${error.message}`
     );
 
-    return res.status(isNotFound ? 404 : 500).json({
-      message: isNotFound
-        ? "Product not yet embedded"
-        : "Failed to fetch recommendations",
+    // Product not found in index
+    if (error.meta?.statusCode === 404) {
+      return res.status(404).json({
+        message: "Product not found",
+        error: "The specified product does not exist or has not been indexed yet",
+      });
+    }
+
+    return res.status(500).json({
+      message: "Failed to fetch recommendations",
       error: error.message,
     });
   }

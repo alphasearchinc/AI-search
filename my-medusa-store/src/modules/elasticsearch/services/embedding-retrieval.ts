@@ -50,13 +50,14 @@ export class EmbeddingRetrievalService {
 
   /**
    * Get a single embedding by product ID.
+   * Note: dense_vector fields are not stored in _source by default,
+   * so we retrieve them using the fields parameter.
    */
   async getEmbeddingByProductId(productId: string): Promise<{
     id: string;
     product_id: string;
     embedded_text: string;
     embedding?: { vectors: number[]; dimensions: number };
-    embedding_vector?: number[];
     metadata?: Record<string, any>;
     generated_at?: string;
   } | null> {
@@ -66,8 +67,8 @@ export class EmbeddingRetrievalService {
         query: {
           term: { product_id: productId },
         },
-        _source: true,
-        fields: ["embedding_vector"],
+        _source: ["product_id", "embedded_text", "metadata", "generated_at", "embedding.dimensions"],
+        fields: ["embedding.vectors"],
         size: 1,
       });
 
@@ -77,13 +78,16 @@ export class EmbeddingRetrievalService {
 
       const hit = result.hits.hits[0];
       const source = (hit._source || {}) as Record<string, any>;
+      const vectors = (hit.fields as any)?.[("embedding.vectors")]?.[0];
 
       return {
         id: hit._id as string,
         product_id: source.product_id,
         embedded_text: source.embedded_text,
-        embedding: source.embedding,
-        embedding_vector: hit.fields?.embedding_vector?.[0] || null,
+        embedding: vectors ? {
+          vectors,
+          dimensions: source.embedding?.dimensions || vectors.length,
+        } : source.embedding,
         metadata: source.metadata,
         generated_at: source.generated_at,
       };

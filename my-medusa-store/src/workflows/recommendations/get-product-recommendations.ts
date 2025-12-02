@@ -1,7 +1,6 @@
 import { createWorkflow, WorkflowResponse } from "@medusajs/workflows-sdk";
 import { getProductEmbeddingStep } from "./steps/get-product-embedding";
 import { getSimilarProductsStep } from "./steps/get-similar-products";
-import { RecommendationsResult } from "../../modules/elasticsearch/types";
 
 type GetProductRecommendationsInput = {
   product_id: string;
@@ -10,7 +9,7 @@ type GetProductRecommendationsInput = {
 
 export const getProductRecommendationsWorkflow = createWorkflow(
   "get-product-recommendations",
-  (input: GetProductRecommendationsInput): RecommendationsResult => {
+  (input: GetProductRecommendationsInput) => {
     const { embedding } = getProductEmbeddingStep(input.product_id);
 
     const result = getSimilarProductsStep({
