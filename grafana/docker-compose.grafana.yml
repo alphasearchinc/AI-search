@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  grafana:
+    image: ghcr.io/alphasearchinc/medusa-grafana:latest
+    container_name: medusa-grafana
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: grafana-loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+      - ./loki-config.yml:/etc/loki/config.yml:ro
+
+volumes:
+  grafana-data:
+  loki-data:
