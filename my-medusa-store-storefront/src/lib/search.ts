@@ -30,6 +30,11 @@ export type BrandFacet = {
   count: number
 }
 
+export type TagFacet = {
+  value: string
+  count: number
+}
+
 export type PriceRange = {
   min: number
   max: number
@@ -38,6 +43,7 @@ export type PriceRange = {
 export type SearchFacets = {
   categories: CategoryFacet[]
   brands?: BrandFacet[]
+  tags?: TagFacet[]
   priceRange?: PriceRange
   options?: OptionFacet[]
 }
@@ -73,6 +79,7 @@ export type SemanticSearchOptions = {
   offset?: number
   categoryIds?: string[]
   brands?: string[]
+  tags?: string[]
   minPrice?: number
   maxPrice?: number
   options?: Record<string, string[]>
@@ -104,6 +111,7 @@ export async function semanticProductSearch(
       ...(opts.offset !== undefined && { offset: opts.offset }),
       ...(opts.categoryIds?.length && { category_ids: opts.categoryIds }),
       ...(opts.brands?.length && { brands: opts.brands }),
+      ...(opts.tags?.length && { tags: opts.tags }),
       ...(opts.minPrice !== undefined && { min_price: opts.minPrice }),
       ...(opts.maxPrice !== undefined && { max_price: opts.maxPrice }),
       ...(opts.options &&
