@@ -7,6 +7,7 @@ import {
   type OptionFacet,
   type PriceRange,
   type SemanticSearchHit,
+  type TagFacet,
 } from "@lib/search"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
@@ -29,10 +30,12 @@ const SearchBar = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [facets, setFacets] = useState<CategoryFacet[]>([])
   const [brandFacets, setBrandFacets] = useState<BrandFacet[]>([])
+  const [tagFacets, setTagFacets] = useState<TagFacet[]>([])
   const [optionFacets, setOptionFacets] = useState<OptionFacet[]>([])
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string[]>
   >({})
@@ -66,6 +69,7 @@ const SearchBar = () => {
   const activeFilterCount =
     selectedCategories.length +
     selectedBrands.length +
+    selectedTags.length +
     Object.values(selectedOptions).reduce((sum, arr) => sum + arr.length, 0) +
     (validMinPrice !== undefined ? 1 : 0) +
     (validMaxPrice !== undefined ? 1 : 0)
@@ -85,6 +89,17 @@ const SearchBar = () => {
     }
     return () => {
       document.body.style.overflow = ""
+    }
+  }, [isModalOpen])
+
+  // Change document title when search modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const originalTitle = document.title
+      document.title = "Tech Search"
+      return () => {
+        document.title = originalTitle
+      }
     }
   }, [isModalOpen])
 
@@ -115,6 +130,7 @@ const SearchBar = () => {
           categoryIds:
             selectedCategories.length > 0 ? selectedCategories : undefined,
           brands: selectedBrands.length > 0 ? selectedBrands : undefined,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
           minPrice: validMinPrice,
           maxPrice: validMaxPrice,
           options:
@@ -127,6 +143,7 @@ const SearchBar = () => {
           setTotalCount(response.total)
           setFacets(response.facets?.categories ?? [])
           setBrandFacets(response.facets?.brands ?? [])
+          setTagFacets(response.facets?.tags ?? [])
           setOptionFacets(response.facets?.options ?? [])
           setPriceRange(response.facets?.priceRange ?? null)
         }
@@ -138,6 +155,7 @@ const SearchBar = () => {
           setTotalCount(0)
           setFacets([])
           setBrandFacets([])
+          setTagFacets([])
           setOptionFacets([])
           setPriceRange(null)
           setError(message)
@@ -161,6 +179,7 @@ const SearchBar = () => {
     offset,
     selectedCategories,
     selectedBrands,
+    selectedTags,
     selectedOptions,
     validMinPrice,
     validMaxPrice,
@@ -173,6 +192,7 @@ const SearchBar = () => {
     trimmedQuery,
     selectedCategories,
     selectedBrands,
+    selectedTags,
     selectedOptions,
     validMinPrice,
     validMaxPrice,
@@ -200,10 +220,12 @@ const SearchBar = () => {
     setCurrentPage(1)
     setFacets([])
     setBrandFacets([])
+    setTagFacets([])
     setOptionFacets([])
     setPriceRange(null)
     setSelectedCategories([])
     setSelectedBrands([])
+    setSelectedTags([])
     setSelectedOptions({})
     setMinPriceInput("")
     setMaxPriceInput("")
@@ -214,6 +236,7 @@ const SearchBar = () => {
   const clearFilters = () => {
     setSelectedCategories([])
     setSelectedBrands([])
+    setSelectedTags([])
     setSelectedOptions({})
     setMinPriceInput("")
     setMaxPriceInput("")
@@ -230,6 +253,12 @@ const SearchBar = () => {
   const toggleBrand = (brand: string) => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    )
+  }
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
   }
 
@@ -367,15 +396,18 @@ const SearchBar = () => {
                   <FiltersSidebar
                     facets={facets}
                     brandFacets={brandFacets}
+                    tagFacets={tagFacets}
                     optionFacets={optionFacets}
                     priceRange={priceRange}
                     selectedCategories={selectedCategories}
                     selectedBrands={selectedBrands}
+                    selectedTags={selectedTags}
                     selectedOptions={selectedOptions}
                     minPriceInput={minPriceInput}
                     maxPriceInput={maxPriceInput}
                     onToggleCategory={toggleCategory}
                     onToggleBrand={toggleBrand}
+                    onToggleTag={toggleTag}
                     onToggleOption={toggleOption}
                     onMinPriceChange={setMinPriceInput}
                     onMaxPriceChange={setMaxPriceInput}
@@ -388,15 +420,18 @@ const SearchBar = () => {
                       <MobileFilters
                         facets={facets}
                         brandFacets={brandFacets}
+                        tagFacets={tagFacets}
                         optionFacets={optionFacets}
                         priceRange={priceRange}
                         selectedCategories={selectedCategories}
                         selectedBrands={selectedBrands}
+                        selectedTags={selectedTags}
                         selectedOptions={selectedOptions}
                         minPriceInput={minPriceInput}
                         maxPriceInput={maxPriceInput}
                         onToggleCategory={toggleCategory}
                         onToggleBrand={toggleBrand}
+                        onToggleTag={toggleTag}
                         onToggleOption={toggleOption}
                         onMinPriceChange={setMinPriceInput}
                         onMaxPriceChange={setMaxPriceInput}

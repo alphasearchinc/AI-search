@@ -5,6 +5,7 @@ import type {
   CategoryFacet,
   OptionFacet,
   PriceRange,
+  TagFacet,
 } from "@lib/search"
 import { FilterCheckbox } from "./FilterCheckbox"
 import { FilterSection } from "./FilterSection"
@@ -12,15 +13,18 @@ import { FilterSection } from "./FilterSection"
 interface FiltersSidebarProps {
   facets: CategoryFacet[]
   brandFacets: BrandFacet[]
+  tagFacets: TagFacet[]
   optionFacets: OptionFacet[]
   priceRange: PriceRange | null
   selectedCategories: string[]
   selectedBrands: string[]
+  selectedTags: string[]
   selectedOptions: Record<string, string[]>
   minPriceInput: string
   maxPriceInput: string
   onToggleCategory: (id: string) => void
   onToggleBrand: (brand: string) => void
+  onToggleTag: (tag: string) => void
   onToggleOption: (name: string, value: string) => void
   onMinPriceChange: (value: string) => void
   onMaxPriceChange: (value: string) => void
@@ -29,15 +33,18 @@ interface FiltersSidebarProps {
 export const FiltersSidebar = ({
   facets,
   brandFacets,
+  tagFacets,
   optionFacets,
   priceRange,
   selectedCategories,
   selectedBrands,
+  selectedTags,
   selectedOptions,
   minPriceInput,
   maxPriceInput,
   onToggleCategory,
   onToggleBrand,
+  onToggleTag,
   onToggleOption,
   onMinPriceChange,
   onMaxPriceChange,
@@ -82,6 +89,26 @@ export const FiltersSidebar = ({
                   count={brand.count}
                   checked={selectedBrands.includes(brand.name)}
                   onChange={() => onToggleBrand(brand.name)}
+                />
+              ))}
+            </div>
+          </FilterSection>
+        )}
+
+        {/* Tags */}
+        {tagFacets.length > 0 && (
+          <FilterSection title="Tags" count={tagFacets.length}>
+            <div
+              data-testid="tag-filters"
+              className="space-y-1 max-h-52 overflow-y-auto pr-1"
+            >
+              {tagFacets.map((tag) => (
+                <FilterCheckbox
+                  key={tag.value}
+                  label={tag.value}
+                  count={tag.count}
+                  checked={selectedTags.includes(tag.value)}
+                  onChange={() => onToggleTag(tag.value)}
                 />
               ))}
             </div>
