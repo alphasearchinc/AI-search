@@ -64,8 +64,11 @@ jobs:
             set -e
             sudo mkdir -p /opt/grafana
             sudo mkdir -p /opt/grafana/prometheus
+            sudo mkdir -p /opt/grafana/prometheus/data
             sudo chown $USER:$USER /opt/grafana
             sudo chown $USER:$USER /opt/grafana/prometheus
+            # Prometheus runs as nobody (65534); ensure TSDB dir writable
+            sudo chown 65534:65534 /opt/grafana/prometheus/data
 
       - name: Copy Grafana stack files
         uses: appleboy/scp-action@v0.1.7
