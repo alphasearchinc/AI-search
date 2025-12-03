@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -14,18 +14,58 @@
         --warn: #f39c12;
         --bad: #e74c3c;
       }
-      body { padding: 1.5rem; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-      table td, table th { font-size: 0.95rem; }
-      .muted { color: #7f8c8d; }
-      .badge { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 0.35rem; font-size: 0.8rem; }
-      .badge.skip { background: #f6f8fa; color: #7f8c8d; border: 1px solid #e1e4e8; }
-      .badge.err { background: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; }
-      .sortable { cursor: pointer; user-select: none; }
-      .sortable:hover { background: rgba(0,0,0,0.05); }
-      .sort-arrow { display: inline-block; margin-left: 0.25rem; opacity: 0.4; }
-      .sortable.active .sort-arrow { opacity: 1; color: #3498db; }
+      body {
+        padding: 1.5rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      table td,
+      table th {
+        font-size: 0.95rem;
+      }
+      .muted {
+        color: #7f8c8d;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.15rem 0.45rem;
+        border-radius: 0.35rem;
+        font-size: 0.8rem;
+      }
+      .badge.skip {
+        background: #f6f8fa;
+        color: #7f8c8d;
+        border: 1px solid #e1e4e8;
+      }
+      .badge.err {
+        background: #fdecea;
+        color: #c0392b;
+        border: 1px solid #f5c6cb;
+      }
+      .sortable {
+        cursor: pointer;
+        user-select: none;
+      }
+      .sortable:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+      .sort-arrow {
+        display: inline-block;
+        margin-left: 0.25rem;
+        opacity: 0.4;
+      }
+      .sortable.active .sort-arrow {
+        opacity: 1;
+        color: #3498db;
+      }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   </head>
@@ -33,7 +73,8 @@
     <main class="container">
       <h1>Embedding Evaluation Dashboard</h1>
       <p class="muted">
-        Showing latest run (fresh on each page load). Weights: quality {{ weights.quality }}, latency {{ weights.latency }}.
+        Showing latest run (fresh on each page load). Weights: quality {{
+        weights.quality }}, latency {{ weights.latency }}.
       </p>
 
       <div class="grid">
@@ -55,36 +96,65 @@
             <tr>
               <th>Model</th>
               <th>Dims</th>
-              <th class="sortable" data-sort="avg_similar_distance">Avg Similar <span class="sort-arrow">↕</span></th>
-              <th class="sortable" data-sort="avg_dissimilar_distance">Avg Dissimilar <span class="sort-arrow">↕</span></th>
-              <th class="sortable" data-sort="distance_gap">Gap <span class="sort-arrow">↕</span></th>
-              <th class="sortable" data-sort="avg_latency_ms">Avg Latency (ms) <span class="sort-arrow">↕</span></th>
-              <th class="sortable" data-sort="combined_score">Combined <span class="sort-arrow">↕</span></th>
-              <th class="sortable" data-sort="status">Status <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="avg_similar_distance">
+                Avg Similar <span class="sort-arrow">↕</span>
+              </th>
+              <th class="sortable" data-sort="avg_dissimilar_distance">
+                Avg Dissimilar <span class="sort-arrow">↕</span>
+              </th>
+              <th class="sortable" data-sort="distance_gap">
+                Gap <span class="sort-arrow">↕</span>
+              </th>
+              <th class="sortable" data-sort="avg_latency_ms">
+                Avg Latency (ms) <span class="sort-arrow">↕</span>
+              </th>
+              <th class="sortable" data-sort="combined_score">
+                Combined <span class="sort-arrow">↕</span>
+              </th>
+              <th class="sortable" data-sort="status">
+                Status <span class="sort-arrow">↕</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {% for m in models %}
-              <tr data-row='{{ m | tojson | safe }}'>
-                <td>{{ m.name }}</td>
-                <td>{{ m.dimensions or "-" }}</td>
-                <td>{{ "%.3f"|format(m.avg_similar_distance) if m.avg_similar_distance is defined else "-" }}</td>
-                <td>{{ "%.3f"|format(m.avg_dissimilar_distance) if m.avg_dissimilar_distance is defined else "-" }}</td>
-                <td>{{ "%.3f"|format(m.distance_gap) if m.distance_gap is defined else "-" }}</td>
-                <td>{{ "%.1f"|format(m.avg_latency_ms) if m.avg_latency_ms is defined else "-" }}</td>
-                <td>{{ "%.3f"|format(m.combined_score) if m.combined_score is defined else "-" }}</td>
-                <td>
-                  {% if m.skipped %}
-                    <span class="badge skip">Skipped</span>
-                    <span class="muted">{{ m.reason }}</span>
-                  {% elif m.error %}
-                    <span class="badge err">Error</span>
-                    <span class="muted">{{ m.error }}</span>
-                  {% else %}
-                    <span class="badge" style="background: #eaf7ef; color: #1e8449;">OK</span>
-                  {% endif %}
-                </td>
-              </tr>
+            <tr data-row="{{ m | tojson | safe }}">
+              <td>{{ m.name }}</td>
+              <td>{{ m.dimensions or "-" }}</td>
+              <td>
+                {{ "%.3f"|format(m.avg_similar_distance) if
+                m.avg_similar_distance is defined else "-" }}
+              </td>
+              <td>
+                {{ "%.3f"|format(m.avg_dissimilar_distance) if
+                m.avg_dissimilar_distance is defined else "-" }}
+              </td>
+              <td>
+                {{ "%.3f"|format(m.distance_gap) if m.distance_gap is defined
+                else "-" }}
+              </td>
+              <td>
+                {{ "%.1f"|format(m.avg_latency_ms) if m.avg_latency_ms is
+                defined else "-" }}
+              </td>
+              <td>
+                {{ "%.3f"|format(m.combined_score) if m.combined_score is
+                defined else "-" }}
+              </td>
+              <td>
+                {% if m.skipped %}
+                <span class="badge skip">Skipped</span>
+                <span class="muted">{{ m.reason }}</span>
+                {% elif m.error %}
+                <span class="badge err">Error</span>
+                <span class="muted">{{ m.error }}</span>
+                {% else %}
+                <span class="badge" style="background: #eaf7ef; color: #1e8449"
+                  >OK</span
+                >
+                {% endif %}
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
@@ -215,7 +285,7 @@
           h.classList.remove('active', 'asc', 'desc');
           const arrow = h.querySelector('.sort-arrow');
           if (arrow) arrow.textContent = '↕';
-          
+
           if (h.dataset.sort === key) {
             h.classList.add('active', sortState.dir);
             // ↑ = high on top (desc), ↓ = low on top (asc)
