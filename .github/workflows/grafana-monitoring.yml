@@ -112,3 +112,4 @@ jobs:
             # Inject backend VM IP into Prometheus scrape config
             sed -i "s|<BACKEND_VM_IP>|${BACKEND_VM_IP}|g" prometheus.yml
             docker compose up -d
+
