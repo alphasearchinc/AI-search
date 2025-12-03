@@ -9,7 +9,7 @@ Use this compose + config on the Grafana VM to scrape the backend VM exporters.
    docker compose up -d
    ```
 3) Open Prometheus UI at `http://<grafana-vm-ip>:9090` and verify all targets are `UP`.
-4) In Grafana, add a Prometheus datasource pointing to `http://localhost:9090` (or the Prometheus host/port you choose).
+4) In Grafana, add a Prometheus datasource pointing to `http://prometheus:9090` (Prometheus is attached to the `grafana_default` Docker network alongside Grafana).
 5) Import dashboards for node_exporter, redis_exporter, and elasticsearch_exporter. Build a “Backend VM Health” dashboard that uses this datasource.
 6) Configure Grafana alerting (email/Teams) using these metrics. Start with node down, high CPU, disk nearly full, and exporter-down alerts.
 
