@@ -260,3 +260,16 @@
  - Refaktorere python-embedder til at følge struktur fra den nævnte person i opgaven
  - Gennemgå opgaven 
 ### Hvilke udfordringer forudser vi?
+
+
+## 📅 Daily Scrum 03-12-2025
+
+### Hvad har vi lavet siden sidst?
+ - Genereal refaktorering af backenden samt mindre optimeringer og bedre fejlhåndtering.
+ - Playwright tests
+ - Vi fik læst vores opgave igennem for at blive enige om hvordan vi skal fortsætte med den.
+### Hvad skal vi lave i dag?
+ - Vi skal undersøge muligheder for at forbedre søgningen
+ - Kigge på at få telemetri op at køre på Grafana
+ - Fikse noget UI i python dashboard
+### Hvilke udfordringer forudser vi?
