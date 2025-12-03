@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data:/prometheus
+    restart: unless-stopped

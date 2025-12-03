@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: backend-node
+    static_configs:
+      - targets: ['<BACKEND_VM_IP>:9100']
+        labels:
+          instance: backend-vm
+          service: node
+
+  - job_name: backend-redis
+    static_configs:
+      - targets: ['<BACKEND_VM_IP>:9121']
+        labels:
+          instance: backend-vm
+          service: redis
+
+  - job_name: backend-elasticsearch
+    static_configs:
+      - targets: ['<BACKEND_VM_IP>:9114']
+        labels:
+          instance: backend-vm
+          service: elasticsearch
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: grafana-vm
+          service: prometheus
