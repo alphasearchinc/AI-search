@@ -92,6 +92,17 @@ const SearchBar = () => {
     }
   }, [isModalOpen])
 
+  // Change document title when search modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const originalTitle = document.title
+      document.title = "Tech Search"
+      return () => {
+        document.title = originalTitle
+      }
+    }
+  }, [isModalOpen])
+
   // Search effect
   useEffect(() => {
     if (!isModalOpen) return
