@@ -14,6 +14,7 @@ type SearchIndexInput = {
   filters?: {
     category_ids?: string[];
     brands?: string[];
+    tags?: string[];
     min_price?: number;
     max_price?: number;
     options?: Record<string, string[]>;

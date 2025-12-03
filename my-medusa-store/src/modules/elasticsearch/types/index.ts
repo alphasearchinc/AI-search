@@ -22,6 +22,7 @@ export type SemanticSearchFilters = {
   product_ids?: string[];
   category_ids?: string[];
   brands?: string[];
+  tags?: string[];
   min_price?: number;
   max_price?: number;
   options?: Record<string, string[]>; // e.g., { "Storage": ["512 GB", "1 TB"], "Color": ["Black"] }
@@ -70,11 +71,17 @@ export type BrandFacet = {
   count: number;
 };
 
+export type TagFacet = {
+  value: string;
+  count: number;
+};
+
 export type SearchFacets = {
   categories: CategoryFacet[];
   brands?: BrandFacet[];
   priceRange?: PriceRange;
   options?: OptionFacet[];
+  tags?: TagFacet[];
 };
 
 export type SemanticSearchHit = {

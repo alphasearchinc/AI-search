@@ -3,11 +3,12 @@
  * Extracted from SearchEngine to follow Single Responsibility Principle.
  */
 
-export type FilterType = "category" | "brand" | "price" | "options";
+export type FilterType = "category" | "brand" | "price" | "options" | "tags";
 
 export type SearchFilters = {
   categoryIds: string[];
   brands: string[];
+  tags: string[];
   minPrice: number | undefined;
   maxPrice: number | undefined;
   options: Record<string, string[]> | undefined;
@@ -85,6 +86,23 @@ export function applyBrandFilter(
 }
 
 /**
+ * Apply tags filter to hits.
+ * Product must have at least one of the selected tags.
+ */
+export function applyTagsFilter(
+  hits: SearchHit[],
+  tags: string[]
+): SearchHit[] {
+  if (tags.length === 0) return hits;
+
+  return hits.filter((hit) => {
+    const hitTags = hit.metadata?.tags as string[] | undefined;
+    if (!hitTags || hitTags.length === 0) return false;
+    return tags.some((tag) => hitTags.includes(tag));
+  });
+}
+
+/**
  * Apply options filter to hits.
  * Product must match ALL selected option filters (AND between option types)
  * But can match ANY value within an option type (OR within option values)
@@ -116,7 +134,7 @@ export function applyOptionsFilter(
 
 /**
  * Apply all filters in the correct cascading order.
- * Order: category → price → brand → options
+ * Order: category → price → brand → tags → options
  */
 export function applyAllFilters(
   hits: SearchHit[],
@@ -126,6 +144,7 @@ export function applyAllFilters(
   result = applyCategoryFilter(result, filters.categoryIds);
   result = applyPriceFilter(result, filters.minPrice, filters.maxPrice);
   result = applyBrandFilter(result, filters.brands);
+  result = applyTagsFilter(result, filters.tags);
   result = applyOptionsFilter(result, filters.options);
   return result;
 }
@@ -151,6 +170,10 @@ export function applyFiltersExcluding(
 
   if (!exclude.includes("brand")) {
     result = applyBrandFilter(result, filters.brands);
+  }
+
+  if (!exclude.includes("tags")) {
+    result = applyTagsFilter(result, filters.tags);
   }
 
   if (!exclude.includes("options")) {
