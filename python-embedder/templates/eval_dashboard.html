@@ -22,6 +22,10 @@
       .badge { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 0.35rem; font-size: 0.8rem; }
       .badge.skip { background: #f6f8fa; color: #7f8c8d; border: 1px solid #e1e4e8; }
       .badge.err { background: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; }
+      .sortable { cursor: pointer; user-select: none; }
+      .sortable:hover { background: rgba(0,0,0,0.05); }
+      .sort-arrow { display: inline-block; margin-left: 0.25rem; opacity: 0.4; }
+      .sortable.active .sort-arrow { opacity: 1; color: #3498db; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   </head>
@@ -51,12 +55,12 @@
             <tr>
               <th>Model</th>
               <th>Dims</th>
-              <th class="sortable" data-sort="avg_similar_distance">Avg Similar ↓</th>
-              <th class="sortable" data-sort="avg_dissimilar_distance">Avg Dissimilar ↑</th>
-              <th class="sortable" data-sort="distance_gap">Gap ↑</th>
-              <th class="sortable" data-sort="avg_latency_ms">Avg Latency (ms) ↓</th>
-              <th class="sortable" data-sort="combined_score">Combined ↑</th>
-              <th class="sortable" data-sort="status">Status</th>
+              <th class="sortable" data-sort="avg_similar_distance">Avg Similar <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="avg_dissimilar_distance">Avg Dissimilar <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="distance_gap">Gap <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="avg_latency_ms">Avg Latency (ms) <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="combined_score">Combined <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="status">Status <span class="sort-arrow">↕</span></th>
             </tr>
           </thead>
           <tbody>
@@ -206,8 +210,18 @@
         // Re-append rows in sorted order
         rows.forEach((r) => tbody.appendChild(r));
 
-        // Visual cue: bold the active header
-        headers.forEach((h) => h.style.textDecoration = h.dataset.sort === key ? 'underline' : 'none');
+        // Update arrow indicators
+        headers.forEach((h) => {
+          h.classList.remove('active', 'asc', 'desc');
+          const arrow = h.querySelector('.sort-arrow');
+          if (arrow) arrow.textContent = '↕';
+          
+          if (h.dataset.sort === key) {
+            h.classList.add('active', sortState.dir);
+            // ↑ = high on top (desc), ↓ = low on top (asc)
+            if (arrow) arrow.textContent = sortState.dir === 'desc' ? '↑' : '↓';
+          }
+        });
       };
 
       headers.forEach((h) => {
