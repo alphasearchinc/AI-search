@@ -91,14 +91,14 @@ jobs:
 
       - name: Deploy Grafana stack
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          BACKEND_VM_IP: ${{ secrets.BACKEND_VM_IP }}
         with:
           host: ${{ secrets.GRAFANA_VM_HOST }}
           username: ${{ secrets.GRAFANA_VM_USER }}
           key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
           port: 22
           envs: BACKEND_VM_IP
-          env:
-            BACKEND_VM_IP: ${{ secrets.BACKEND_VM_IP }}
           script: |
             set -e
             cd /opt/grafana
