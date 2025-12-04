@@ -33,8 +33,13 @@ export const getProductDataStep = createStep(
       throw new Error(`Product ${input.product_id} not found`);
     }
 
-    // Construct text to embed (title + description + category info)
+    // Construct text to embed (title + brand + description + categories + options)
     const textParts = [product.title];
+
+    // Add brand prominently after title for better brand-based search
+    if (product.metadata?.brand) {
+      textParts.push(`Brand: ${product.metadata.brand}`);
+    }
 
     if (product.description) {
       textParts.push(product.description);
@@ -45,6 +50,43 @@ export const getProductDataStep = createStep(
         .map((cat: any) => cat.name)
         .join(", ");
       textParts.push(`Categories: ${categoryNames}`);
+    }
+
+    // Add product tags for use case and feature-based searches
+    if (product.tags && product.tags.length > 0) {
+      const tagValues = product.tags
+        .map((tag: any) => tag.value)
+        .filter(Boolean)
+        .join(", ");
+      if (tagValues) {
+        textParts.push(`Tags: ${tagValues}`);
+      }
+    }
+
+    // Add product options for variant-specific searches (e.g., "256GB laptop", "blue color")
+    if (product.options && product.options.length > 0) {
+      const optionDescriptions: string[] = [];
+      
+      for (const option of product.options as any[]) {
+        if (!option.title) continue;
+        
+        const values: string[] = [];
+        if (option.values && Array.isArray(option.values)) {
+          for (const val of option.values) {
+            if (val.value) {
+              values.push(val.value);
+            }
+          }
+        }
+        
+        if (values.length > 0) {
+          optionDescriptions.push(`${option.title}: ${values.join(", ")}`);
+        }
+      }
+      
+      if (optionDescriptions.length > 0) {
+        textParts.push(`Available options: ${optionDescriptions.join("; ")}`);
+      }
     }
 
     const embeddedText = textParts.join(". ");

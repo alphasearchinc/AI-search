@@ -59,10 +59,13 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // Verify fuzzy is NOT applied
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text).toBe("lptop");
-    expect(typeof callArgs.query.bool.must[0].match.embedded_text).toBe(
-      "string"
+    // With field boosting, embedded_text is in the should array (last item)
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text).toBe("lptop");
+    expect(typeof embeddedTextField.match.embedded_text).toBe("string");
 
     // No results when fuzzy is disabled
     expect(result.hits).toHaveLength(0);
@@ -105,19 +108,22 @@ describe("semanticSearch - fuzzy matching", () => {
     expect(mockSearch).toHaveBeenCalledTimes(1);
     const callArgs = mockSearch.mock.calls[0][0];
 
-    // Verify fuzzy parameters are included in the query
-    expect(callArgs.query.bool.must[0].match.embedded_text).toHaveProperty(
-      "fuzziness"
+    // Verify fuzzy parameters are included in the query (check embedded_text field)
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
-    expect(callArgs.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-      "AUTO"
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text).toHaveProperty("fuzziness");
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
+    expect(embeddedTextField.match.embedded_text.prefix_length).toBe(2);
+    expect(embeddedTextField.match.embedded_text.max_expansions).toBe(50);
+
+    // Also verify other fields have fuzzy enabled
+    const titleField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.["metadata.title"]
     );
-    expect(callArgs.query.bool.must[0].match.embedded_text.prefix_length).toBe(
-      2
-    );
-    expect(callArgs.query.bool.must[0].match.embedded_text.max_expansions).toBe(
-      50
-    );
+    expect(titleField).toBeDefined();
+    expect(titleField.match["metadata.title"].fuzziness).toBe("AUTO");
 
     expect(result.hits).toHaveLength(2);
     expect(result.hits[0].id).toBe("prod-laptop");
@@ -144,7 +150,11 @@ describe("semanticSearch - fuzzy matching", () => {
     const callArgs = mockSearch.mock.calls[0][0];
 
     // When fuzzy is disabled, embedded_text should be a simple string
-    expect(callArgs.query.bool.must[0].match.embedded_text).toBe("keyboard");
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
+    );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text).toBe("keyboard");
     expect(result.hits).toHaveLength(0);
   });
 
@@ -177,10 +187,12 @@ describe("semanticSearch - fuzzy matching", () => {
     });
 
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.fuzziness).toBe("1");
-    expect(callArgs.query.bool.must[0].match.embedded_text.max_expansions).toBe(
-      25
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("1");
+    expect(embeddedTextField.match.embedded_text.max_expansions).toBe(25);
   });
 
   it("handles multiple character typos with fuzziness AUTO", async () => {
@@ -267,9 +279,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // Verify BM25 query had fuzzy parameters
     const bm25CallArgs = mockSearch.mock.calls[0][0];
-    expect(bm25CallArgs.query.bool.must[0].match.embedded_text).toHaveProperty(
-      "fuzziness"
+    const embeddedTextField = bm25CallArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text).toHaveProperty("fuzziness");
 
     expect(result.hits).toHaveLength(1);
     expect(result.hits[0].id).toBe("prod-1");
@@ -293,9 +307,11 @@ describe("semanticSearch - fuzzy matching", () => {
     });
 
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.prefix_length).toBe(
-      3
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.prefix_length).toBe(3);
   });
 
   it("handles transposed characters (character swap)", async () => {
@@ -328,9 +344,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // Verify fuzzy is applied
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-      "AUTO"
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
   });
 
   it("handles extra character typos", async () => {
@@ -423,9 +441,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // Verify both fuzzy and filters are applied
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-      "AUTO"
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
     expect(callArgs.query.bool.filter).toBeDefined();
   });
 
@@ -456,9 +476,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // With AUTO fuzziness, 3-5 char words allow 1 edit
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-      "AUTO"
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
     expect(result.hits).toHaveLength(1);
   });
 
@@ -489,9 +511,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // With AUTO fuzziness, 6+ char words allow 2 edits
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-      "AUTO"
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
     expect(result.hits).toHaveLength(1);
     expect(result.hits[0].product_id).toBe("prod-charger");
   });
@@ -564,9 +588,11 @@ describe("semanticSearch - fuzzy matching", () => {
     });
 
     const callArgs = mockSearch.mock.calls[0][0];
-    expect(callArgs.query.bool.must[0].match.embedded_text.max_expansions).toBe(
-      10
+    const embeddedTextField = callArgs.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.max_expansions).toBe(10);
   });
 
   it("applies fuzzy to BM25 component of hybrid search only", async () => {
@@ -617,9 +643,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
     // First call (BM25) should have fuzzy
     const bm25Call = mockSearch.mock.calls[0][0];
-    expect(bm25Call.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-      "AUTO"
+    const embeddedTextField = bm25Call.query.bool.should.find(
+      (clause) => clause.match?.embedded_text
     );
+    expect(embeddedTextField).toBeDefined();
+    expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
 
     // Second call (vector) should use script_score, not fuzzy
     const vectorCall = mockSearch.mock.calls[1][0];
@@ -700,9 +728,11 @@ describe("semanticSearch - fuzzy matching", () => {
 
       // Verify BM25 call has fuzzy enabled
       const bm25Call = mockSearch.mock.calls[0][0];
-      expect(bm25Call.query.bool.must[0].match.embedded_text.fuzziness).toBe(
-        "AUTO"
+      const embeddedTextField = bm25Call.query.bool.should.find(
+        (clause) => clause.match?.embedded_text
       );
+      expect(embeddedTextField).toBeDefined();
+      expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
 
       // This is the key: fuzzy in BM25 catches what vector search missed
       expect(result.hits[0].bm25_score).toBe(2.0);
