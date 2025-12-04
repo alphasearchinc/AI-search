@@ -1,6 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { ELASTICSEARCH_MODULE } from "../../../../modules/elasticsearch";
 import type ElasticsearchModuleService from "../../../../modules/elasticsearch/services/main";
+import { buildBM25Query } from "../../../../modules/elasticsearch/services/search-engine/query-builder";
+import { getFuzzyConfig } from "../../../../modules/elasticsearch/utils/config";
 
 /**
  * POST /admin/embeddings/explain
@@ -32,51 +34,21 @@ export const POST = async (
     const client = elasticsearchService.getClient();
     const indexName = elasticsearchService.PRODUCT_EMBEDDINGS_INDEX;
 
-    // Build BM25 query with field boosting
-    const bm25Query = {
-      bool: {
-        should: [
-          {
-            match: {
-              "metadata.title": {
-                query,
-                boost: 3.0,
-              },
-            },
-          },
-          {
-            match: {
-              "metadata.brand": {
-                query,
-                boost: 2.5,
-              },
-            },
-          },
-          {
-            match: {
-              "metadata.categories": {
-                query,
-                boost: 2.0,
-              },
-            },
-          },
-          {
-            match: {
-              "metadata.tags": {
-                query,
-                boost: 1.5,
-              },
-            },
-          },
-          {
-            match: {
-              embedded_text: query,
-            },
-          },
-        ],
-        minimum_should_match: 1,
+    // Get fuzzy configuration from module options (same as search uses)
+    const fuzzyConfig = getFuzzyConfig(elasticsearchService["options_"]);
+
+    // Build BM25 query using shared query builder (maintains consistency)
+    const bm25Query = buildBM25Query({
+      query,
+      fuzzyConfig: {
+        enabled: fuzzyConfig.enabled,
+        fuzzinessLevel: fuzzyConfig.fuzzinessLevel,
+        prefixLength: fuzzyConfig.prefixLength,
+        maxExpansions: fuzzyConfig.maxExpansions,
       },
-    };
+      fuzzyEnabled: fuzzyConfig.enabled,
+      filterClauses: [],
+    });
 
     // Use Elasticsearch explain API
     const explanation = await client.explain({
