@@ -35,6 +35,7 @@ import {
   processElasticsearchHits,
   mergeAndScoreHits,
   filterByConfidence,
+  filterByMinScore,
   sortByScore,
   paginateHits,
   RawHitData,
@@ -99,7 +100,19 @@ export class SearchEngine {
       mergedHits,
       minConfidence
     );
-    const sortedHits = sortByScore(confidenceFilteredHits);
+
+    // Filter out low-relevance results (minimum score threshold)
+    // Score is weighted: (vector_score × 0.7) + (bm25_score × 0.3)
+    // Threshold of 1 ensures only relevant products are shown
+    // Skip score filtering when query is empty (browse mode) - show all products
+    const isEmptyQuery =
+      !options.query || options.query === "*" || options.query.trim() === "";
+    const MIN_SCORE_THRESHOLD = 1;
+    const scoreFilteredHits = isEmptyQuery
+      ? confidenceFilteredHits
+      : filterByMinScore(confidenceFilteredHits, MIN_SCORE_THRESHOLD);
+
+    const sortedHits = sortByScore(scoreFilteredHits);
 
     // Build search filters object
     const filters: SearchFilters = {
