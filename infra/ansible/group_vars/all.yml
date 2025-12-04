@@ -22,8 +22,8 @@ medusa_redis_url: "redis://redis:6379"
 node_env: "production"
 
 # CORS configuration for Medusa HTTP server
-# Comma-separated list of allowed origins for the Store API.
-store_cors: "https://ai-search-lime.vercel.app,https://dynasearch.dk"
+# Regex pattern to allow exact matches + any Vercel preview deployments
+store_cors: "/^https:\\/\\/(ai-search-lime\\.vercel\\.app|.*-karl-bjarnos-projects\\.vercel\\.app|dynasearch\\.dk)$/"
 # Comma-separated list of allowed origins for the Admin API.
 admin_cors: "https://dynasearch.dk"
 # Comma-separated list of allowed origins for Auth routes (if used).

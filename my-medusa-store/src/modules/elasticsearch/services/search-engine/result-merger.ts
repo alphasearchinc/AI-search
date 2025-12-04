@@ -105,6 +105,17 @@ export function filterByConfidence(
 }
 
 /**
+ * Filter hits by minimum combined score threshold.
+ * Used to filter out low-relevance results.
+ */
+export function filterByMinScore(
+  hits: SearchHit[],
+  minScore: number
+): SearchHit[] {
+  return hits.filter((hit) => hit.score >= minScore);
+}
+
+/**
  * Sort hits by score in descending order.
  */
 export function sortByScore(hits: SearchHit[]): SearchHit[] {
