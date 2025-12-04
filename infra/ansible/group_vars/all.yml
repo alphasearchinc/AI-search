@@ -23,7 +23,7 @@ node_env: "production"
 
 # CORS configuration for Medusa HTTP server
 # Comma-separated list of allowed origins for the Store API.
-store_cors: "https://ai-search-lime.vercel.app,https://dynasearch.dk"
+store_cors: "https://ai-search-lime.vercel.app,https://*-karl-bjarnos-projects.vercel.app,https://dynasearch.dk"
 # Comma-separated list of allowed origins for the Admin API.
 admin_cors: "https://dynasearch.dk"
 # Comma-separated list of allowed origins for Auth routes (if used).
