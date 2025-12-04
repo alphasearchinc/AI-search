@@ -44,6 +44,7 @@ const SearchBar = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isMac, setIsMac] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -78,6 +79,29 @@ const SearchBar = () => {
   useEffect(() => {
     setIsModalOpen(false)
   }, [pathname])
+
+  // Detect Mac vs Windows/Linux for keyboard shortcut display
+  useEffect(() => {
+    setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0)
+  }, [])
+
+  // Global keyboard shortcut: Cmd+K (Mac) or Ctrl+K (Windows/Linux)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
+      const isMacOS = navigator.platform.toUpperCase().indexOf("MAC") >= 0
+      const isShortcut = isMacOS
+        ? e.metaKey && e.key.toLowerCase() === "k"
+        : e.ctrlKey && e.key.toLowerCase() === "k"
+
+      if (isShortcut) {
+        e.preventDefault()
+        setIsModalOpen((prev) => !prev)
+      }
+    }
+
+    document.addEventListener("keydown", handleGlobalKeyDown)
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown)
+  }, [])
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -302,7 +326,7 @@ const SearchBar = () => {
         <SearchIcon />
         <span className="text-ui-fg-muted text-sm">Search products...</span>
         <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 rounded border border-ui-border-base bg-ui-bg-subtle px-1.5 py-0.5 text-[10px] text-ui-fg-muted">
-          <span className="text-xs">⌘</span>K
+          <span className="text-xs">{isMac ? "⌘" : "Ctrl"}</span>K
         </kbd>
       </button>
 
