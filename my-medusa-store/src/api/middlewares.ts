@@ -7,6 +7,10 @@ import { defineMiddlewares } from "@medusajs/framework/http";
  * 1. Exact matches from STORE_CORS env variable
  * 2. Any origin ending with -karl-bjarnos-projects.vercel.app (Vercel preview deployments)
  */
+
+// Parse allowed origins once at startup
+const allowedOrigins = process.env.STORE_CORS?.split(',').map(s => s.trim()) || [];
+
 export default defineMiddlewares({
   routes: [
     {
@@ -19,9 +23,6 @@ export default defineMiddlewares({
             return next();
           }
 
-          // Get allowed origins from env
-          const allowedOrigins = process.env.STORE_CORS?.split(',').map(s => s.trim()) || [];
-          
           // Check exact match
           if (allowedOrigins.includes(origin)) {
             res.setHeader('Access-Control-Allow-Origin', origin);
