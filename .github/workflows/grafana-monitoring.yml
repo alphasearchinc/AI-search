@@ -6,7 +6,7 @@ name: Build and Deploy Grafana
 
 on:
   push:
-    branches: [ master, feature/prometheus-telemtry]
+    branches: [ master]
     paths:
       - "grafana/**"
       - ".github/workflows/grafana-monitoring.yml"
@@ -47,7 +47,7 @@ jobs:
     name: Deploy Grafana stack to VM
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/prometheus-telemtry'
+    if: github.ref == 'refs/heads/master' 
 
     steps:
       - name: Checkout repository

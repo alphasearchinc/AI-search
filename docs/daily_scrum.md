@@ -261,7 +261,6 @@
  - Gennemgå opgaven 
 ### Hvilke udfordringer forudser vi?
 
-
 ## 📅 Daily Scrum 03-12-2025
 
 ### Hvad har vi lavet siden sidst?
@@ -273,3 +272,25 @@
  - Kigge på at få telemetri op at køre på Grafana
  - Fikse noget UI i python dashboard
 ### Hvilke udfordringer forudser vi?
+
+## 📅 Daily Scrum 04-12-2025
+
+### Hvad har vi lavet siden sidst?
+ - Fået VM telemetry op at køre på Grafana
+ - Opsat forskellige node_exporters på backend VM til denne telemetri
+ - Forbedret BM25
+ - Tags på produkter
+ - Title i frontend
+ - Toggle bars i python embedding dashboard
+ - Sat domæne op til vores Grafana (grafana.dynasearch.dk:3000)
+### Hvad skal vi lave i dag?
+ - Lave Grafana færdigt
+ - Opdatere GitHub projects (få skrevet user stories til alt det vi har lavet)
+ - Finde ud af hvordan vi skal præsentere sprints
+ - Få genvejen i search bar til at virke - eller fjerne den
+ - Overveje om vi skal begrænse mængden af søgeresultater til kun at vise dem der har relevans
+ - Se priser på produkter i søgeresultat
+ - Fordele emner der skal skrives om i rapporten
+### Hvilke udfordringer forudser vi?
+
+

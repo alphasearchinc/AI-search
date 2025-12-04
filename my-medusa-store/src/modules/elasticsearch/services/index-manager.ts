@@ -56,7 +56,16 @@ export class IndexManager {
                 type: "dense_vector",
                 dims: currentDims,
               },
-              metadata: { type: "object", dynamic: true },
+              metadata: {
+                type: "object",
+                properties: {
+                  title: { type: "text" },
+                  brand: { type: "text" },
+                  categories: { type: "text" },
+                  tags: { type: "text" },
+                },
+                dynamic: true,
+              },
               generated_at: { type: "date" },
             },
           },

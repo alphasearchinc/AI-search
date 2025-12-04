@@ -18,7 +18,14 @@ export type QueryBuilderOptions = {
 };
 
 /**
- * Build a BM25 text search query with optional fuzzy matching.
+ * Build a BM25 text search query with optional fuzzy matching and field boosting.
+ * 
+ * Boosting strategy:
+ * - Title: 3.0x (highest priority for exact product names)
+ * - Brand: 2.5x (high priority for brand searches)
+ * - Categories: 2.0x (important for category-based searches)
+ * - Tags: 1.5x (moderate boost for feature/use-case tags)
+ * - Embedded text: 1.0x (baseline for full content)
  */
 export function buildBM25Query(options: QueryBuilderOptions): object {
   const { query, fuzzyConfig, fuzzyEnabled, filterClauses } = options;
@@ -34,13 +41,51 @@ export function buildBM25Query(options: QueryBuilderOptions): object {
 
   return {
     bool: {
-      must: [
+      should: [
+        // Boost title matches highest (e.g., "iPhone 15 Pro")
+        {
+          match: {
+            "metadata.title": {
+              ...(typeof matchQuery === "object" ? matchQuery : { query: matchQuery }),
+              boost: 3.0,
+            },
+          },
+        },
+        // Boost brand matches (e.g., "Apple laptop")
+        {
+          match: {
+            "metadata.brand": {
+              ...(typeof matchQuery === "object" ? matchQuery : { query: matchQuery }),
+              boost: 2.5,
+            },
+          },
+        },
+        // Boost category matches (e.g., "laptops")
+        {
+          match: {
+            "metadata.categories": {
+              ...(typeof matchQuery === "object" ? matchQuery : { query: matchQuery }),
+              boost: 2.0,
+            },
+          },
+        },
+        // Boost tag matches (e.g., "waterproof", "gaming")
+        {
+          match: {
+            "metadata.tags": {
+              ...(typeof matchQuery === "object" ? matchQuery : { query: matchQuery }),
+              boost: 1.5,
+            },
+          },
+        },
+        // Standard embedded text match (baseline)
         {
           match: {
             embedded_text: matchQuery,
           },
         },
       ],
+      minimum_should_match: 1,
       ...(filterClauses.length > 0 ? { filter: filterClauses } : {}),
     },
   };
