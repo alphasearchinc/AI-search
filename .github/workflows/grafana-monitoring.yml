@@ -63,9 +63,13 @@ jobs:
           script: |
             set -e
             sudo mkdir -p /opt/grafana
+            sudo mkdir -p /opt/grafana/certbot-www
+            sudo mkdir -p /opt/grafana/certs
             sudo mkdir -p /opt/grafana/prometheus
             sudo mkdir -p /opt/grafana/prometheus/data
             sudo chown $USER:$USER /opt/grafana
+            sudo chown $USER:$USER /opt/grafana/certbot-www
+            sudo chown $USER:$USER /opt/grafana/certs
             sudo chown $USER:$USER /opt/grafana/prometheus
             # Prometheus runs as nobody (65534); ensure TSDB dir writable
             sudo chown 65534:65534 /opt/grafana/prometheus/data
@@ -77,7 +81,7 @@ jobs:
           username: ${{ secrets.GRAFANA_VM_USER }}
           key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
           port: 22
-          source: "grafana/docker-compose.grafana.yml,grafana/loki-config.yml"
+          source: "grafana/docker-compose.grafana.yml,grafana/loki-config.yml,grafana/nginx.conf"
           target: "/opt/grafana"
           strip_components: 1
 
@@ -112,4 +116,3 @@ jobs:
             # Inject backend VM IP into Prometheus scrape config
             sed -i "s|<BACKEND_VM_IP>|${BACKEND_VM_IP}|g" prometheus.yml
             docker compose up -d
-
