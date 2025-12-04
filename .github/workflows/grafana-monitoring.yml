@@ -6,7 +6,7 @@ name: Build and Deploy Grafana
 
 on:
   push:
-    branches: [ master]
+    branches: [ master, feature/prometheus-telemtry]
     paths:
       - "grafana/**"
       - ".github/workflows/grafana-monitoring.yml"
@@ -47,7 +47,7 @@ jobs:
     name: Deploy Grafana stack to VM
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/prometheus-telemtry'
 
     steps:
       - name: Checkout repository
@@ -63,7 +63,12 @@ jobs:
           script: |
             set -e
             sudo mkdir -p /opt/grafana
+            sudo mkdir -p /opt/grafana/prometheus
+            sudo mkdir -p /opt/grafana/prometheus/data
             sudo chown $USER:$USER /opt/grafana
+            sudo chown $USER:$USER /opt/grafana/prometheus
+            # Prometheus runs as nobody (65534); ensure TSDB dir writable
+            sudo chown 65534:65534 /opt/grafana/prometheus/data
 
       - name: Copy Grafana stack files
         uses: appleboy/scp-action@v0.1.7
@@ -76,15 +81,35 @@ jobs:
           target: "/opt/grafana"
           strip_components: 1
 
-      - name: Deploy Grafana stack
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Copy Prometheus stack files
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.GRAFANA_VM_HOST }}
           username: ${{ secrets.GRAFANA_VM_USER }}
           key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
           port: 22
+          source: "infra/grafana/prometheus/docker-compose.yml,infra/grafana/prometheus/prometheus.yml"
+          target: "/opt/grafana/prometheus"
+          strip_components: 3
+
+      - name: Deploy Grafana stack
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          BACKEND_VM_IP: ${{ secrets.BACKEND_VM_IP }}
+        with:
+          host: ${{ secrets.GRAFANA_VM_HOST }}
+          username: ${{ secrets.GRAFANA_VM_USER }}
+          key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
+          port: 22
+          envs: BACKEND_VM_IP
           script: |
             set -e
             cd /opt/grafana
             docker compose -f docker-compose.grafana.yml pull
             docker compose -f docker-compose.grafana.yml up -d
+
+            cd /opt/grafana/prometheus
+            # Inject backend VM IP into Prometheus scrape config
+            sed -i "s|<BACKEND_VM_IP>|${BACKEND_VM_IP}|g" prometheus.yml
+            docker compose up -d
+

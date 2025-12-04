@@ -34,3 +34,8 @@ variable "vm_size" {
    description = "Azure subscription ID"
    type        = string
  }
+
+variable "grafana_public_ip" {
+  description = "Public IP/CIDR of the Grafana/Prometheus VM allowed to scrape exporters (e.g. 1.2.3.4/32)"
+  type        = string
+}

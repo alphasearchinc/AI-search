@@ -79,6 +79,44 @@ services:
     networks:
       - medusa_net
 
+  node_exporter:
+    image: prom/node-exporter:v1.8.1
+    # Expose host metrics to Prometheus (scraped from Grafana VM)
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host'
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    networks:
+      - medusa_net
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.57.0
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - "9121:9121"
+    restart: unless-stopped
+    networks:
+      - medusa_net
+
+  elasticsearch_exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.7.0
+    command:
+      - '--es.uri=http://elasticsearch:9200'
+    ports:
+      - "9114:9114"
+    restart: unless-stopped
+    networks:
+      - medusa_net
+
   promtail:
     image: grafana/promtail:2.9.8
     command: ["-config.file=/etc/promtail/config.yml"]
