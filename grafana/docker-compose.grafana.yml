@@ -63,3 +63,4 @@ volumes:
 
 networks:
   grafana_net:
+    name: grafana_net
