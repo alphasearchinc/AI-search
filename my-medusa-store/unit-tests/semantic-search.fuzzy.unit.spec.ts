@@ -78,7 +78,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-laptop",
-            _score: 2.5,
+            _score: 8.0,
             _source: {
               product_id: "prod-laptop",
               embedded_text: "High-performance laptop with 16GB RAM",
@@ -87,7 +87,7 @@ describe("semanticSearch - fuzzy matching", () => {
           },
           {
             _id: "prod-notebook",
-            _score: 2.1,
+            _score: 7.0,
             _source: {
               product_id: "prod-notebook",
               embedded_text: "Lightweight laptop for students",
@@ -168,7 +168,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-wireless",
-            _score: 1.8,
+            _score: 6.0,
             _source: {
               product_id: "prod-wireless",
               embedded_text: "Wireless mouse with ergonomic design",
@@ -202,7 +202,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-keyboard",
-            _score: 1.5,
+            _score: 5.0,
             _source: {
               product_id: "prod-keyboard",
               embedded_text: "Mechanical keyboard with RGB lighting",
@@ -234,7 +234,7 @@ describe("semanticSearch - fuzzy matching", () => {
           hits: [
             {
               _id: "prod-1",
-              _score: 2.0,
+              _score: 6.0,
               _source: {
                 product_id: "prod-1",
                 embedded_text: "Smartphone with excellent camera",
@@ -321,7 +321,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-mouse",
-            _score: 2.2,
+            _score: 7.0,
             _source: {
               product_id: "prod-mouse",
               embedded_text: "Wireless gaming mouse",
@@ -358,7 +358,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-tablet",
-            _score: 1.9,
+            _score: 6.0,
             _source: {
               product_id: "prod-tablet",
               embedded_text: "Android tablet with stylus",
@@ -387,7 +387,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-headphones",
-            _score: 2.8,
+            _score: 8.0,
             _source: {
               product_id: "prod-headphones",
               embedded_text: "Noise-cancelling headphones",
@@ -416,7 +416,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-specific",
-            _score: 2.3,
+            _score: 7.0,
             _source: {
               product_id: "prod-123",
               embedded_text: "Monitor with 4K display",
@@ -456,7 +456,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-ssd",
-            _score: 1.7,
+            _score: 5.0,
             _source: {
               product_id: "prod-ssd",
               embedded_text: "SSD 1TB solid state drive",
@@ -491,7 +491,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-charger",
-            _score: 2.1,
+            _score: 7.0,
             _source: {
               product_id: "prod-charger",
               embedded_text: "Fast charger USB-C 65W",
@@ -527,7 +527,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-exact",
-            _score: 5.0, // exact match scores higher
+            _score: 15.0, // exact match scores higher
             _source: {
               product_id: "prod-exact",
               embedded_text: "Laptop computer",
@@ -536,7 +536,7 @@ describe("semanticSearch - fuzzy matching", () => {
           },
           {
             _id: "prod-fuzzy",
-            _score: 3.2, // fuzzy match scores lower
+            _score: 10.0, // fuzzy match scores lower
             _source: {
               product_id: "prod-fuzzy",
               embedded_text: "Desktop computer",
@@ -569,7 +569,7 @@ describe("semanticSearch - fuzzy matching", () => {
         hits: [
           {
             _id: "prod-1",
-            _score: 1.5,
+            _score: 5.0,
             _source: {
               product_id: "prod-1",
               embedded_text: "Product description",
@@ -604,7 +604,7 @@ describe("semanticSearch - fuzzy matching", () => {
           hits: [
             {
               _id: "prod-1",
-              _score: 1.8,
+              _score: 6.0,
               _source: {
                 product_id: "prod-1",
                 embedded_text: "Camera lens",
@@ -622,7 +622,7 @@ describe("semanticSearch - fuzzy matching", () => {
           hits: [
             {
               _id: "prod-1",
-              _score: 1.2,
+              _score: 1.5,
               _source: {
                 product_id: "prod-1",
                 embedded_text: "Camera lens",
@@ -695,7 +695,7 @@ describe("semanticSearch - fuzzy matching", () => {
             hits: [
               {
                 _id: "prod-laptop",
-                _score: 2.0,
+                _score: 6.0,
                 _source: {
                   product_id: "prod-laptop",
                   embedded_text: "High-performance laptop",
@@ -735,7 +735,7 @@ describe("semanticSearch - fuzzy matching", () => {
       expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
 
       // This is the key: fuzzy in BM25 catches what vector search missed
-      expect(result.hits[0].bm25_score).toBe(2.0);
+      expect(result.hits[0].bm25_score).toBe(6.0);
       expect(result.hits[0].vector_score).toBeUndefined(); // vector didn't match
     });
 
@@ -766,7 +766,7 @@ describe("semanticSearch - fuzzy matching", () => {
           hits: [
             {
               _id: "prod-kb",
-              _score: 1.8,
+              _score: 6.0,
               _source: {
                 product_id: "prod-kb",
                 embedded_text: "Mechanical keyboard",
