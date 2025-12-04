@@ -1,0 +1,115 @@
+permissions:
+  contents: read
+  packages: write
+
+name: Build and Deploy Grafana
+
+on:
+  push:
+    branches: [ master, feature/prometheus-telemtry]
+    paths:
+      - "grafana/**"
+      - ".github/workflows/grafana-monitoring.yml"
+  workflow_dispatch:
+
+env:
+  GRAFANA_IMAGE: ghcr.io/alphasearchinc/medusa-grafana
+
+jobs:
+  build:
+    name: Build and push Grafana image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Grafana Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./grafana
+          push: true
+          tags: |
+            ${{ env.GRAFANA_IMAGE }}:latest
+            ${{ env.GRAFANA_IMAGE }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy Grafana stack to VM
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/prometheus-telemtry'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure target directory exists
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.GRAFANA_VM_HOST }}
+          username: ${{ secrets.GRAFANA_VM_USER }}
+          key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            sudo mkdir -p /opt/grafana
+            sudo mkdir -p /opt/grafana/prometheus
+            sudo mkdir -p /opt/grafana/prometheus/data
+            sudo chown $USER:$USER /opt/grafana
+            sudo chown $USER:$USER /opt/grafana/prometheus
+            # Prometheus runs as nobody (65534); ensure TSDB dir writable
+            sudo chown 65534:65534 /opt/grafana/prometheus/data
+
+      - name: Copy Grafana stack files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GRAFANA_VM_HOST }}
+          username: ${{ secrets.GRAFANA_VM_USER }}
+          key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
+          port: 22
+          source: "grafana/docker-compose.grafana.yml,grafana/loki-config.yml"
+          target: "/opt/grafana"
+          strip_components: 1
+
+      - name: Copy Prometheus stack files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GRAFANA_VM_HOST }}
+          username: ${{ secrets.GRAFANA_VM_USER }}
+          key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
+          port: 22
+          source: "infra/grafana/prometheus/docker-compose.yml,infra/grafana/prometheus/prometheus.yml"
+          target: "/opt/grafana/prometheus"
+          strip_components: 3
+
+      - name: Deploy Grafana stack
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          BACKEND_VM_IP: ${{ secrets.BACKEND_VM_IP }}
+        with:
+          host: ${{ secrets.GRAFANA_VM_HOST }}
+          username: ${{ secrets.GRAFANA_VM_USER }}
+          key: ${{ secrets.GRAFANA_VM_SSH_KEY }}
+          port: 22
+          envs: BACKEND_VM_IP
+          script: |
+            set -e
+            cd /opt/grafana
+            docker compose -f docker-compose.grafana.yml pull
+            docker compose -f docker-compose.grafana.yml up -d
+
+            cd /opt/grafana/prometheus
+            # Inject backend VM IP into Prometheus scrape config
+            sed -i "s|<BACKEND_VM_IP>|${BACKEND_VM_IP}|g" prometheus.yml
+            docker compose up -d
+

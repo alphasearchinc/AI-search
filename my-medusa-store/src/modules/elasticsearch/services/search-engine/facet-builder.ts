@@ -8,6 +8,7 @@ import {
   BrandFacet,
   PriceRange,
   OptionFacet,
+  TagFacet,
   SearchFacets,
 } from "../../types";
 import {
@@ -16,6 +17,7 @@ import {
   applyFiltersExcluding,
   applyCategoryFilter,
   applyBrandFilter,
+  applyTagsFilter,
   applyPriceFilter,
 } from "./filter-pipeline";
 
@@ -71,6 +73,29 @@ export function buildBrandFacets(
 }
 
 /**
+ * Build tag facets from search hits.
+ */
+export function buildTagFacets(
+  hits: Array<{ metadata?: Record<string, any> }>
+): TagFacet[] {
+  const tagMap = new Map<string, number>();
+
+  for (const hit of hits) {
+    const tags = hit.metadata?.tags as string[] | undefined;
+    if (!tags || !Array.isArray(tags)) continue;
+
+    for (const tag of tags) {
+      const currentCount = tagMap.get(tag) ?? 0;
+      tagMap.set(tag, currentCount + 1);
+    }
+  }
+
+  return Array.from(tagMap.entries())
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
  * Build price range from search hits.
  */
 export function buildPriceRange(
@@ -106,10 +131,11 @@ export function buildOptionFacetsWithCascading(
   hits: SearchHit[],
   filters: SearchFilters
 ): OptionFacet[] {
-  // First, apply category, brand, and price filters (these always apply)
+  // First, apply category, brand, tags, and price filters (these always apply)
   let baseHits = hits;
   baseHits = applyCategoryFilter(baseHits, filters.categoryIds);
   baseHits = applyBrandFilter(baseHits, filters.brands);
+  baseHits = applyTagsFilter(baseHits, filters.tags);
   baseHits = applyPriceFilter(baseHits, filters.minPrice, filters.maxPrice);
 
   // Discover all option types from the base hits
@@ -190,15 +216,18 @@ export function buildAllFacets(
   hits: SearchHit[],
   filters: SearchFilters
 ): SearchFacets {
-  // Category facets: apply brand + price + options filters (exclude category)
+  // Category facets: apply brand + tags + price + options filters (exclude category)
   const hitsForCategoryFacets = applyFiltersExcluding(hits, filters, [
     "category",
   ]);
 
-  // Brand facets: apply category + price + options filters (exclude brand)
+  // Brand facets: apply category + tags + price + options filters (exclude brand)
   const hitsForBrandFacets = applyFiltersExcluding(hits, filters, ["brand"]);
 
-  // Price facets: apply category + brand + options filters (exclude price)
+  // Tag facets: apply category + brand + price + options filters (exclude tags)
+  const hitsForTagFacets = applyFiltersExcluding(hits, filters, ["tags"]);
+
+  // Price facets: apply category + brand + tags + options filters (exclude price)
   const hitsForPriceFacets = applyFiltersExcluding(hits, filters, ["price"]);
 
   // Option facets with per-type cascading
@@ -207,6 +236,7 @@ export function buildAllFacets(
   return {
     categories: buildCategoryFacets(hitsForCategoryFacets),
     brands: buildBrandFacets(hitsForBrandFacets),
+    tags: buildTagFacets(hitsForTagFacets),
     priceRange: buildPriceRange(hitsForPriceFacets),
     options: optionFacets,
   };

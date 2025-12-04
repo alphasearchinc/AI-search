@@ -105,6 +105,7 @@ export class SearchEngine {
     const filters: SearchFilters = {
       categoryIds: options.filters?.category_ids?.filter(Boolean) ?? [],
       brands: options.filters?.brands ?? [],
+      tags: options.filters?.tags ?? [],
       minPrice: options.filters?.min_price,
       maxPrice: options.filters?.max_price,
       options: options.filters?.options,
@@ -184,6 +185,7 @@ export class SearchEngine {
     const hasInMemoryFilters =
       (options.filters?.category_ids?.length ?? 0) > 0 ||
       (options.filters?.brands?.length ?? 0) > 0 ||
+      (options.filters?.tags?.length ?? 0) > 0 ||
       options.filters?.min_price !== undefined ||
       options.filters?.max_price !== undefined ||
       (options.filters?.options &&

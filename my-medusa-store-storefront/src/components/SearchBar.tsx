@@ -7,6 +7,7 @@ import {
   type OptionFacet,
   type PriceRange,
   type SemanticSearchHit,
+  type TagFacet,
 } from "@lib/search"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
@@ -29,10 +30,12 @@ const SearchBar = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [facets, setFacets] = useState<CategoryFacet[]>([])
   const [brandFacets, setBrandFacets] = useState<BrandFacet[]>([])
+  const [tagFacets, setTagFacets] = useState<TagFacet[]>([])
   const [optionFacets, setOptionFacets] = useState<OptionFacet[]>([])
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string[]>
   >({})
@@ -66,6 +69,7 @@ const SearchBar = () => {
   const activeFilterCount =
     selectedCategories.length +
     selectedBrands.length +
+    selectedTags.length +
     Object.values(selectedOptions).reduce((sum, arr) => sum + arr.length, 0) +
     (validMinPrice !== undefined ? 1 : 0) +
     (validMaxPrice !== undefined ? 1 : 0)
@@ -85,6 +89,17 @@ const SearchBar = () => {
     }
     return () => {
       document.body.style.overflow = ""
+    }
+  }, [isModalOpen])
+
+  // Change document title when search modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const originalTitle = document.title
+      document.title = "Tech Search"
+      return () => {
+        document.title = originalTitle
+      }
     }
   }, [isModalOpen])
 
@@ -115,6 +130,7 @@ const SearchBar = () => {
           categoryIds:
             selectedCategories.length > 0 ? selectedCategories : undefined,
           brands: selectedBrands.length > 0 ? selectedBrands : undefined,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
           minPrice: validMinPrice,
           maxPrice: validMaxPrice,
           options:
@@ -127,6 +143,7 @@ const SearchBar = () => {
           setTotalCount(response.total)
           setFacets(response.facets?.categories ?? [])
           setBrandFacets(response.facets?.brands ?? [])
+          setTagFacets(response.facets?.tags ?? [])
           setOptionFacets(response.facets?.options ?? [])
           setPriceRange(response.facets?.priceRange ?? null)
         }
@@ -138,6 +155,7 @@ const SearchBar = () => {
           setTotalCount(0)
           setFacets([])
           setBrandFacets([])
+          setTagFacets([])
           setOptionFacets([])
           setPriceRange(null)
           setError(message)
@@ -161,6 +179,7 @@ const SearchBar = () => {
     offset,
     selectedCategories,
     selectedBrands,
+    selectedTags,
     selectedOptions,
     validMinPrice,
     validMaxPrice,
@@ -173,6 +192,7 @@ const SearchBar = () => {
     trimmedQuery,
     selectedCategories,
     selectedBrands,
+    selectedTags,
     selectedOptions,
     validMinPrice,
     validMaxPrice,
@@ -200,10 +220,12 @@ const SearchBar = () => {
     setCurrentPage(1)
     setFacets([])
     setBrandFacets([])
+    setTagFacets([])
     setOptionFacets([])
     setPriceRange(null)
     setSelectedCategories([])
     setSelectedBrands([])
+    setSelectedTags([])
     setSelectedOptions({})
     setMinPriceInput("")
     setMaxPriceInput("")
@@ -214,6 +236,7 @@ const SearchBar = () => {
   const clearFilters = () => {
     setSelectedCategories([])
     setSelectedBrands([])
+    setSelectedTags([])
     setSelectedOptions({})
     setMinPriceInput("")
     setMaxPriceInput("")
@@ -230,6 +253,12 @@ const SearchBar = () => {
   const toggleBrand = (brand: string) => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    )
+  }
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
   }
 
@@ -267,6 +296,7 @@ const SearchBar = () => {
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
+        data-testid="search-trigger"
         className="flex items-center gap-2 rounded-full border border-ui-border-base bg-ui-bg-field px-4 py-2 shadow-elevation-card-rest hover:shadow-elevation-card-hover hover:border-ui-fg-base transition-all w-full max-w-md"
       >
         <SearchIcon />
@@ -278,7 +308,10 @@ const SearchBar = () => {
 
       {/* Fullscreen Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-ui-bg-base flex flex-col overflow-hidden">
+        <div
+          data-testid="search-modal"
+          className="fixed inset-0 z-50 bg-ui-bg-base flex flex-col overflow-hidden"
+        >
           {/* Header */}
           <div className="flex-shrink-0 bg-ui-bg-base border-b border-ui-border-base">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -294,11 +327,15 @@ const SearchBar = () => {
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Search for products..."
+                      data-testid="search-input"
                       className="flex-1 bg-transparent text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none text-base"
                       autoComplete="off"
                     />
                     {isLoading && (
-                      <div className="animate-spin h-4 w-4 border-2 border-ui-fg-muted border-t-transparent rounded-full" />
+                      <div
+                        data-testid="search-loading"
+                        className="animate-spin h-4 w-4 border-2 border-ui-fg-muted border-t-transparent rounded-full"
+                      />
                     )}
                     {query && !isLoading && (
                       <button
@@ -316,6 +353,7 @@ const SearchBar = () => {
                 <button
                   type="button"
                   onClick={closeModal}
+                  data-testid="search-close"
                   className="flex items-center justify-center w-10 h-10 rounded-lg border border-ui-border-base bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover text-ui-fg-base transition-colors"
                 >
                   <CloseIcon size={20} />
@@ -325,13 +363,17 @@ const SearchBar = () => {
               {/* Active Filters Summary */}
               {activeFilterCount > 0 && (
                 <div className="flex items-center gap-2 pb-3">
-                  <span className="text-xs text-ui-fg-muted">
+                  <span
+                    data-testid="active-filter-count"
+                    className="text-xs text-ui-fg-muted"
+                  >
                     {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}{" "}
                     active
                   </span>
                   <button
                     type="button"
                     onClick={clearFilters}
+                    data-testid="clear-filters"
                     className="text-xs text-ui-fg-interactive hover:text-ui-fg-interactive-hover underline"
                   >
                     Clear all
@@ -354,15 +396,18 @@ const SearchBar = () => {
                   <FiltersSidebar
                     facets={facets}
                     brandFacets={brandFacets}
+                    tagFacets={tagFacets}
                     optionFacets={optionFacets}
                     priceRange={priceRange}
                     selectedCategories={selectedCategories}
                     selectedBrands={selectedBrands}
+                    selectedTags={selectedTags}
                     selectedOptions={selectedOptions}
                     minPriceInput={minPriceInput}
                     maxPriceInput={maxPriceInput}
                     onToggleCategory={toggleCategory}
                     onToggleBrand={toggleBrand}
+                    onToggleTag={toggleTag}
                     onToggleOption={toggleOption}
                     onMinPriceChange={setMinPriceInput}
                     onMaxPriceChange={setMaxPriceInput}
@@ -375,15 +420,18 @@ const SearchBar = () => {
                       <MobileFilters
                         facets={facets}
                         brandFacets={brandFacets}
+                        tagFacets={tagFacets}
                         optionFacets={optionFacets}
                         priceRange={priceRange}
                         selectedCategories={selectedCategories}
                         selectedBrands={selectedBrands}
+                        selectedTags={selectedTags}
                         selectedOptions={selectedOptions}
                         minPriceInput={minPriceInput}
                         maxPriceInput={maxPriceInput}
                         onToggleCategory={toggleCategory}
                         onToggleBrand={toggleBrand}
+                        onToggleTag={toggleTag}
                         onToggleOption={toggleOption}
                         onMinPriceChange={setMinPriceInput}
                         onMaxPriceChange={setMaxPriceInput}
@@ -392,7 +440,10 @@ const SearchBar = () => {
 
                     {/* Results Count */}
                     <div className="mb-4 flex items-center justify-between">
-                      <p className="text-sm text-ui-fg-muted">
+                      <p
+                        data-testid="result-count"
+                        className="text-sm text-ui-fg-muted"
+                      >
                         {isLoading
                           ? "Searching..."
                           : totalCount > 0
@@ -412,7 +463,10 @@ const SearchBar = () => {
                     {/* Results */}
                     {results.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div
+                          data-testid="search-results"
+                          className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
+                        >
                           {results.map((hit) => (
                             <ProductCard
                               key={hit.id}
@@ -432,7 +486,10 @@ const SearchBar = () => {
                       </>
                     ) : (
                       !isLoading && (
-                        <div className="text-center py-16">
+                        <div
+                          data-testid="no-results"
+                          className="text-center py-16"
+                        >
                           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ui-bg-subtle mb-4">
                             <SearchIcon size={32} />
                           </div>

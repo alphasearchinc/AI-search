@@ -2,6 +2,7 @@ import {
   createCollectionsWorkflow,
   createProductCategoriesWorkflow,
   createProductsWorkflow,
+  createProductTagsWorkflow,
 } from "@medusajs/core-flows";
 import {
   ExecArgs,
@@ -131,6 +132,54 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const getCatId = (name: string) =>
     categoryResult.find((cat) => cat.name === name)?.id!;
 
+  // Create product tags
+  const desiredTags = [
+    "AI-Powered",
+    "Gaming",
+    "Premium",
+    "Wireless",
+    "Portable",
+    "Professional",
+    "Budget-Friendly",
+    "High-Performance",
+    "Compact",
+    "Ergonomic",
+    "4K",
+    "Noise-Cancelling",
+    "Waterproof",
+    "Smart Home",
+    "Mechanical",
+    "RGB",
+    "Ultrawide",
+    "OLED",
+    "5G",
+    "USB-C",
+  ];
+
+  const existingTags = await productModuleService.listProductTags(
+    { value: desiredTags },
+    { select: ["id", "value"] }
+  );
+
+  const existingTagValues = new Set(existingTags.map((t: any) => t.value));
+  const missingTags = desiredTags.filter((t) => !existingTagValues.has(t));
+
+  const createdTags = missingTags.length
+    ? (
+        await createProductTagsWorkflow(container).run({
+          input: {
+            product_tags: missingTags.map((value) => ({ value })),
+          },
+        })
+      ).result
+    : [];
+
+  const tagResult = [...existingTags, ...createdTags];
+
+  // Helper to find tag ID by value
+  const getTagId = (value: string) =>
+    tagResult.find((tag: any) => tag.value === value)?.id!;
+
   // 1. Create Hero Products
   await createProductsWorkflow(container).run({
     input: {
@@ -140,6 +189,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             '16" Ultra-Slim AI Laptop | 3K OLED | 1.1cm Thin | 6-Speaker Audio',
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("AI-Powered"),
+            getTagId("Premium"),
+            getTagId("OLED"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "This ultra-thin 16-inch laptop is a sophisticated, high-performance machine for the new era of artificial intelligence. It has been completely redesigned from the inside out. The cabinet features an exquisite new ceramic-aluminum composite material in a range of nature-inspired colors. This material provides durability while completing the ultra-slim design and resisting the test of time. This innovative computer utilizes the latest AI-enhanced processor with quiet ambient cooling. It's designed to enrich your lifestyle on the go with an astonishingly thin 1.1cm chassis that houses an advanced 16-inch 3K OLED display and immersive six-speaker audio.",
@@ -222,6 +276,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "1080p HD Pro Webcam | Superior Video | Privacy enabled",
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Compact"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "High-quality 1080p HD webcam that elevates your work environment with superior video and audio that outperforms standard laptop cameras. Achieve top-tier video collaboration at a cost-effective price point, ideal for widespread deployment across your organization.",
@@ -296,6 +355,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: `6.5" Ultra HD Smartphone | 3x Impact-Resistant Screen`,
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("Portable"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             'This premium smartphone is crafted from durable and lightweight aerospace-grade aluminum, featuring an expansive 6.5" Ultra-High Definition AMOLED display. It boasts exceptional durability with a cutting-edge nanocrystal glass front, offering three times the impact resistance of standard smartphone screens. The device combines sleek design with robust protection, setting a new standard for smartphone resilience and visual excellence.',
@@ -379,6 +443,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: `34" QD-OLED Curved Gaming Monitor | Ultra-Wide | Infinite Contrast | 175Hz`,
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("OLED"),
+            getTagId("Ultrawide"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Experience the pinnacle of display technology with this 34-inch curved monitor. By merging OLED panels and Quantum Dot technology, this QD-OLED screen delivers exceptional contrast, deep blacks, unlimited viewing angles, and vivid colors. The curved design provides an immersive experience, allowing you to enjoy the best of both worlds in one cutting-edge display. This innovative monitor represents the ultimate fusion of visual performance and immersive design.",
@@ -459,6 +528,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Hi-Fi Gaming Headset | Pro-Grade DAC | Hi-Res Certified",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description: `Experience studio-quality audio with this advanced acoustic system, which pairs premium hardware with high-fidelity sound and innovative audio software for an immersive listening experience. The integrated digital-to-analog converter (DAC) enhances the audio setup with high-resolution certification and a built-in amplifier, delivering exceptional sound clarity and depth. This comprehensive audio solution brings professional-grade sound to your personal environment, whether for gaming, music production, or general entertainment.`,
           weight: 400,
@@ -534,6 +608,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Wireless Keyboard | Touch ID | Numeric Keypad",
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Ergonomic"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "ACME" },
           description: `This wireless keyboard offers a comfortable typing experience with a numeric keypad and Touch ID. It features navigation buttons, full-sized arrow keys, and is ideal for spreadsheets and gaming. The rechargeable battery lasts about a month. It pairs automatically with compatible computers and includes a USB-C to Lightning cable for charging and pairing.`,
           weight: 400,
@@ -606,6 +685,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Wireless Rechargeable Mouse | Multi-Touch Surface",
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Ergonomic"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "ACME" },
           description: `This wireless mouse glides effortlessly with a low-friction base and precision laser sensor. The multi-touch surface supports smooth scrolling and intuitive gestures, and the rechargeable battery is designed to last for weeks on a single charge. Pair it over Bluetooth in seconds and top up quickly with the included USB-C cable.`,
           weight: 400,
@@ -678,6 +762,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Conference Speaker | High-Performance | Budget-Friendly",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("Professional"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "ACME" },
           description: `This compact, powerful conference speaker offers exceptional, high-performance features at a surprisingly affordable price. Packed with advanced productivity-enhancing technology, it delivers premium functionality without the premium price tag. Experience better meetings and improved communication, regardless of where your team members are calling from.`,
           weight: 400,
@@ -753,6 +842,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: '15.6" Gaming Laptop | RTX 4070 | 165Hz Display | 32GB RAM',
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Dominate the competition with this powerful 15.6-inch gaming laptop. Equipped with an NVIDIA RTX 4070 graphics card and a blazing-fast 165Hz refresh rate display, every frame is rendered with stunning clarity. The 32GB of DDR5 RAM ensures seamless multitasking, while the advanced cooling system keeps temperatures in check during intense gaming sessions. The RGB keyboard adds a personalized touch to your setup.",
@@ -806,6 +900,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             '14" Business Ultrabook | Intel Core i7 | 16GB RAM | All-Day Battery',
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Portable"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Designed for the modern professional, this 14-inch ultrabook combines portability with productivity. Powered by the latest Intel Core i7 processor and 16GB of RAM, it handles demanding workloads with ease. The all-day battery life ensures you stay productive on the go, while the lightweight magnesium chassis makes it easy to carry. Features a fingerprint reader and IR camera for secure Windows Hello login.",
@@ -859,6 +958,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             '6.7" Flagship Smartphone | 200MP Camera | 5G | Titanium Frame',
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("5G"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Capture every moment in stunning detail with the revolutionary 200MP main camera. This flagship smartphone features a gorgeous 6.7-inch Dynamic AMOLED display with 120Hz adaptive refresh rate. The titanium frame provides exceptional durability while maintaining a premium feel. With 5G connectivity and all-day battery life, you're always connected and ready for anything.",
@@ -912,6 +1016,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             '6.4" Budget Smartphone | 5000mAh Battery | 48MP Triple Camera',
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("Portable"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Get premium features without the premium price. This 6.4-inch smartphone delivers exceptional value with a 48MP triple camera system, massive 5000mAh battery, and smooth 90Hz display. Perfect for social media, streaming, and everyday tasks. The sleek design and vibrant color options make it stand out from the crowd.",
@@ -964,6 +1073,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: '27" 4K UHD Monitor | IPS Panel | 99% sRGB | USB-C Hub',
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("USB-C"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Experience stunning visuals on this 27-inch 4K UHD monitor. The IPS panel delivers accurate colors with 99% sRGB coverage, perfect for creative professionals and content creators. The built-in USB-C hub with 65W power delivery simplifies your workspace by connecting and charging your laptop with a single cable. Ergonomic stand with height, tilt, and swivel adjustments.",
@@ -1013,6 +1127,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: '32" Curved Gaming Monitor | 240Hz | 1ms Response | HDR600',
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Gain the competitive edge with this 32-inch curved gaming monitor. The 240Hz refresh rate and 1ms response time deliver buttery-smooth gameplay with zero ghosting. HDR600 support brings games to life with vivid colors and deep contrasts. The 1500R curvature provides an immersive experience that puts you in the center of the action. G-Sync and FreeSync compatible.",
@@ -1063,6 +1182,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Premium Wireless Headphones | Active Noise Cancellation | 40hr Battery",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Immerse yourself in pure audio bliss with these premium wireless headphones. Industry-leading active noise cancellation blocks out the world so you can focus on your music. The 40-hour battery life keeps you listening all week long, and quick charge gives you 5 hours of playback from just 10 minutes of charging. Memory foam ear cushions provide all-day comfort.",
@@ -1115,6 +1239,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Sports Wireless Earbuds | IP67 Waterproof | Secure Fit | 8hr Battery",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Waterproof"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Designed for athletes and fitness enthusiasts, these wireless earbuds stay secure during the most intense workouts. IP67 waterproof rating protects against sweat and rain. The ergonomic design with flexible ear hooks ensures a comfortable, secure fit. Powerful bass and clear highs keep you motivated, while 8 hours of battery life outlasts your longest training sessions.",
@@ -1165,6 +1294,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Portable Bluetooth Speaker | 360° Sound | IP67 Waterproof | 20hr Battery",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Wireless"),
+            getTagId("Waterproof"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Take the party anywhere with this rugged portable Bluetooth speaker. The 360-degree sound design fills any space with rich, room-filling audio. IP67 waterproof rating means it can handle pool parties, beach trips, and unexpected rain. The 20-hour battery life keeps the music playing all day and night. Built-in microphone for hands-free calls.",
@@ -1215,6 +1349,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Smart Home Speaker | Voice Assistant | Multi-Room Audio | Hi-Fi Sound",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Smart Home"),
+            getTagId("Wireless"),
+            getTagId("AI-Powered"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Transform your home with this intelligent smart speaker. Built-in voice assistant responds to your commands for music, smart home control, and more. Link multiple speakers for synchronized multi-room audio throughout your home. Premium drivers deliver Hi-Fi sound quality that fills any room. Elegant fabric design complements any décor.",
@@ -1265,6 +1404,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Mechanical Gaming Keyboard | RGB Backlight | Hot-Swappable | Aluminum Frame",
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Mechanical"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Elevate your gaming experience with this premium mechanical keyboard. Hot-swappable switches let you customize the feel without soldering. Per-key RGB backlighting with 16.8 million colors creates stunning lighting effects. The aircraft-grade aluminum frame provides durability and a premium feel. Programmable macro keys give you the competitive edge.",
@@ -1318,6 +1462,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Compact Wireless Keyboard | 65% Layout | Multi-Device | Rechargeable",
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Compact"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Maximize desk space with this compact 65% layout wireless keyboard. Connect up to 3 devices via Bluetooth and switch between them instantly. The slim, minimalist design looks great in any setup. Rechargeable battery lasts up to 2 months on a single charge. Quiet, low-profile keys provide comfortable typing for extended sessions.",
@@ -1367,6 +1516,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Pro Gaming Mouse | 25000 DPI | Lightweight | RGB Lighting",
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Achieve pixel-perfect accuracy with this professional gaming mouse. The 25000 DPI optical sensor tracks on any surface with zero smoothing or acceleration. Weighing just 58 grams, it glides effortlessly for lightning-fast flicks. Customizable RGB lighting syncs with your setup. 6 programmable buttons for your most-used commands.",
@@ -1417,6 +1571,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Ergonomic Vertical Mouse | Reduces Wrist Strain | Wireless | Silent Clicks",
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Ergonomic"),
+            getTagId("Wireless"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Say goodbye to wrist pain with this ergonomic vertical mouse. The natural handshake position reduces muscle strain and prevents repetitive stress injuries. Silent click buttons let you work without disturbing others. Wireless 2.4GHz connection provides reliable performance up to 10 meters. Adjustable DPI settings for precision control.",
@@ -1467,6 +1626,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "4K Streaming Webcam | AI Auto-Focus | Dual Microphones | Low Light Correction",
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("AI-Powered"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Look your best on every video call with this professional 4K streaming webcam. AI-powered auto-focus keeps you sharp even when moving. Dual noise-canceling microphones capture clear audio. Advanced low-light correction ensures you look great in any lighting condition. Built-in privacy shutter for peace of mind when not in use.",
@@ -1516,6 +1680,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Compact Conference Webcam | 1080p60 | Wide Angle 90° | USB-C",
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Compact"),
+            getTagId("USB-C"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The perfect webcam for remote work and video conferencing. 1080p at 60fps delivers smooth, professional video quality. The 90-degree wide-angle lens captures more of your background, perfect for group calls. USB-C connectivity works with all modern laptops. Compact design with flexible mount fits any monitor or tripod.",
@@ -1566,6 +1735,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             '17" Creator Laptop | 4K OLED | 64GB RAM | RTX 4080 | Color Accurate',
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("OLED"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Unleash your creativity with this powerhouse 17-inch creator laptop. The stunning 4K OLED display covers 100% of DCI-P3 for color-accurate work. 64GB of RAM handles the most demanding creative applications, while the RTX 4080 accelerates rendering and 3D work. Thunderbolt 4 ports connect to all your professional peripherals. Built for video editors, 3D artists, and photographers.",
@@ -1619,6 +1793,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             '5.8" Compact Smartphone | Flagship Performance | One-Hand Friendly',
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Compact"),
+            getTagId("High-Performance"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Big performance in a compact package. This 5.8-inch smartphone fits comfortably in one hand while packing flagship-level specs. The same powerful processor as larger models ensures smooth performance for any task. The 12MP triple camera system captures stunning photos. Perfect for those who prefer a smaller phone without compromising on features.",
@@ -1672,6 +1851,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             '49" Super Ultrawide Monitor | 5120x1440 | 120Hz | Picture-by-Picture',
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Ultrawide"),
+            getTagId("Premium"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Replace your dual monitor setup with this incredible 49-inch super ultrawide display. The 5120x1440 resolution provides the equivalent of two 27-inch monitors side by side. Picture-by-picture mode lets you connect two computers simultaneously. The 1000R curve wraps around your field of view for an immersive experience. Perfect for productivity, trading, and simulation gaming.",
@@ -1722,6 +1906,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Studio Reference Headphones | Open-Back | Audiophile Grade | Detachable Cable",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Experience music the way artists intended with these studio reference headphones. The open-back design delivers a spacious, natural soundstage preferred by audio professionals. Hand-matched drivers ensure consistent frequency response. Velour ear pads provide comfort during long mixing sessions. Detachable cable with both 3.5mm and 6.35mm options included.",
@@ -1772,6 +1961,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: `Apple MacBook Air 13" (M2, 2022) | Fanless | 13.6" Liquid Retina`,
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Premium"),
+            getTagId("AI-Powered"),
+          ],
           metadata: { brand: "Apple" },
           description:
             "The 13-inch MacBook Air with M2 combines a silent fanless design with a bright 13.6-inch Liquid Retina display that is easy to carry all day. The M2 chip delivers snappy performance for productivity, light content creation, and study work while keeping power consumption low. With up to 18 hours of battery life, fast Wi-Fi, and a responsive Magic Keyboard, it is a strong choice for students and mobile professionals who prioritize portability.",
@@ -1825,6 +2019,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: `Apple MacBook Pro 14" (M3 Pro) | Mini-LED | Pro Apps Ready`,
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Apple" },
           description:
             "The 14-inch MacBook Pro with M3 Pro is built for demanding workflows such as software development, 4K video editing, and RAW photo processing. Its mini-LED display offers deep contrast, high brightness, and excellent color accuracy for creative tasks. The M3 Pro chip handles multiple pro apps at once while remaining efficient enough for long unplugged sessions. With a robust port selection and solid aluminum body, it is a reliable mobile workstation.",
@@ -1878,6 +2077,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Dell XPS 13 9315 | InfinityEdge | Ultraportable",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Premium"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Dell" },
           description:
             "The Dell XPS 13 9315 is an ultra-portable Windows laptop with a compact 13-inch InfinityEdge display that minimizes bezels. Its aluminum and glass design feels premium while remaining light enough to carry in a small backpack. Efficient Intel processors provide enough performance for office work, browsing, and light creative tasks. Long battery life and modern connectivity make it a solid everyday ultrabook for commuters and students.",
@@ -1921,6 +2125,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Lenovo ThinkPad X1 Carbon Gen 11 | Business Ultrabook",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Portable"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Lenovo" },
           description:
             "The ThinkPad X1 Carbon Gen 11 is a classic business ultrabook with a lightweight carbon-fiber chassis and a keyboard that is comfortable for long typing sessions. It offers strong Intel processors, enterprise security features, and a matte display suitable for brightly lit offices. With multiple USB-C and Thunderbolt ports, quiet cooling, and support for docking solutions, it fits well into modern hybrid work environments.",
@@ -1971,6 +2180,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'ASUS ROG Zephyrus G14 (2023) | 14" Gaming Laptop',
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Portable"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ASUS" },
           description:
             "The ROG Zephyrus G14 packs serious gaming performance into a compact 14-inch chassis. Fast AMD processors and dedicated graphics make it capable of high-frame-rate gaming and 3D workloads. The high-refresh display keeps motion smooth, while the cooling system balances performance and fan noise. Its small size and relatively low weight make it a rare gaming laptop that is genuinely easy to travel with.",
@@ -2014,6 +2228,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'HP Spectre x360 14" | 2-in-1 OLED Convertible',
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("OLED"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "HP" },
           description:
             "The HP Spectre x360 14 is a premium 2-in-1 convertible with a vivid OLED touch display and a slim metal design. It rotates into tablet, tent, or stand mode, making it flexible for note-taking, drawing, and media. Intel processors and fast SSD storage keep Windows responsive, while the included pen support makes it attractive for creative users who sketch or annotate documents.",
@@ -2057,6 +2276,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Apple iPhone 15 Pro | A17 Pro | Pro Camera System",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [getTagId("Premium"), getTagId("5G"), getTagId("USB-C")],
           metadata: { brand: "Apple" },
           description:
             "The iPhone 15 Pro brings a titanium frame, USB-C connectivity, and the A17 Pro chip for fluid gaming and demanding mobile apps. Its triple camera system captures detailed photos and stabilized 4K video in a compact body. The high-brightness display stays readable outdoors, while iOS and the Apple ecosystem make it especially appealing for users with other Apple devices.",
@@ -2110,6 +2330,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Samsung Galaxy S24 Ultra | S Pen | 200MP Camera",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("AI-Powered"),
+            getTagId("5G"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Galaxy S24 Ultra is a large Android flagship with a built-in S Pen for note-taking and sketching directly on its expansive display. Its 200MP main camera and advanced zoom system are designed for detailed photos at both close and long distances. A powerful processor, large battery, and bright screen make it suitable for heavy multitasking, gaming, and outdoor use.",
@@ -2163,6 +2388,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Google Pixel 8 Pro | Tensor G3 | Computational Camera",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("AI-Powered"),
+            getTagId("Premium"),
+            getTagId("5G"),
+          ],
           metadata: { brand: "Google" },
           description:
             "The Google Pixel 8 Pro focuses on camera quality and clean Android software. Its Tensor G3 chip powers AI-driven photo and audio tools that can remove distractions from images or clean up recorded speech. The triple rear camera setup handles wide, ultra-wide, and telephoto shots with natural color reproduction. Long software support and fast security updates make it attractive for users who like a simple, Google-centric experience.",
@@ -2213,6 +2443,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "OnePlus 12 | Fast Charging | Fluid AMOLED",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("High-Performance"),
+            getTagId("5G"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "OnePlus" },
           description:
             "The OnePlus 12 combines a fast high-refresh AMOLED display with extremely quick wired charging for users who value speed. Its Snapdragon-class processor keeps Android responsive, even when switching between multiple apps and games. A versatile camera setup covers everyday scenes with balanced colors, while OxygenOS adds useful tweaks on top of a clean interface.",
@@ -2253,6 +2488,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Samsung Galaxy A54 5G | Midrange | Long Battery",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("5G"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Galaxy A54 5G is a midrange smartphone that focuses on value, offering a bright AMOLED panel, solid battery life, and a versatile camera at a lower price than flagship devices. It supports 5G networks for quick downloads and streaming when coverage is available. The plastic frame keeps weight down, while One UI adds extra features that many Galaxy users already recognize.",
@@ -2293,6 +2533,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Nothing Phone (2) | Glyph Interface | Transparent Back",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("Compact"),
+            getTagId("Portable"),
+          ],
           metadata: { brand: "Nothing" },
           description:
             "The Nothing Phone (2) stands out with its transparent back and glyph light interface that can signal calls and notifications using subtle patterns. Its OLED display, smooth refresh rate, and clean software create a modern feel that emphasizes design. Cameras capture detailed photos in everyday conditions, while the mid-to-high-end chipset keeps performance responsive without pushing power consumption too far.",
@@ -2330,6 +2575,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'LG UltraGear 27GP850-B | 27" QHD | 165Hz Nano IPS',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "LG" },
           description:
             "The LG UltraGear 27GP850-B is a 27-inch gaming monitor with a 2560×1440 Nano IPS panel and a refresh rate that can reach 165 Hz. Its fast response time and support for variable refresh-rate technologies help reduce tearing and ghosting in fast games. Good color reproduction and viewing angles also make it usable for everyday work and media, not just gaming sessions.",
@@ -2370,6 +2620,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Dell UltraSharp U2723QE | 27" 4K | USB-C Hub Monitor',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("USB-C"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Dell" },
           description:
             "The Dell UltraSharp U2723QE is a 27-inch 4K monitor aimed at productivity and creative work. It includes a USB-C hub that can supply power to a laptop while connecting peripherals through a single cable. The IPS panel focuses on color accuracy and consistent brightness, which is useful for photo editing and design tasks. An ergonomic stand allows height, tilt, and swivel adjustments for comfortable long-term use.",
@@ -2410,6 +2665,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Samsung Odyssey G7 27" | 240Hz Curved QHD',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Samsung Odyssey G7 27-inch is a curved QHD gaming monitor with a very high refresh rate of up to 240 Hz. Its VA panel offers deep contrast for dark scenes and strong immersion in story-driven games. The aggressive curve pulls the edges of the screen closer to your field of view, while adaptive sync technologies help keep motion smooth when frame rates change.",
@@ -2447,6 +2707,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'ASUS ProArt PA278QV | 27" QHD | Color-Focused',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Premium"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "ASUS" },
           description:
             "The ASUS ProArt PA278QV is a 27-inch QHD monitor tuned for creators who care about accurate color. Factory calibration targets reliable sRGB coverage, making it suitable for web design, illustration, and photo work. Numerous connectivity options and an ergonomic stand help it slot into a studio or home office without much fuss.",
@@ -2484,6 +2749,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech MX Master 3S Wireless Mouse | 8K DPI | Quiet Clicks",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Ergonomic"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech MX Master 3S is a productivity mouse with an ergonomic shape that supports the hand during long sessions. Its MagSpeed scroll wheel can quickly move through long documents or switch into precise mode for careful scrolling. With 8K DPI tracking that works on many surfaces and quiet main buttons, it suits both office and home environments where comfort and flexibility matter.",
@@ -2524,6 +2794,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech MX Keys S Wireless Keyboard | Low-Profile | Backlit",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Professional"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech MX Keys S is a low-profile wireless keyboard designed for comfortable typing on multiple devices. Its backlit keys automatically adjust brightness based on ambient light, and the layout will feel familiar to laptop users. With support for easy device switching and USB-C charging, it targets people who move between desktops, laptops, and tablets while wanting a single main keyboard.",
@@ -2565,6 +2840,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "SteelSeries Arctis Nova Pro Wireless | Multi-System Gaming Headset",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "SteelSeries" },
           description:
             "The SteelSeries Arctis Nova Pro Wireless is a gaming headset designed for people who switch between PC, console, and other devices. Its base station manages wireless connections and includes hot-swappable batteries so the headset can stay powered for long sessions. The sound profile aims for a detailed but enjoyable presentation, while the retractable microphone provides clear voice chat in games and online meetings.",
@@ -2605,6 +2885,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Jabra Speak 710 UC Speakerphone | Portable Conference Audio",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Portable"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "Jabra" },
           description:
             "The Jabra Speak 710 is a compact conference speakerphone built for small meeting rooms and home offices. Its 360-degree microphone pick-up allows people around a table to be heard clearly during calls. The unit connects over USB or Bluetooth, making it easy to pair with laptops and phones. A simple control layout on the top surface keeps muting and volume adjustments straightforward during busy meetings.",
@@ -2645,6 +2930,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Razer DeathAdder V3 Pro | Ultra-Light | 30K DPI | Wireless Esports",
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer DeathAdder V3 Pro is an ultra-lightweight wireless gaming mouse designed for esports professionals. At just 63 grams, it features the Focus Pro 30K optical sensor for precise tracking on any surface. The ergonomic shape has been refined through pro feedback for comfortable grip during long gaming sessions. HyperSpeed Wireless technology ensures lag-free connectivity with up to 90 hours of battery life.",
@@ -2694,6 +2984,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Keychron Q1 Pro | 75% Wireless | QMK/VIA | Gasket Mount",
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Mechanical"),
+            getTagId("Wireless"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "Keychron" },
           description:
             "The Keychron Q1 Pro is a premium 75% wireless mechanical keyboard with a CNC aluminum body and gasket mount design for a soft, cushioned typing feel. Fully programmable via QMK and VIA, it supports Bluetooth, 2.4GHz wireless, and wired modes. Hot-swappable south-facing RGB switches let you customize your typing experience without soldering. The included sound-dampening foam reduces noise and improves acoustics.",
@@ -2749,6 +3044,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Sony WH-1000XM5 | Industry-Leading ANC | 30hr Battery",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Sony" },
           description:
             "The Sony WH-1000XM5 sets the benchmark for wireless noise-canceling headphones. Eight microphones and two processors create industry-leading ANC that adapts to your environment in real-time. The new lightweight design with soft-fit leather reduces pressure during long listening sessions. LDAC codec support delivers Hi-Res Audio wirelessly, while Speak-to-Chat automatically pauses music when you talk.",
@@ -2798,6 +3098,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Apple AirPods Pro (2nd Gen) | USB-C | Adaptive Audio",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Apple" },
           description:
             "The second-generation AirPods Pro with USB-C charging case delivers powerful Active Noise Cancellation and Transparency mode with the new Adaptive Audio feature that intelligently blends both. The H2 chip enables computational audio processing for immersive Spatial Audio with dynamic head tracking. Conversation Awareness automatically lowers media volume when you speak, and touch controls on the stems adjust volume with a simple swipe.",
@@ -2837,6 +3142,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Sonos Era 300 | Spatial Audio | Dolby Atmos | Voice Control",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Smart Home"),
+            getTagId("Premium"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "Sonos" },
           description:
             "The Sonos Era 300 is designed for spatial audio, featuring six drivers oriented in multiple directions to create an immersive 3D sound experience. It supports Dolby Atmos Music tracks and uses advanced processing to fill your room with dimension. Connect via WiFi for multi-room audio, or use Bluetooth when guests want to share. Voice assistants are built in for hands-free control of music, smart home, and more.",
@@ -2886,6 +3196,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Elgato Facecam Pro | 4K60 | Sony Sensor | Creator-Focused",
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("Professional"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "Elgato" },
           description:
             "The Elgato Facecam Pro is the first 4K60 webcam, capturing ultra-sharp video at 60fps for content creators who demand the best. The large Sony sensor excels in low light, while the uncompressed MJPEG output ensures maximum quality for streaming and recording. Companion software provides pro-grade controls for exposure, color, and field of view. A USB 3.0 connection is required for full 4K60 performance.",
@@ -2926,6 +3241,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "BenQ ScreenBar Halo | Monitor Light | Wireless Controller | Backlight",
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Ergonomic"),
+            getTagId("Professional"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "BenQ" },
           description:
             "The BenQ ScreenBar Halo is a monitor-mounted LED light bar that illuminates your desk without screen glare. The wireless controller allows quick adjustments to brightness and color temperature. The unique backlight feature also illuminates the wall behind your monitor, reducing eye strain in dark environments. Asymmetric optical design focuses light downward on your workspace rather than in your eyes.",
@@ -2975,6 +3295,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Samsung Galaxy Buds3 Pro | Intelligent ANC | 360 Audio",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Galaxy Buds3 Pro delivers exceptional sound with 2-way speakers that separate highs and lows for clearer audio. Intelligent ANC adapts to your environment using real-time analysis, while 360 Audio with head tracking creates an immersive theater-like experience for supported content. The blade-light design is both eye-catching and ergonomic, with up to 30 hours of total listening time with the case.",
@@ -3024,6 +3349,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Bose SoundLink Max | Powerful Portable | 20hr Battery | IP67",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Waterproof"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "Bose" },
           description:
             "The Bose SoundLink Max is the most powerful portable Bluetooth speaker from Bose, delivering room-filling sound from a compact, rugged design. Two custom racetrack drivers and dual passive radiators create deep bass and clear highs. The IP67 rating protects against dust and water, while the 20-hour battery keeps music playing all day. A built-in strap makes it easy to carry anywhere.",
@@ -3073,6 +3403,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Corsair K100 RGB | Optical-Mechanical | iCUE Control Wheel",
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Mechanical"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "Corsair" },
           description:
             "The Corsair K100 RGB is a flagship mechanical gaming keyboard featuring ultra-fast optical-mechanical switches with 1ms response time. The unique iCUE control wheel provides intuitive volume control, scrolling, and in-game commands. Per-key RGB backlighting powered by 44-zone LightEdge creates stunning lighting effects. The PBT double-shot keycaps and aircraft-grade aluminum frame ensure durability for years of gaming.",
@@ -3113,6 +3448,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Xiaomi 14 Ultra | Leica Optics | 1-inch Sensor | 90W Charging",
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+            getTagId("AI-Powered"),
+          ],
           metadata: { brand: "Xiaomi" },
           description:
             "The Xiaomi 14 Ultra is a photography-focused flagship co-engineered with Leica. Its quad camera system includes a massive 1-inch main sensor and variable aperture from f/1.63 to f/4.0 for creative depth control. The 3.2x and 5x telephoto lenses cover portrait to long-range zoom. A stunning AMOLED display with 3200x1440 resolution and 120Hz refresh rate complements the Snapdragon 8 Gen 3 processor for smooth performance in any task.",
@@ -3166,6 +3506,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             'ASUS ROG Swift PG32UCDM | 32" 4K OLED | 240Hz | Gaming Excellence',
           category_ids: [getCatId("Monitors")],
+          tag_ids: [getTagId("Gaming"), getTagId("4K"), getTagId("OLED")],
           metadata: { brand: "ASUS" },
           description:
             "The ASUS ROG Swift PG32UCDM is a cutting-edge 32-inch 4K OLED gaming monitor with an incredible 240Hz refresh rate and 0.03ms response time. The WOLED panel delivers perfect blacks and infinite contrast for stunning HDR gaming. Custom heatsink design prevents burn-in, while HDMI 2.1 and DisplayPort 2.1 support next-gen consoles and graphics cards at full capability. G-Sync and FreeSync Premium Pro ensure tear-free gameplay.",
@@ -3206,6 +3547,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Logitech G Pro X Superlight 2 | 60g | HERO 2 Sensor | Esports",
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The G Pro X Superlight 2 builds on the legendary esports mouse with the new HERO 2 sensor delivering 32K DPI and 500 IPS tracking. At just 60 grams, it is one of the lightest wireless gaming mice available. The new LIGHTFORCE hybrid optical-mechanical switches provide crisp clicks with improved durability. Pro players trust it for its flawless wireless connection with under 1ms latency via LIGHTSPEED technology.",
@@ -3255,6 +3601,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Nuphy Air75 V2 | Ultra-Slim | 75% Wireless | RGB",
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Portable"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "Nuphy" },
           description:
             "The Nuphy Air75 V2 is an ultra-slim 75% wireless mechanical keyboard that combines portability with premium features. Its low-profile Gateron switches provide a satisfying typing experience in a compact package. Triple-mode connectivity (Bluetooth, 2.4GHz, wired) works seamlessly across Mac, Windows, and mobile devices. Per-key RGB with side-glow lighting creates a stunning visual effect. Perfect for hot-desking and travel.",
@@ -3307,6 +3658,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Bose QuietComfort Ultra | Immersive Audio | CustomTune",
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Bose" },
           description:
             "The Bose QuietComfort Ultra Headphones deliver world-class noise cancellation with the new Immersive Audio feature that creates a spacious, theater-like sound experience. CustomTune technology automatically analyzes your ear shape to optimize sound and ANC performance. The plush ear cushions and adjustable headband provide all-day comfort. Up to 24 hours of battery life keeps you listening, with just 15 minutes of charging adding 2.5 hours of playtime.",
@@ -3356,6 +3712,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "JBL Xtreme 4 | Party Boost | AI Sound | 24hr Battery",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Waterproof"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "JBL" },
           description:
             "The JBL Xtreme 4 is a powerful portable Bluetooth speaker with AI Sound Boost that intelligently adjusts performance based on content and environment. Dual woofers and dual tweeters deliver deep bass and crisp highs that fill any space. IP67 waterproof and dustproof rating handles any outdoor adventure. PartyBoost allows you to connect multiple JBL speakers for an even bigger sound. The shoulder strap with built-in bottle opener makes it the ultimate party companion.",
@@ -3407,6 +3768,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Insta360 Link 2 | AI Tracking | 4K30 | Gesture Control",
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("AI-Powered"),
+            getTagId("4K"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Insta360" },
           description:
             "The Insta360 Link 2 is an AI-powered webcam with 3-axis gimbal stabilization that automatically tracks your movement as you present, teach, or stream. Gesture controls let you zoom in, switch modes, or start recording with simple hand movements. The 4K sensor with AI noise reduction ensures professional video quality even in challenging lighting. DeskView mode lets you show documents or products on your desk in overhead perspective.",
@@ -3447,6 +3813,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Framework Laptop 16 | Modular | Upgradeable | User-Repairable",
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("Professional"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "Framework" },
           description:
             "The Framework Laptop 16 redefines what a laptop can be with a fully modular and user-upgradeable design. Swap expansion cards to customize your ports, upgrade the CPU, GPU, RAM, and storage yourself, and choose from multiple keyboard layouts. The expansion bay system lets you add a dedicated graphics module or additional batteries. Built for longevity and sustainability, it is designed to last and evolve with your needs over years of use.",
@@ -3498,6 +3869,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "ASUS Zenbook Duo 14 | Dual OLED Screens | Intel Core Ultra",
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Premium"),
+            getTagId("OLED"),
+            getTagId("AI-Powered"),
+          ],
           metadata: { brand: "ASUS" },
           description:
             "The ASUS Zenbook Duo 14 features two full-size OLED touchscreens for unprecedented multitasking capability. Both 14-inch displays offer 120Hz refresh rate and 3K resolution for stunning visuals. Detachable Bluetooth keyboard allows flexible usage modes from laptop to dual-monitor desktop. Powered by Intel Core Ultra processors with NPU for AI-enhanced workflows. Perfect for creative professionals, developers, and productivity enthusiasts who need maximum screen real estate.",
@@ -3551,6 +3927,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title:
             "Marshall Emberton III | Iconic Design | 360° Sound | 32hr Battery",
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Waterproof"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "Marshall" },
           description:
             "The Marshall Emberton III brings iconic rock-and-roll design to a portable Bluetooth speaker. True Stereophonic technology creates 360-degree immersive sound that fills any room. The rugged build with IP67 dust and water resistance handles outdoor adventures. An incredible 32 hours of playtime means your music keeps playing through any event. Stacked charging allows quick 20-minute charge for 5 hours of playback.",
@@ -3600,6 +3981,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech G Pro X 2 Lightspeed | Wireless Esports Headset",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech G Pro X 2 Lightspeed is a wireless gaming headset designed with esports players in mind. It combines a lightweight frame with a firm but comfortable fit that stays secure during long practice sessions. The tuned drivers focus on clear footsteps and positional audio, while the detachable boom mic is built to keep team comms intelligible even in noisy rooms.",
@@ -3650,6 +4036,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer Kraken V3 X | Lightweight 7.1 Gaming Headset",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Budget-Friendly"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer Kraken V3 X is a wired gaming headset that emphasizes comfort and clear game audio at a mid-range price. Its light frame and soft ear cushions reduce pressure during marathon sessions, while virtual 7.1 surround sound helps highlight directional effects in shooters and action titles. The flexible cardioid microphone focuses on your voice and reduces background noise.",
@@ -3687,6 +4078,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech G435 Lightspeed | Ultra-Light Wireless Headset",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech G435 Lightspeed is a very light wireless headset aimed at younger players and anyone who prefers a minimal feel. It supports both Lightspeed dongle and Bluetooth connections, so it can swap between PC, console, and mobile. The drivers deliver a bright, energetic sound that works well for casual gaming and streaming, and the dual beamforming microphones remove the need for a protruding boom arm.",
@@ -3736,6 +4132,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "EPOS H6PRO Open | Open Acoustic Gaming Headset",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Professional"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The EPOS H6PRO Open is a wired gaming headset with an open-back design for players who want more natural sound and awareness of their surroundings. Its tuning aims for clarity in voices and game effects, while the detachable boom microphone captures speech cleanly for squad chat. The open cups reduce heat buildup during long play sessions at home.",
@@ -3785,6 +4186,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "SteelSeries Rival 5 | FPS & MOBA Gaming Mouse",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [getTagId("Gaming"), getTagId("RGB"), getTagId("Ergonomic")],
           metadata: { brand: "SteelSeries" },
           description:
             "The SteelSeries Rival 5 is a wired gaming mouse with multiple side buttons configured for FPS, battle royale, and MOBA titles. Its sensor tracks quickly and accurately across a wide DPI range, while the shape supports palm and claw grips. Customizable RGB zones let players match it to the rest of their setup using software.",
@@ -3825,6 +4227,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech G305 Lightspeed | Wireless Budget Gaming Mouse",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech G305 Lightspeed is a compact wireless gaming mouse that brings low-latency performance to a lower price range. It uses a single AA battery but still achieves long runtime, making it simple to maintain. The HERO sensor tracks accurately for casual and competitive games, and the symmetrical shell works for both fingertip and claw grips.",
@@ -3872,6 +4279,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Glorious Model O Wireless | Honeycomb Ultra-Light Mouse",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [getTagId("Gaming"), getTagId("Wireless"), getTagId("RGB")],
           metadata: { brand: "ACME" },
           description:
             "The Glorious Model O Wireless is an ultra-light gaming mouse with a honeycomb shell that reduces weight while maintaining rigidity. Its low-latency wireless connection and high-end sensor aim squarely at competitive players. The PTFE feet are tuned for smooth glide on cloth and hard pads, and RGB lighting accents the otherwise simple design.",
@@ -3919,6 +4327,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech Lift | Vertical Ergonomic Mouse | Wireless",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Ergonomic"),
+            getTagId("Wireless"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech Lift is a compact vertical ergonomic mouse designed to reduce wrist twisting by placing the hand in a more natural handshake position. It connects via Bluetooth or Logi Bolt receiver and supports Easy-Switch for three devices, which is useful for multi-computer desk setups. The quiet buttons and smooth scroll wheel make it suitable for shared workspaces.",
@@ -3966,6 +4379,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Ducky One 3 TKL | Mechanical Keyboard | Hot-Swap",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Mechanical"),
+            getTagId("Gaming"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Ducky One 3 TKL is a tenkeyless mechanical keyboard built for enthusiasts who like a solid typing feel and customization. Its hot-swappable PCB allows users to change switches without soldering, and the thick keycaps contribute to a deeper sound profile. The compact layout saves desk space while preserving dedicated arrow keys and navigation.",
@@ -4016,6 +4434,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech G915 TKL | Wireless Low-Profile Gaming Keyboard",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [getTagId("Gaming"), getTagId("Wireless"), getTagId("RGB")],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech G915 TKL is a wireless low-profile mechanical keyboard that targets players who want a clean desk without cables. Its slim switches provide a laptop-like travel with a more defined actuation point, and the TKL form factor frees up space for mouse movement. Lightspeed wireless keeps latency low while Bluetooth offers easier pairing with secondary devices.",
@@ -4069,6 +4488,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer Huntsman Mini | 60% Optical Gaming Keyboard",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Mechanical"),
+            getTagId("Gaming"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer Huntsman Mini is a 60% mechanical keyboard that removes the function row and navigation cluster to maximize mouse space. It uses optical switches that rely on light for actuation, giving a fast and consistent key feel. Onboard memory allows storing custom lighting profiles and keymaps, so it works the same way on different PCs once configured.",
@@ -4125,6 +4549,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech K780 | Multi-Device Wireless Keyboard with Cradle",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Professional"),
+            getTagId("Ergonomic"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech K780 is a full-size wireless keyboard built for people who work across phones, tablets, and computers. A built-in rubber cradle holds mobile devices upright, while three Easy-Switch keys let you jump between paired systems. The rounded keycaps have a soft feel suited for long typing blocks, and the battery life stretches into years under typical use.",
@@ -4162,6 +4591,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer Seiren Mini | Compact USB Streaming Microphone",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Compact"),
+            getTagId("USB-C"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer Seiren Mini is a compact USB condenser microphone designed to upgrade voice quality for calls and streams without taking over your desk. Its tight pickup pattern focuses on your voice while reducing keyboard and mouse noise. The simple stand can be angled to match your seating position, and the plug-and-play design works with common streaming and conferencing apps.",
@@ -4209,6 +4643,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Creative Pebble V3 | Compact USB-C Desktop Speakers",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Compact"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Creative Pebble V3 speakers are small desktop speakers that use USB-C for both power and audio, simplifying cable management. They are angled slightly upward to direct sound toward the listener’s ears and provide a noticeable upgrade over typical laptop speakers. Bluetooth support allows quick pairing with a phone when the PC is off.",
@@ -4259,6 +4698,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Sonos Roam | Portable Smart Speaker | Wi-Fi & Bluetooth",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Smart Home"),
+            getTagId("Waterproof"),
+          ],
           metadata: { brand: "Sonos" },
           description:
             "The Sonos Roam is a compact portable speaker that joins an existing Sonos multi-room system over Wi-Fi but can also work as a standalone Bluetooth speaker outdoors. Automatic Trueplay tuning adjusts sound based on the environment, and the rugged, water-resistant housing makes it suitable for use around the house and on trips.",
@@ -4308,6 +4752,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech Z407 | 2.1 Bluetooth Speakers with Wireless Dial",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Smart Home"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech Z407 is a compact 2.1 speaker system with a small subwoofer for added low-end presence at the desk. It supports Bluetooth, USB, and 3.5mm connections, so it can serve as audio output for PCs and mobile devices. A wireless control dial lets you adjust volume and playback from across the desk without touching the computer.",
@@ -4345,6 +4794,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Anker PowerConf S3 | Portable Bluetooth Speakerphone",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("Professional"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Anker PowerConf S3 is a compact Bluetooth speakerphone aimed at remote workers who frequently join conference calls. Six microphones arranged around the unit help pick up voices from different positions, while built-in processing reduces echo and background noise. It connects quickly to laptops and phones and runs for many hours on a single charge.",
@@ -4385,6 +4839,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer Kiyo Pro | USB Streaming Webcam with Wide Sensor",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("USB-C"),
+            getTagId("4K"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer Kiyo Pro is a USB webcam aimed at streamers and professionals who want flexible framing and better low-light handling. Its wide-angle sensor can switch between several fields of view, and HDR mode is available for situations with mixed lighting. The camera works with standard conferencing apps and can be fine-tuned using Razer’s software.",
@@ -4422,6 +4881,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Anker PowerConf C200 | 2K Webcam with Adjustable FoV",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Budget-Friendly"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Anker PowerConf C200 is a compact 2K webcam that offers an adjustable field of view and dual microphones. It is designed to improve clarity over built-in laptop cameras without requiring complex setup. A physical privacy shutter covers the lens when the call is over, and the bundled software lets users tweak framing and picture settings.",
@@ -4462,6 +4926,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "NexiGo N930AF | 1080p Autofocus USB Webcam",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("Compact"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The NexiGo N930AF is a budget-friendly 1080p USB webcam with autofocus, aimed at users who want a clearer picture than typical integrated laptop cameras. It clips onto most monitors and folds for storage when not in use. A slide cover helps protect the lens and offers privacy between meetings.",
@@ -4498,6 +4967,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Dell XPS 15 9530 | 15.6" OLED | Creator Laptop',
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("OLED"),
+            getTagId("Premium"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Dell" },
           description:
             "The Dell XPS 15 9530 is a 15.6-inch Windows laptop aimed at creators who want a larger canvas without carrying a full desktop replacement. Its OLED display option provides deep blacks and vivid color that help photo and video work stand out. Intel Core processors and dedicated graphics give enough performance for editing timelines and rendering exports, while the slim aluminum chassis makes it more portable than many traditional workstations.",
@@ -4551,6 +5025,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Lenovo IdeaPad Slim 5 14" | Everyday Ultrabook',
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("Portable"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Lenovo" },
           description:
             "The Lenovo IdeaPad Slim 5 14-inch is a balanced everyday laptop that focuses on comfort and value. It combines modern AMD or Intel processors with a crisp 14-inch display that is easy on the eyes for long study or office sessions. The slim chassis is light enough for commuting, and the quiet cooling system keeps noise low in classrooms or meeting rooms. It suits users who want a sensible, reliable notebook without paying a premium for flagship features.",
@@ -4591,6 +5070,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "ASUS Zenbook 14 OLED | Lightweight | All-Day Battery",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("OLED"),
+            getTagId("Portable"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ASUS" },
           description:
             "The ASUS Zenbook 14 OLED pairs a sharp 14-inch OLED display with a lightweight metal chassis, making it a strong option for people who travel frequently with a laptop. The display’s deep blacks and rich color help both movies and presentations look more engaging. Modern processors and fast SSD storage provide responsive performance, while the large battery and efficient components stretch runtime through a full workday.",
@@ -4644,6 +5128,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Acer Swift 3 14" | Thin & Light | Wi-Fi 6',
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("Portable"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Acer Swift 3 14-inch is a thin-and-light notebook intended for students and office workers who want a simple, modern machine. It offers a matte Full HD display, a comfortable keyboard, and a trackpad that works well for everyday gestures. Wi-Fi 6 support and USB-C charging keep it up to date with current connectivity standards, while the metal lid adds a bit of rigidity compared to plastic-only designs.",
@@ -4684,6 +5173,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer Blade 15 (2023) | RTX Graphics | 240Hz QHD",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer Blade 15 is a premium gaming laptop that blends strong performance with a minimalist design. A high-refresh QHD display keeps fast shooters and competitive games feeling smooth, while NVIDIA RTX graphics accelerate both games and GPU-heavy creative apps. The CNC-milled aluminum chassis feels solid in the hand, and per-key RGB lighting lets players tune the keyboard to match their setup.",
@@ -4727,6 +5221,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Apple iPhone 15 | Dynamic Island | USB-C",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Premium"),
+            getTagId("AI-Powered"),
+          ],
           metadata: { brand: "Apple" },
           description:
             "The iPhone 15 brings the Dynamic Island interface and USB-C charging to Apple’s standard flagship line. Its bright OLED screen, improved main camera, and efficient chipset are designed for people who want a smooth everyday experience without the price of the Pro models. The updated design is light in the hand and available in several soft color finishes that appeal to a wide range of users.",
@@ -4780,6 +5279,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Apple iPhone 15 Plus | Large Display | Long Battery Life",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Apple" },
           description:
             "The iPhone 15 Plus offers a larger display and extended battery life compared to the standard model, aimed at users who enjoy watching video and browsing on a big screen. It shares the same camera system and core performance as the smaller iPhone 15, but the bigger battery gives it more endurance over a full day. The interface and app support remain the same, so it fits smoothly into the Apple ecosystem.",
@@ -4830,6 +5334,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Samsung Galaxy S23 FE | Fan Edition | Balanced Performance",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("5G"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             'The Galaxy S23 FE is a "Fan Edition" device that inherits many strengths of Samsung’s flagship line while targeting a lower price point. It includes a bright AMOLED display, solid cameras, and a capable processor that can handle gaming and multitasking without major slowdowns. The design follows the S23 family look, making it suitable for users who want a premium feel without paying for the top-tier Ultra model.',
@@ -4870,6 +5379,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Google Pixel 8 | Compact Flagship | AI Features",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("AI-Powered"),
+            getTagId("Compact"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Google" },
           description:
             "The Google Pixel 8 is a compact Android flagship that focuses on smart software and strong core features rather than chasing the largest screen. Its camera system leans on Google’s computational photography to deliver pleasing images that are ready to share. The Tensor chip powers AI tools such as call screening and voice editing, while the small size makes it easy to use one-handed.",
@@ -4917,6 +5431,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "OnePlus Nord 3 5G | Smooth Display | Fast Charging",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("5G"),
+            getTagId("Budget-Friendly"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "OnePlus" },
           description:
             "The OnePlus Nord 3 5G is a midrange phone that focuses on fluid performance and a responsive display. Its high-refresh panel keeps scrolling and animations feeling fast, and the Dimensity chipset offers enough power for common games and social apps. Fast charging quickly tops up the battery during the day, which is convenient for users who are often away from a power outlet.",
@@ -4957,6 +5476,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Xiaomi Redmi Note 13 Pro | Value Phone | 200MP Camera",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("High-Performance"),
+            getTagId("5G"),
+          ],
           metadata: { brand: "Xiaomi" },
           description:
             "The Xiaomi Redmi Note 13 Pro aims to bring eye-catching hardware to the midrange segment. Its high-resolution 200MP camera is designed to capture detailed images in good light, while the large display and stereo speakers make video and games more enjoyable. A sizable battery and efficient chipset help the phone last through a full day of mixed use.",
@@ -4994,6 +5518,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Samsung Smart Monitor M8 32" | 4K | Built-in Apps',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("Smart Home"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Samsung Smart Monitor M8 is a 32-inch 4K screen that doubles as a small smart TV. It can run streaming apps directly over Wi-Fi without needing a PC attached, making it suitable for compact living spaces. When connected to a computer, it works as a standard 4K monitor for productivity and web use. A slim design and included remote make it easy to place almost anywhere.",
@@ -5034,6 +5563,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Gigabyte M27Q | 27" QHD | 170Hz Gaming Monitor',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("4K"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Gigabyte M27Q is a 27-inch QHD gaming monitor that targets players who want smooth motion without giving up resolution. Its high refresh rate and low response time help minimize blur in fast-paced titles, while the IPS panel retains good color and viewing angles. A built-in KVM switch allows one keyboard and mouse to control two devices through the monitor.",
@@ -5071,6 +5605,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'BenQ PD2705U | 27" 4K | Designer Monitor',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("Professional"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "BenQ" },
           description:
             "The BenQ PD2705U is a 27-inch 4K monitor intended for designers and content creators who value color accuracy. Factory presets focus on sRGB and Rec.709 spaces, making it suitable for web and broadcast work. The stand supports portrait rotation and full ergonomic adjustment, while the integrated USB-C port can power and connect a compatible laptop with a single cable.",
@@ -5108,6 +5647,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'MSI Optix MAG274QRF | 27" QHD | 165Hz',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The MSI Optix MAG274QRF is a 27-inch QHD monitor built for competitive gaming. Its 165 Hz refresh rate and quick response help keep up with high frame-rate gameplay. The stand offers height, tilt, and pivot adjustments, and the array of video inputs makes it easy to connect to both PC and console. RGB lighting on the back adds a bit of flair for themed setups.",
@@ -5145,6 +5689,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'Philips 346E2CUAE | 34" Ultrawide | USB-C Dock',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Ultrawide"),
+            getTagId("USB-C"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Philips 346E2CUAE is a 34-inch ultrawide monitor aimed at multitaskers who like to keep several windows open side by side. Its 3440×1440 resolution gives more horizontal space than standard 16:9 screens, while the USB-C dock can power a laptop and connect peripherals. The slight curve helps keep the edges of the screen within your field of view during long work sessions.",
@@ -5182,6 +5731,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: 'HP X27q | 27" QHD | 165Hz Gaming Monitor',
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "HP" },
           description:
             "The HP X27q is a straightforward 27-inch gaming monitor that offers QHD resolution and a 165 Hz refresh rate at a relatively accessible price. It targets players who are upgrading from 60 Hz panels and want smoother motion in fast titles. The design is simple and compact, making it easy to fit on smaller desks.",
@@ -5219,6 +5773,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Sony WH-1000XM5 | Wireless ANC Headphones | Travel Friendly",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Sony" },
           description:
             "The Sony WH-1000XM5 are over-ear wireless headphones known for strong active noise cancellation and a comfortable fit. They are designed for travelers and commuters who want to block out engine drone and background chatter. The sound profile is tuned for everyday listening, and the companion app allows fine adjustment of both sound and noise reduction to personal taste.",
@@ -5269,6 +5828,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Bose QuietComfort Ultra | Wireless ANC Headphones",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Bose" },
           description:
             "Bose QuietComfort Ultra headphones focus on delivering strong noise cancellation with a relaxed, comfortable listening experience. They are tuned with a warm, easy-going sound that works well for long flights or office use. The ear cups and headband padding are soft, and the foldable design makes them straightforward to pack in a small bag.",
@@ -5316,6 +5880,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Apple AirPods Pro (2nd Gen) | ANC | Spatial Audio",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Noise-Cancelling"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Apple" },
           description:
             "AirPods Pro (2nd generation) are in-ear true wireless earphones with active noise cancellation and tight integration into the Apple ecosystem. They support personalized spatial audio for compatible content and can switch between Apple devices automatically. The compact case adds multiple extra charges, making them easy to carry in a pocket for regular use.",
@@ -5353,6 +5922,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "HyperX Cloud III | Gaming Headset | Detachable Mic",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("High-Performance"),
+            getTagId("Ergonomic"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The HyperX Cloud III is a wired gaming headset that builds on the comfort of earlier Cloud models. Its padded headband and memory foam ear cushions are designed for longer sessions at the PC or console. The detachable microphone makes it easy to switch between gaming and casual listening, while the tuned drivers focus on clear voice and punchy effects in competitive titles.",
@@ -5390,6 +5964,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer BlackShark V2 Pro (2023) | Wireless Esports Headset",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer BlackShark V2 Pro is a wireless gaming headset tuned for competitive play. Its closed-back cups and strong clamp help isolate crowd noise in tournament environments, while the lightweight frame keeps it manageable over long practice sessions. The detachable microphone and on-headset controls make it easy to adjust volume and mute quickly.",
@@ -5427,6 +6006,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Sennheiser HD 560S | Open-Back Hi-Fi Headphones",
           collection_id: collection.id,
           category_ids: [getCatId("Headphones")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Sennheiser HD 560S are open-back headphones aimed at listeners who value a neutral, detailed sound for long sessions at home. Their design allows air to move freely through the ear cups, creating a wide, natural soundstage that many closed-back models cannot match. They pair well with hi-fi amplifiers and interfaces for serious music listening or mixing practice.",
@@ -5464,6 +6048,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Corsair K70 RGB Pro | Mechanical Gaming Keyboard | Full Size",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Mechanical"),
+            getTagId("RGB"),
+          ],
           metadata: { brand: "Corsair" },
           description:
             "The Corsair K70 RGB Pro is a full-size mechanical keyboard with a metal top plate and per-key RGB lighting. It is designed for gamers who like a solid, desk-filling board with dedicated media controls. The onboard memory allows saving lighting and macro profiles directly to the keyboard, so they travel with you between different machines.",
@@ -5517,6 +6106,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Keychron K2 V2 | 75% Wireless Mechanical Keyboard",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Mechanical"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Keychron" },
           description:
             "The Keychron K2 V2 is a compact 75% mechanical keyboard that keeps the important keys while saving desk space. It supports both Bluetooth and wired connections and includes switchable keycaps for Windows and macOS layouts. Hot-swappable variants allow users to experiment with different switch types over time without soldering.",
@@ -5567,6 +6161,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer DeathAdder V3 Pro | Ultra-Light Wireless Gaming Mouse",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer DeathAdder V3 Pro is an ultra-light wireless gaming mouse designed for competitive play. Its refined ergonomic shape supports a range of grip styles, while the high-end optical sensor delivers precise tracking. The low weight helps reduce fatigue in fast-paced games where quick flicks and repeated movements are common.",
@@ -5617,6 +6216,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech G502 X Lightspeed | Wireless Gaming Mouse",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech G502 X Lightspeed updates a popular mouse shape with wireless connectivity and improved switches. It is aimed at gamers who like many programmable buttons for macros, abilities, and quick actions. The adjustable weight system lets users tweak the feel to their preference, and the Hero sensor delivers efficient, accurate tracking.",
@@ -5664,6 +6268,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech Brio 4K Webcam | HDR | Windows Hello",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("Professional"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech Brio 4K is a premium webcam aimed at professionals who want sharper video for calls and content. It can capture 4K footage at lower frame rates or 1080p at smoother settings and supports HDR to better handle tricky lighting. Windows Hello support allows it to double as a secure face login device on compatible machines.",
@@ -5704,6 +6313,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Elgato Facecam Pro | 4K60 Streaming Webcam",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("Professional"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Elgato" },
           description:
             'The Elgato Facecam Pro is a 4K60 webcam designed for streamers and content creators who want sharp, fluid video from a simple USB device. It offers manual controls for exposure, white balance, and other settings through software, allowing a more "camera-like" workflow. The wide field of view and good lens make it suitable for desk setups and small studios.',
@@ -5741,6 +6355,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "JBL Quantum Duo | PC Gaming Speakers | RGB Lighting",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [getTagId("Gaming"), getTagId("RGB"), getTagId("Compact")],
           metadata: { brand: "JBL" },
           description:
             "JBL Quantum Duo speakers are compact desktop speakers aimed at gamers who want more punch than typical monitor audio. They provide directional stereo sound with emphasized effects for games and include RGB lighting that can sync with on-screen action. Their small footprint makes them easy to squeeze onto busy desks alongside a keyboard and monitor.",
@@ -5781,6 +6396,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Anker 737 Power Bank (24K) | 140W USB-C PD | PowerCore",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("USB-C"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Anker 737 Power Bank (24K) is a high-capacity portable battery designed to fast-charge phones, tablets, and modern laptops over USB-C Power Delivery. Its digital display shows real-time input and output wattage along with remaining capacity, which makes planning top-ups on trips easier. Three ports allow charging several devices at once without carrying multiple smaller power banks.",
@@ -5819,6 +6439,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Belkin BoostCharge Pro | 3-in-1 MagSafe Wireless Charging Dock",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Smart Home"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Belkin BoostCharge Pro 3-in-1 dock offers a single stand for charging a MagSafe-compatible iPhone, Apple Watch, and wireless earbuds at the same time. Its weighted base keeps it steady when you tap the phone, and the upright magnetic pad holds the screen at a comfortable angle for glancing at notifications. It helps tidy nightstands and desks by replacing multiple separate chargers and cables.",
@@ -5866,6 +6491,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Samsung Wireless Charger Trio | Multi-Device Pad",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Smart Home"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Samsung Wireless Charger Trio is a flat charging pad that can power a phone, wireless earbuds, and a compatible smartwatch at the same time. It is designed for users who keep several Galaxy devices on their desk or nightstand and want a single surface for all of them. Subtle LEDs indicate charging status without being overly bright in dark rooms.",
@@ -5904,6 +6534,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Satechi USB-C Slim Multi-Port Hub | HDMI | USB-A | Card Reader",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Compact"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Satechi USB-C Slim Multi-Port Hub is a compact adapter that adds HDMI, USB-A, and memory card slots to modern laptops that only include USB-C ports. It is well suited for students and office workers who still rely on older peripherals such as flash drives or projectors. The low-profile aluminum housing matches many ultrabook designs and slips easily into a laptop sleeve.",
@@ -5951,6 +6586,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "CalDigit Thunderbolt 4 Element Hub | High-Speed Dock",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Premium"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The CalDigit Thunderbolt 4 Element Hub is a compact docking solution for laptops that need more high-speed ports. It provides multiple Thunderbolt 4 / USB4 connections for external drives, monitors, and audio interfaces, while a single cable to the notebook carries data and power. This setup is ideal for users who move between a mobile workspace and a more fully equipped desk.",
@@ -5988,6 +6628,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Twelve South Curve Flex | Adjustable Laptop Stand",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Ergonomic"),
+            getTagId("Professional"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Twelve South Curve Flex is an adjustable laptop stand that raises screens closer to eye level while freeing space underneath for keyboards and accessories. Its folding frame can change both height and angle, making it easier to dial in a comfortable posture at different desks. The metal construction supports modern ultrabooks while maintaining a clean, minimal look.",
@@ -6035,6 +6680,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Elgato Stream Deck MK.2 | Customizable Control Pad",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("RGB"),
+            getTagId("Professional"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "Elgato" },
           description:
             "The Elgato Stream Deck MK.2 is a small control pad with LCD keys that can trigger macros, app shortcuts, and streaming actions. Each key displays a custom icon, allowing users to label scene changes, audio controls, or editing tools clearly. It suits streamers, video editors, and productivity-focused users who want quick, tactile access to complex workflows.",
@@ -6073,6 +6723,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Logitech MX Keys Mini | Compact Wireless Productivity Keyboard",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Compact"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech MX Keys Mini is a compact wireless keyboard designed for productivity setups where desk space is limited. Its low-profile keys use a scissor mechanism similar to quality laptop keyboards, with subtle indentations that help fingers center on each key. Backlighting adjusts automatically based on ambient light, and multi-device pairing lets users switch between computer, tablet, and phone with one button row.",
@@ -6121,6 +6776,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Satechi Slim X2 | Bluetooth Numeric Keypad with Function Keys",
           collection_id: collection.id,
           category_ids: [getCatId("Keyboards")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Compact"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Satechi Slim X2 is a wireless numeric keypad that adds a number pad and navigation cluster to compact laptops and smaller desktop keyboards. It connects over Bluetooth and can pair with multiple devices, which is convenient for users who regularly move between a notebook and a desktop. The low-profile keys mirror the feel of many modern ultrabooks.",
@@ -6158,6 +6818,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech MX Master 3S | Wireless Productivity Mouse",
           collection_id: collection.id,
           category_ids: [getCatId("Mice")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Ergonomic"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech MX Master 3S is a wireless mouse designed for productivity-focused users who spend long days in front of multiple monitors. Its sculpted shell supports the hand in a relaxed grip, while the electromagnetic scroll wheel can switch between precise steps and free-spin scrolling. Side buttons and a thumb wheel can be customized per app for faster navigation in creative and office software.",
@@ -6206,6 +6871,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Google Chromecast with Google TV (4K) | Streaming Media Stick",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Smart Home"),
+            getTagId("4K"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "Google" },
           description:
             "Chromecast with Google TV (4K) is a small HDMI streaming device that turns existing monitors and TVs into smart displays. It comes with a remote and on-screen interface that aggregates content from several streaming services, making it easy to continue shows and discover new ones in one place. It suits users who want streaming apps on an older screen without replacing the display.",
@@ -6253,6 +6923,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Amazon Fire TV Stick 4K Max | Wi-Fi 6 Streaming Stick",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Smart Home"),
+            getTagId("4K"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Fire TV Stick 4K Max is a compact streaming stick that plugs into an HDMI port and adds Amazon’s Fire TV interface to any compatible screen. It supports Wi-Fi 6 for more stable streaming on busy networks and handles popular HDR formats for supported content. The bundled voice remote can control basic TV functions along with streaming apps.",
@@ -6290,6 +6965,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech Litra Glow | USB Streaming Light for Webcams",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("USB-C"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech Litra Glow is a small LED panel that clips to monitors and laptops to provide more flattering light for webcams. It offers adjustable brightness and color temperature to match room conditions, helping faces look more natural on camera. The soft-edged diffuser reduces harsh shadows, which can be helpful for streamers and remote workers who appear on video frequently.",
@@ -6327,6 +7007,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Blue Yeti X | USB Condenser Microphone | Multi-Pattern",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("USB-C"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Blue Yeti X is a USB condenser microphone designed for streamers, podcasters, and remote workers who want clearer voice capture than built-in laptop mics. It includes several pickup patterns for solo recording, interviews, or small roundtable discussions. Front-panel metering and gain controls make it easier to avoid clipping without opening software each time.",
@@ -6364,6 +7049,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Rode Wireless GO II | Dual Channel Wireless Mic System",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Professional"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Rode Wireless GO II is a compact wireless microphone system that pairs two transmitters with a single receiver. It is well suited for creators who record interviews or talking-head videos with mirrorless cameras, smartphones, or computers. Built-in recording on the transmitters provides a backup track in case wireless signals drop in crowded environments.",
@@ -6401,6 +7091,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "SanDisk Extreme Portable SSD V2 | 1TB USB-C External Drive",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("USB-C"),
+            getTagId("Waterproof"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The SanDisk Extreme Portable SSD V2 is a small, rugged external solid-state drive built for moving large files quickly between laptops and desktops. Its USB-C interface supports high transfer rates for photo and video libraries, while the rubberized shell and IP55 rating help protect against drops and light rain. A built-in loop makes it easy to clip to a bag or strap.",
@@ -6438,6 +7133,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "UGREEN 9-in-1 USB-C Hub | Ethernet | HDMI | SD Reader",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Compact"),
+            getTagId("Budget-Friendly"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The UGREEN 9-in-1 USB-C Hub expands a single laptop port into wired Ethernet, HDMI, USB-A, and card readers, making it easier to connect to office projectors and networks. It is useful for thin notebooks that omit legacy connections but still need to work with older conference room gear. The integrated cable tucks into the body when packed into a bag.",
@@ -6475,6 +7175,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Anker 737 GaNPrime | 120W USB-C Wall Charger",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("USB-C"),
+            getTagId("Compact"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Anker 737 GaNPrime wall charger uses GaN components to deliver up to 120W of power through a compact housing. Three ports share power intelligently between phones, tablets, and lightweight laptops, reducing the need to carry multiple bricks while traveling. Foldable prongs and a simple design make it easy to throw into a backpack or tech pouch.",
@@ -6512,6 +7217,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Samsung T7 Shield | 2TB Rugged Portable SSD",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("USB-C"),
+            getTagId("Waterproof"),
+          ],
           metadata: { brand: "Samsung" },
           description:
             "The Samsung T7 Shield is a ruggedized version of the company’s portable SSD line, offering rubberized protection and IP65 resistance to dust and water. It is aimed at creators and field workers who need to shuttle large media projects between machines without babying their storage. USB-C connectivity keeps transfers quick on modern laptops and desktops.",
@@ -6549,6 +7259,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Tile Pro (2024) | Long-Range Bluetooth Item Tracker",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Wireless"),
+            getTagId("Compact"),
+            getTagId("Smart Home"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Tile Pro (2024) is a Bluetooth tracker designed to help users locate bags, keys, and other important items from a phone. It features a louder ring and longer range than smaller Tile models, along with a replaceable battery for multi-year use. The shared network of Tile users can help locate items that end up outside normal Bluetooth distance.",
@@ -6595,6 +7310,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Ubiquiti UniFi Dream Router | WiFi 6 | All-in-One Gateway",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Smart Home"),
+            getTagId("Wireless"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Ubiquiti UniFi Dream Router is an all-in-one gateway for small homes and offices that want simple access to UniFi network management. It includes a WiFi 6 radio, integrated security gateway, and basic controller functions in a single chassis. The built-in display shows connection status at a glance, and UniFi Network app access makes it easier to monitor devices remotely.",
@@ -6642,6 +7362,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "TP-Link Deco XE75 | Tri-Band WiFi 6E Mesh System (3-Pack)",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Smart Home"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The TP-Link Deco XE75 is a tri-band WiFi 6E mesh kit designed to cover medium and larger homes with more consistent wireless performance. Each node can be placed in a different room to help reduce dead zones, while the 6 GHz band reduces congestion from older devices. The Deco app guides setup and offers simple parental controls for families.",
@@ -6689,6 +7414,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Netgear Nighthawk AX5400 | Dual-Band WiFi 6 Gaming Router",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Smart Home"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Netgear Nighthawk AX5400 is a dual-band WiFi 6 router designed for households that combine gaming, streaming, and remote work. Its QoS and traffic prioritization tools help reduce latency for game consoles and PCs, while multiple Ethernet ports support wired desktops. The companion app makes initial setup and firmware updates straightforward for non-technical users.",
@@ -6736,6 +7466,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Synology DiskStation DS923+ | 4-Bay NAS for Home and Office",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("High-Performance"),
+            getTagId("Smart Home"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Synology DiskStation DS923+ is a 4-bay network-attached storage enclosure built for users who want local file sharing, backup, and light virtualization. Its operating system provides simple tools for automated PC backups, media streaming, and private cloud sync. Expansion options allow the unit to grow with additional drives or faster networking as storage needs increase.",
@@ -6773,6 +7508,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "QNAP TS-464 | 4-Bay NAS with 2.5GbE",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("High-Performance"),
+            getTagId("Smart Home"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The QNAP TS-464 is a small 4-bay NAS that targets power users and small teams who need a central location for projects and backups. Dual 2.5 GbE ports make it easier to saturate faster network links or configure link aggregation. A built-in HDMI port allows it to double as a basic media player or lightweight desktop when connected to a monitor and peripherals.",
@@ -6810,6 +7550,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Meta Quest 3 | Standalone VR Headset with Mixed Reality",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Wireless"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "Meta Quest 3 is a standalone VR headset that runs games and experiences without a PC while still supporting wired or wireless PC VR streaming. Its mixed reality passthrough lets users blend virtual elements with their room, which can make fitness and productivity apps feel more grounded. Adjustable straps and a slimmer visor improve comfort compared to earlier models.",
@@ -6857,6 +7602,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Valve Index VR Kit | PC VR Headset with Base Stations",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Valve Index VR Kit is a room-scale PC VR package that includes a headset, controllers, and base stations. It targets players who want precise tracking and wide field-of-view on powerful desktop systems. The off-ear speakers provide an open soundstage without pressing on the ears, and the controllers detect finger positions for more natural hand gestures in supported games.",
@@ -6894,6 +7644,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Elgato HD60 X | External Game Capture Card",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("4K"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Elgato" },
           description:
             "The Elgato HD60 X is an external capture card designed to connect modern consoles and PCs to streaming or recording software over USB. It supports high refresh passthrough so players can still enjoy 4K or high frame rate gameplay on their main monitor while sending a clean 1080p feed to capture. Compact dimensions help it disappear behind a TV or under a desk.",
@@ -6931,6 +7686,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "ASUS ZenScreen 15.6 Portable Monitor | USB-C Powered",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Portable"),
+            getTagId("USB-C"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "ASUS" },
           description:
             "The ASUS ZenScreen 15.6 is a portable monitor that adds a second screen to laptops with a single USB-C cable. It is aimed at traveling professionals and students who want extra workspace in hotel rooms, classrooms, and cafes. The folding cover doubles as a stand, and the slim profile allows it to slide into the same backpack compartment as a notebook.",
@@ -6980,6 +7740,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Wacom Intuos Pro Medium | Pen Tablet for Creatives",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Premium"),
+            getTagId("High-Performance"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Wacom Intuos Pro Medium is a pen tablet aimed at illustrators, photo editors, and designers who prefer drawing directly with a stylus. The active area balances room for broad strokes with a footprint that still fits on crowded desks. Shortcut keys and a touch ring can be assigned to common actions in creative suites to reduce keyboard reliance.",
@@ -7017,6 +7782,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Huion Kamvas 13 | 13-Inch Pen Display Tablet",
           collection_id: collection.id,
           category_ids: [getCatId("Monitors")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("Budget-Friendly"),
+            getTagId("USB-C"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Huion Kamvas 13 is a pen display that combines a compact drawing screen with pen input for digital art and note-taking. It connects to laptops over USB-C or HDMI and provides a laminated surface to reduce parallax between pen tip and cursor. Programmable buttons along the side offer quick access to favorite tools in creative software.",
@@ -7066,6 +7836,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Logitech Brio 500 | 1080p Business Webcam with Auto-Framing",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("USB-C"),
+            getTagId("Compact"),
+          ],
           metadata: { brand: "Logitech" },
           description:
             "The Logitech Brio 500 is a business-focused 1080p webcam designed for remote work and hybrid offices. It includes automatic framing features that keep you centered as you shift in your chair, plus a simple way to tilt the camera down to show documents on your desk. A physical shutter slides over the lens at the end of a call for added privacy.",
@@ -7116,6 +7891,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Insta360 Link | 4K PTZ AI Webcam",
           collection_id: collection.id,
           category_ids: [getCatId("Webcams")],
+          tag_ids: [
+            getTagId("4K"),
+            getTagId("AI-Powered"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Insta360" },
           description:
             "The Insta360 Link is a 4K webcam mounted on a small gimbal that can pan, tilt, and zoom automatically to follow the speaker. It also supports desk view and overhead modes for whiteboards and demonstrations, making it attractive to educators and presenters. AI framing features help maintain a natural shot without needing manual camera adjustments during calls.",
@@ -7153,6 +7933,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "JBL Quantum Duo | RGB PC Gaming Speakers",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [getTagId("Gaming"), getTagId("RGB"), getTagId("Compact")],
           metadata: { brand: "JBL" },
           description:
             "The JBL Quantum Duo is a compact 2.0 speaker set built for desktop gaming setups. It combines directional sound with customizable RGB lighting that can pulse to game audio or stay on a static color. Front-facing controls make it easy to adjust volume or lighting without reaching behind a monitor, and Bluetooth support lets it double as a simple music system.",
@@ -7190,6 +7971,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Bose Companion 2 Series III | Multimedia Desktop Speakers",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Budget-Friendly"),
+            getTagId("Compact"),
+            getTagId("Professional"),
+          ],
           metadata: { brand: "Bose" },
           description:
             "The Bose Companion 2 Series III is a small stereo speaker system for desks that need better audio than built-in monitor speakers. It emphasizes clear dialogue and balanced sound at moderate volumes, which suits office work, video calls, and casual music listening. A front-mounted volume knob and headphone jack keep everyday control within easy reach.",
@@ -7227,6 +8013,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "APC Back-UPS Pro 900 | Line-Interactive UPS",
           collection_id: collection.id,
           category_ids: [getCatId("Laptops")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("High-Performance"),
+            getTagId("Smart Home"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The APC Back-UPS Pro 900 is a compact uninterruptible power supply intended for desktop PCs, small network gear, and work-from-home setups. It offers battery-backed outlets to keep systems running through brief power cuts and to give time for safe shutdowns during longer outages. The front display shows load level and estimated runtime, which helps plan what to plug in.",
@@ -7274,6 +8065,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Elgato Wave XLR | USB Audio Interface for XLR Microphones",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("Professional"),
+            getTagId("USB-C"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "Elgato" },
           description:
             "The Elgato Wave XLR is a compact USB audio interface that connects XLR microphones to streaming and recording setups. It combines clean preamps with a capacitive mute button and headphone monitoring in a single desktop-friendly unit. Integration with Wave Link software provides per-app mixing, so streamers can balance game, chat, and music levels independently.",
@@ -7311,6 +8107,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Corsair iCUE LT100 | Smart Lighting Towers Starter Kit",
           collection_id: collection.id,
           category_ids: [getCatId("Speakers")],
+          tag_ids: [
+            getTagId("RGB"),
+            getTagId("Gaming"),
+            getTagId("Smart Home"),
+          ],
           metadata: { brand: "Corsair" },
           description:
             "The Corsair iCUE LT100 is a pair of LED lighting towers designed to sit behind monitors or speakers and add ambient light to gaming and productivity setups. Each tower offers individually addressable zones that can sync with on-screen content, music, or static color themes through iCUE software. They are meant for users who want a more immersive or personalized desk environment.",
@@ -7348,6 +8149,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Razer Kishi V2 | Universal Mobile Gaming Controller",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Portable"),
+            getTagId("Wireless"),
+          ],
           metadata: { brand: "Razer" },
           description:
             "The Razer Kishi V2 is a mobile controller that clamps around compatible smartphones to create a more console-like layout for cloud and mobile games. Its low-latency wired connection helps avoid input lag, and dedicated app launcher buttons make it easier to jump into supported services. The adjustable bridge fits a range of device sizes without needing separate cases.",
@@ -7396,6 +8202,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
             "Backbone One PlayStation Edition | Mobile Controller for iPhone",
           collection_id: collection.id,
           category_ids: [getCatId("Smartphones")],
+          tag_ids: [
+            getTagId("Gaming"),
+            getTagId("Portable"),
+            getTagId("Premium"),
+          ],
           metadata: { brand: "ACME" },
           description:
             "The Backbone One PlayStation Edition is a mobile game controller styled after the DualSense design and built for iPhones. It connects over Lightning or USB-C depending on the phone model and adds precise analog sticks, triggers, and face buttons for cloud and remote-play titles. The Backbone app organizes installed games and streaming services in a single launcher view.",

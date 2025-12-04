@@ -35,3 +35,8 @@ letsencrypt_email: "admin@dynasearch.dk"
 medusa_tls_cert_path: "/etc/letsencrypt/live/{{ medusa_domain }}/fullchain.pem"
 medusa_tls_key_path: "/etc/letsencrypt/live/{{ medusa_domain }}/privkey.pem"
 enable_hsts: false
+
+# Loki log shipping (override in group_vars/secrets.yml)
+loki_endpoint: "http://127.0.0.1:3100/loki/api/v1/push"
+loki_username: ""
+loki_password: ""

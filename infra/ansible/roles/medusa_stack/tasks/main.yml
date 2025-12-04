@@ -18,6 +18,7 @@
     - elasticsearch
     - redis
     - medusa
+    - promtail
 
 - name: Ensure nginx config directory exists
   ansible.builtin.file:
@@ -54,6 +55,14 @@
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: "{{ medusa_project_root }}/nginx/nginx.conf"
+    owner: "{{ ansible_user | default('aleksander') }}"
+    group: "{{ ansible_user | default('aleksander') }}"
+    mode: "0644"
+
+- name: Template Promtail config
+  ansible.builtin.template:
+    src: promtail-config.yml.j2
+    dest: "{{ medusa_project_root }}/promtail-config.yml"
     owner: "{{ ansible_user | default('aleksander') }}"
     group: "{{ ansible_user | default('aleksander') }}"
     mode: "0644"

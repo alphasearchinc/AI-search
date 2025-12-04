@@ -77,10 +77,6 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
     await this.queue.add(data);
   }
 
-  async indexEmbedding(data: ProductEmbeddingJobData): Promise<void> {
-    await this.indexManager.indexEmbedding(data);
-  }
-
   startWorker(): void {
     this.worker.start();
   }

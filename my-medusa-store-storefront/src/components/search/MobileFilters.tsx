@@ -6,6 +6,7 @@ import type {
   CategoryFacet,
   OptionFacet,
   PriceRange,
+  TagFacet,
 } from "@lib/search"
 import { CloseIcon, FilterIcon } from "./icons"
 import { FilterPill } from "./FilterPill"
@@ -14,15 +15,18 @@ import { FilterSection } from "./FilterSection"
 interface MobileFiltersProps {
   facets: CategoryFacet[]
   brandFacets: BrandFacet[]
+  tagFacets: TagFacet[]
   optionFacets: OptionFacet[]
   priceRange: PriceRange | null
   selectedCategories: string[]
   selectedBrands: string[]
+  selectedTags: string[]
   selectedOptions: Record<string, string[]>
   minPriceInput: string
   maxPriceInput: string
   onToggleCategory: (id: string) => void
   onToggleBrand: (brand: string) => void
+  onToggleTag: (tag: string) => void
   onToggleOption: (name: string, value: string) => void
   onMinPriceChange: (value: string) => void
   onMaxPriceChange: (value: string) => void
@@ -31,15 +35,18 @@ interface MobileFiltersProps {
 export const MobileFilters = ({
   facets,
   brandFacets,
+  tagFacets,
   optionFacets,
   priceRange,
   selectedCategories,
   selectedBrands,
+  selectedTags,
   selectedOptions,
   minPriceInput,
   maxPriceInput,
   onToggleCategory,
   onToggleBrand,
+  onToggleTag,
   onToggleOption,
   onMinPriceChange,
   onMaxPriceChange,
@@ -49,6 +56,7 @@ export const MobileFilters = ({
   const hasFilters =
     facets.length > 0 ||
     brandFacets.length > 0 ||
+    tagFacets.length > 0 ||
     optionFacets.length > 0 ||
     priceRange
 
@@ -57,6 +65,7 @@ export const MobileFilters = ({
   const activeFilterCount =
     selectedCategories.length +
     selectedBrands.length +
+    selectedTags.length +
     Object.values(selectedOptions).reduce((sum, arr) => sum + arr.length, 0)
 
   return (
@@ -64,6 +73,7 @@ export const MobileFilters = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
+        data-testid="mobile-filter-button"
         className="flex items-center gap-2 px-4 py-2 rounded-lg border border-ui-border-base bg-ui-bg-subtle text-sm text-ui-fg-base"
       >
         <FilterIcon />
@@ -76,7 +86,10 @@ export const MobileFilters = ({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-ui-bg-base">
+        <div
+          data-testid="mobile-filter-drawer"
+          className="fixed inset-0 z-50 bg-ui-bg-base"
+        >
           <div className="flex items-center justify-between px-4 py-4 border-b border-ui-border-base">
             <h2 className="text-lg font-medium">Filters</h2>
             <button
@@ -117,6 +130,23 @@ export const MobileFilters = ({
                       count={brand.count}
                       selected={selectedBrands.includes(brand.name)}
                       onClick={() => onToggleBrand(brand.name)}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+            )}
+
+            {/* Tags */}
+            {tagFacets.length > 0 && (
+              <FilterSection title="Tags">
+                <div className="flex flex-wrap gap-2">
+                  {tagFacets.map((tag) => (
+                    <FilterPill
+                      key={tag.value}
+                      label={tag.value}
+                      count={tag.count}
+                      selected={selectedTags.includes(tag.value)}
+                      onClick={() => onToggleTag(tag.value)}
                     />
                   ))}
                 </div>
@@ -170,6 +200,7 @@ export const MobileFilters = ({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
+              data-testid="mobile-apply-filters"
               className="w-full py-3 bg-ui-fg-base text-ui-bg-base rounded-lg font-medium"
             >
               Show Results

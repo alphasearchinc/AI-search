@@ -56,9 +56,7 @@ export const enqueueAllProductsStep = createStep(
       // Enqueue embedding jobs for this batch
       for (const product of products) {
         try {
-          const { result: workflowResult } = await embedProductWorkflow(
-            container
-          ).run({
+          await embedProductWorkflow(container).run({
             input: {
               product_id: product.id,
             },
@@ -66,7 +64,7 @@ export const enqueueAllProductsStep = createStep(
 
           result.enqueued++;
           logger.info(
-            `[Bulk Embedding] Queued job ${workflowResult.job_id} for product: ${product.id}`
+            `[Bulk Embedding] Queued embedding for product: ${product.id} (${result.enqueued}/${total})`
           );
         } catch (error: any) {
           result.failed++;

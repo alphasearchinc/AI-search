@@ -49,12 +49,16 @@ export const Pagination = ({
   }
 
   return (
-    <div className="flex items-center justify-center gap-1 mt-8">
+    <div
+      data-testid="pagination"
+      className="flex items-center justify-center gap-1 mt-8"
+    >
       {/* Previous Button */}
       <button
         type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
+        data-testid="pagination-prev"
         className="flex items-center justify-center w-9 h-9 rounded-md border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         aria-label="Previous page"
       >
@@ -75,6 +79,7 @@ export const Pagination = ({
             key={page}
             type="button"
             onClick={() => onPageChange(page)}
+            data-testid="pagination-page"
             className={`w-9 h-9 rounded-md text-sm font-medium transition-colors ${
               currentPage === page
                 ? "bg-ui-fg-base text-ui-bg-base"
@@ -91,6 +96,7 @@ export const Pagination = ({
         type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
+        data-testid="pagination-next"
         className="flex items-center justify-center w-9 h-9 rounded-md border border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:bg-ui-bg-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
       >

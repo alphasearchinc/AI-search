@@ -97,6 +97,19 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
+  # Prometheus scrapes from Grafana VM (exporters only)
+  security_rule {
+    name                       = "PrometheusExporters"
+    priority                   = 1050
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_ranges    = ["9100", "9121", "9114"]
+    source_address_prefix      = var.grafana_public_ip
+    destination_address_prefix = "*"
+  }
+
   tags = local.common_tags
 }
 
