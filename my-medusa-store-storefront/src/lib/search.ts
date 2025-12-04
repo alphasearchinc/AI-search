@@ -7,11 +7,20 @@ export type SemanticSearchProduct = {
   thumbnail?: string | null
 }
 
+export type SearchHitMetadata = {
+  min_price?: number
+  max_price?: number
+  brand?: string
+  categories?: string[]
+  tags?: string[]
+  [key: string]: unknown
+}
+
 export type SemanticSearchHit = {
   id: string
   score: number
   product: SemanticSearchProduct
-  metadata?: Record<string, unknown>
+  metadata?: SearchHitMetadata
 }
 
 export type CategoryFacet = {
