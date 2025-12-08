@@ -37,7 +37,7 @@ export const getFuzzyConfig = (options: ElasticsearchModuleOptions) => {
   return {
     enabled: options.fuzzy?.enabled ?? true,
     fuzzinessLevel: options.fuzzy?.fuzziness_level || "AUTO",
-    prefixLength: options.fuzzy?.prefix_length || 2,
+    prefixLength: options.fuzzy?.prefix_length ?? 1, // First char must match, rest is fuzzy
     maxExpansions: options.fuzzy?.max_expansions || 50,
   };
 };
