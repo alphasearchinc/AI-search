@@ -1,0 +1,36 @@
+@startuml
+title Store user search (simplified)
+
+skinparam shadowing false
+
+partition "User" {
+  start
+  :Type query and choose filters\nin storefront search UI;
+  :Click search;
+}
+
+partition "Storefront (Next.js)" {
+  :Send POST /store/search\nwith query, filters, limit, offset;
+}
+
+partition "Medusa backend\n/store/search + workflow" {
+  :Validate request and normalize\nquery / filters / pagination;
+  :Run searchProductsWorkflow;
+  :Generate embedding for query\n(via embedding service,\nif available);
+  :Search Elasticsearch semantic index\nwith query + embedding + filters;
+  :Hydrate hits with product data\n(id, title, thumbnail, etc.);
+  :Record search metrics;
+}
+
+partition "Elasticsearch" {
+  :Search product-embeddings index\n(hybrid vector+BM25 or BM25-only);
+  :Return ranked hits and facets;
+}
+
+partition "Storefront UI" {
+  :Receive JSON response\n(hits, total, facets, timings);
+  :Render product list and filters\nfor the user;
+  stop
+}
+
+@enduml
