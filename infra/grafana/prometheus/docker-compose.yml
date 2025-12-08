@@ -19,4 +19,4 @@ services:
 networks:
   grafana:
     external: true
-    name: grafana_default
+    name: grafana_net

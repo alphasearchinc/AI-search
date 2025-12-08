@@ -294,3 +294,21 @@
 ### Hvilke udfordringer forudser vi?
 
 
+## 📅 Daily Scrum 8-12-2025
+
+### Hvad har vi lavet siden sidst?
+ - Sat Grafana op med alle metrikker
+ - Fået User Stories til nogle af de ting vi har lavet - skal lige tjekkes op på
+ - Få genvejen i search bar til at virke - eller fjerne den
+ - Overveje om vi skal begrænse mængden af søgeresultater til kun at vise dem der har relevans
+ - Se priser på produkter i søgeresultat
+ - 
+### Hvad skal vi lave i dag?
+ - Finde ud af hvordan vi skal præsentere sprints
+ - Få Fuzzy search til at virke igen
+ - Få vores vercel til at køre på eget domæne
+ - Få booket afsluttende møde med Søren
+ - Kig igennem det vi har skrevet i weekenden
+ - Komme rigtigt igang med rapportskrivning
+### Hvilke udfordringer forudser vi?
+ - Finde ud af hvad der har forårsaget Fuzzy til ikke at virke, og hvordan 
