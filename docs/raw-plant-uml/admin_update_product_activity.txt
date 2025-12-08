@@ -1,0 +1,56 @@
+@startuml
+title Admin updates product -> semantic indexing pipeline
+
+skinparam shadowing false
+
+partition Admin {
+  start
+  :Update product in Medusa Admin UI;
+  :Send HTTP request to Admin API\n(POST/PATCH /admin/products/:id);
+}
+
+partition "Medusa Admin API\n(Product module)" {
+  :Validate payload and permissions;
+  if (Valid request and product exists?) then (yes)
+    :Persist product changes\nin PostgreSQL catalog;
+    :Emit domain event\nModules.PRODUCT.product.updated\nwith payload { id: product_id };
+    :Return 200 OK + updated product\nback to Admin client;
+  else (no)
+    :Return 4xx error\n(validation or not-found);
+    stop
+  endif
+}
+
+partition "Medusa subscriber\nproduct-embedding.ts" {
+  :Receive product.updated event\nfrom Medusa event bus;
+  :Resolve logger and\nembedProductWorkflow(container);
+  :Run embedProductWorkflow\nwith input { product_id };
+}
+
+partition "Workflow\nembed-product-workflow" {
+  :getProductDataStep\nuses Query.graph to load\nproduct + variants + prices\n+ options + categories + tags;
+  if (Product found in catalog?) then (yes)
+    :Build embedded_text\n(title, brand, description,\ncategories, tags, options);
+    :Build metadata map\n(handle, brand, categories,\nprice range, options, etc.);
+    :storeEmbeddingStep calls\nElasticsearchModuleService.queueEmbedding\nwith { product_id, text_to_embed,\nmetadata };
+  else (no)
+    :Log error "Product not found"\nand abort workflow;
+    stop
+  endif
+}
+
+partition "BullMQ queue\n+ ElasticsearchWorker" {
+  :Background worker process\n(src/scripts/worker.ts)\nlistens on queue "product-embedding";
+  :Dequeue ProductEmbeddingJobData\n{ product_id, text_to_embed, metadata };
+  :Call embedText(text_to_embed)\n→ local Python embedder service\nor OpenAI API (depending on config);
+  :Record latency + success metrics\nvia metricsRepository;
+  :Index or update document in\nElasticsearch index "product-embeddings"\nusing IndexManager.indexEmbedding;
+}
+
+partition "Search and recommendations" {
+  :Updated embedding + metadata are now\navailable to semantic search endpoints\nand product recommendation workflows;
+  stop
+}
+
+@enduml
+
