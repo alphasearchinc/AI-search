@@ -115,7 +115,7 @@ describe("semanticSearch - fuzzy matching", () => {
     expect(embeddedTextField).toBeDefined();
     expect(embeddedTextField.match.embedded_text).toHaveProperty("fuzziness");
     expect(embeddedTextField.match.embedded_text.fuzziness).toBe("AUTO");
-    expect(embeddedTextField.match.embedded_text.prefix_length).toBe(2);
+    expect(embeddedTextField.match.embedded_text.prefix_length).toBe(1);
     expect(embeddedTextField.match.embedded_text.max_expansions).toBe(50);
 
     // Also verify other fields have fuzzy enabled
