@@ -23,7 +23,7 @@ CREATE INDEX idx_search_user_type ON search_metrics (user_type, timestamp DESC);
 CREATE TABLE IF NOT EXISTS embedding_metrics (
   id BIGSERIAL,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  product_id VARCHAR(255) NOT NULL,
+  product_id VARCHAR(255),
   query TEXT,
   generation_ms INTEGER NOT NULL,
   embedding_dimensions INTEGER NOT NULL,
