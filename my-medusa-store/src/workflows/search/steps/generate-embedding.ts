@@ -32,7 +32,7 @@ export const generateEmbeddingStep = createStep(
         query,
         generation_ms: duration,
         embedding_dimensions: embedding.dimensions,
-        success: true,
+        success: success,
         provider: process.env.LOCAL_EMBEDDING_SERVICE_URL ? 'local' : 'openai',
         context: 'search_query'
       }).catch(err => {
@@ -46,6 +46,7 @@ export const generateEmbeddingStep = createStep(
       } as GenerateEmbeddingOutput);
     } catch (error: any) {
       const duration = Date.now() - startTime;
+      success = false;
       errorMessage = error.message;
       
       logger.warn(
@@ -58,7 +59,7 @@ export const generateEmbeddingStep = createStep(
         query,
         generation_ms: duration,
         embedding_dimensions: 0,
-        success: false,
+        success: success,
         error_message: errorMessage,
         provider: process.env.LOCAL_EMBEDDING_SERVICE_URL ? 'local' : 'openai',
         context: 'search_query'

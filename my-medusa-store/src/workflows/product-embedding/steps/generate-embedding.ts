@@ -56,7 +56,7 @@ export const generateEmbeddingStep = createStep(
       const duration = Date.now() - startTime;
       
       metricsRepository.recordEmbedding({
-        product_id: input.product_id || '',
+        product_id: input.product_id || null,
         query: text,
         generation_ms: duration,
         embedding_dimensions: success ? embedding.dimensions : 0,
