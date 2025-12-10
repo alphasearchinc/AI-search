@@ -17,7 +17,7 @@ def eval_summary():
             "models": results,
             "weights": WEIGHTS,
             "openai_included": include_openai,
-            "local_models": {k: v["name"] for k, v in LOCAL_MODELS.items()},
+            "local_models": LOCAL_MODELS,
         }
     )
 
