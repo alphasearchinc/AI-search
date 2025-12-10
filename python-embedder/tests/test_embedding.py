@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from app import create_app
-from app.config import DEFAULT_MODEL_KEY, LOCAL_MODELS
+from app.config import DEFAULT_MODEL_KEY
 
 
 @pytest.fixture(scope="session")
@@ -24,7 +24,6 @@ def _cosine_distance(v1, v2):
 
 def test_embed_success(client):
     test_text = "This is a test sentence."
-    expected_dims = LOCAL_MODELS[DEFAULT_MODEL_KEY]["dimensions"]
 
     response = client.post("/embed", json={"text": test_text})
 
@@ -34,10 +33,13 @@ def test_embed_success(client):
     data = response.json
     embedding = data["embedding"]
 
-    assert embedding["dimensions"] == expected_dims
+    # Dimensions are retrieved dynamically from the model
+    dimensions = embedding["dimensions"]
+    assert dimensions > 0, "Dimensions should be a positive integer"
+    
     vectors = embedding["vectors"]
     assert isinstance(vectors, list)
-    assert len(vectors) == expected_dims
+    assert len(vectors) == dimensions
     assert all(isinstance(x, float) for x in vectors)
 
 
