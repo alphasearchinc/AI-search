@@ -1,0 +1,107 @@
+@startuml
+title Hybrid Search - Simplified Domain Model (Medusa.js + Elasticsearch)
+
+skinparam packageStyle rect
+skinparam classAttributeIconSize 0
+
+package "Catalog (Medusa)" {
+  class Product {
+    +id: string
+    +title: string
+    +description: string
+    +handle: string
+    +status: draft|published
+  }
+
+  class Category {
+    +id: string
+    +name: string
+  }
+
+  class Collection {
+    +id: string
+    +name: string
+  }
+}
+
+package "Indexing Pipeline" {
+  class EmbeddingJob {
+    +id: string
+    +productId: string
+    +text: string
+    +status: queued|processing|failed|completed
+  }
+
+  class Queue
+  class IndexWorker
+}
+
+package "Search Index (Elasticsearch)" {
+  class SearchDocument {
+    +id: string
+    +product_id: string
+    +embedded_text: string
+    +embedding_vector: float[]
+    +metadata: Map
+  }
+
+  class ES
+}
+
+package "Embeddings" {
+  class EmbedSvc {
+    +embed(text): float[]
+  }
+}
+
+package "Search API" {
+  class SearchRequest {
+    +query: string
+    +limit: int
+    +filters: Map
+  }
+
+  class SearchResultItem {
+    +product_id: string
+    +score: float
+  }
+
+  class SearchResponse {
+    +total: int
+    +items: SearchResultItem[]
+  }
+
+  class SearchService
+}
+
+package "Metrics" {
+  class MetricsStore
+}
+
+' Catalog relationships
+Product "*" --> "*" Category
+Product "*" --> "*" Collection
+
+' Indexing flow
+Product --> EmbeddingJob : change detected
+EmbeddingJob "*" --> "1" Queue
+Queue --> IndexWorker
+IndexWorker --> Product : load details
+IndexWorker --> EmbedSvc : generate embedding
+EmbedSvc --> IndexWorker : embedding result
+IndexWorker --> SearchDocument : upsert
+SearchDocument --> ES
+SearchDocument "*" --> "1" Product : represents
+
+' Query-time search flow
+SearchRequest --> SearchService
+SearchService --> EmbedSvc : optional query embedding
+SearchService --> ES : BM25 + vector search
+ES --> SearchService : ranked hits
+SearchService --> SearchResponse
+
+' Metrics
+SearchService --> MetricsStore : record search + latency
+
+@enduml
+

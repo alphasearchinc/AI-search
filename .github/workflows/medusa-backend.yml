@@ -85,7 +85,7 @@ jobs:
     needs:
       - build-medusa
       - build-embedder
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/vercel'
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: SSH and deploy
