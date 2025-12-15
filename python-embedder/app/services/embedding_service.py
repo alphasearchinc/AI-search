@@ -42,7 +42,7 @@ def _get_local_model(key: str) -> SentenceTransformer:
         raise ModelUnavailable(f"Unknown local model key: {key}")
 
     if key not in _local_model_cache:
-        model_name = LOCAL_MODELS[key]["name"]
+        model_name = LOCAL_MODELS[key]
         _local_model_cache[key] = SentenceTransformer(model_name)
 
     return _local_model_cache[key]

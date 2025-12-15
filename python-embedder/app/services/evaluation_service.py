@@ -111,7 +111,7 @@ def evaluate_models(include_openai: bool = True) -> List[Dict[str, object]]:
     include_openai is True; otherwise, it is marked skipped.
     """
     samples = _get_default_samples()
-    model_keys = ["local_384", "local_768"]
+    model_keys = ["minilm", "mpnet"]
     results: List[Dict[str, object]] = []
 
     if include_openai:
@@ -119,7 +119,7 @@ def evaluate_models(include_openai: bool = True) -> List[Dict[str, object]]:
 
     for key in model_keys:
         model_name = (
-            LOCAL_MODELS[key]["name"] if key in LOCAL_MODELS else OPENAI_MODEL
+            LOCAL_MODELS[key] if key in LOCAL_MODELS else OPENAI_MODEL
         )
 
         try:
