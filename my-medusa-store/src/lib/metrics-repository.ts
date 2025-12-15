@@ -29,7 +29,7 @@ export interface SearchStats {
 }
 
 export interface EmbeddingMetrics {
-  product_id: string;
+  product_id: string | null;
   query: string;
   generation_ms: number;
   embedding_dimensions: number;

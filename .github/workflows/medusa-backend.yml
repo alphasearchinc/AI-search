@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - feature/vercel
+      - feature/cache_medusa
     paths:
       - "my-medusa-store/**"
       - "python-embedder/**"
@@ -47,6 +47,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha,scope=medusa-backend
+          cache-to: type=gha,mode=max,scope=medusa-backend
 
   build-embedder:
     name: Build and push Python embedder image to GHCR
@@ -83,7 +85,7 @@ jobs:
     needs:
       - build-medusa
       - build-embedder
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/vercel'
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: SSH and deploy
