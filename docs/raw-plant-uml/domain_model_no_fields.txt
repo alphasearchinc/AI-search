@@ -1,0 +1,36 @@
+@startuml
+title Hybrid Search – Domain Flow Overview (Medusa.js + Elasticsearch)
+
+skinparam packageStyle rect
+
+package "Catalog (Medusa)" {
+}
+
+package "Indexing Pipeline" {
+}
+
+package "Search Index (Elasticsearch)" {
+}
+
+package "Embeddings" {
+}
+
+package "Search API" {
+}
+
+package "Metrics" {
+}
+
+' Indexing flow
+"Catalog (Medusa)" --> "Indexing Pipeline" : product changes
+"Indexing Pipeline" --> "Embeddings" : generate embeddings
+"Indexing Pipeline" --> "Search Index (Elasticsearch)" : upsert documents
+
+' Query-time search flow
+"Search API" --> "Embeddings" : embed query (optional)
+"Search API" --> "Search Index (Elasticsearch)" : BM25 + vector search
+"Search Index (Elasticsearch)" --> "Search API" : ranked results
+
+' Metrics
+"Search API" --> "Metrics" : search + latency
+@enduml
