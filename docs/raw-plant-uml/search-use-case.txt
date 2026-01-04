@@ -1,0 +1,54 @@
+@startuml
+title Search Use Case
+left to right direction
+
+skinparam backgroundColor #F7F4EF
+skinparam shadowing true
+skinparam roundcorner 12
+skinparam packageStyle rectangle
+skinparam defaultFontName "Helvetica"
+skinparam usecaseBorderColor #5B4B3A
+skinparam usecaseBackgroundColor #FFF9F1
+skinparam usecaseFontColor #2C221B
+skinparam actorBorderColor #5B4B3A
+skinparam actorFontColor #2C221B
+skinparam ArrowColor #7A6451
+skinparam ArrowThickness 1.2
+
+actor "Shopper" as User
+
+
+
+rectangle "Search System" as System {
+  (Search products) as UC_Search
+  (View search results) as UC_View
+  (Apply filters) as UC_Filter
+  (Sort results) as UC_Sort
+  (Refine search) as UC_Refine
+  (Record search analytics) as UC_Analytics
+}
+
+' Primary user interactions
+User --> UC_Search
+User --> UC_View
+User --> UC_Filter
+User --> UC_Sort
+User --> UC_Refine
+
+' Always-performed behavior
+UC_Search ..> UC_View : <<include>>
+UC_Search ..> UC_Analytics : <<include>>
+
+' Optional/conditional behavior while browsing results
+UC_Filter ..> UC_View : <<extend>>
+UC_Sort   ..> UC_View : <<extend>>
+UC_Refine ..> UC_View : <<extend>>
+
+
+
+note left of UC_Search
+Validates query,
+retrieves candidates,
+ranks results
+end note
+@enduml
