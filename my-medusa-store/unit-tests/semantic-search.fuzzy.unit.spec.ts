@@ -722,7 +722,7 @@ describe("semanticSearch - fuzzy matching", () => {
         mode: "hybrid",
       });
 
-      // BM25 fuzzy component saves the day!
+      // BM25 fuzzy component finds the match
       expect(result.hits).toHaveLength(1);
       expect(result.hits[0].product_id).toBe("prod-laptop");
 
@@ -754,7 +754,7 @@ describe("semanticSearch - fuzzy matching", () => {
         mode: "bm25",
       });
 
-      expect(beforeResult.hits).toHaveLength(0); // ❌ No results
+      expect(beforeResult.hits).toHaveLength(0); // No results
 
       // Scenario 2: WITH fuzzy (new behavior)
       delete process.env.SEARCH_FUZZY_ENABLED;
@@ -784,21 +784,14 @@ describe("semanticSearch - fuzzy matching", () => {
         mode: "bm25",
       });
 
-      expect(afterResult.hits).toHaveLength(1); // ✅ Found the match!
+      expect(afterResult.hits).toHaveLength(1); // Found the match
       expect(afterResult.hits[0].product_id).toBe("prod-kb");
 
-      // This is the measurable improvement
+      // Verify fuzzy search improvement
       console.log(`
-        ═══════════════════════════════════════════════
-        FUZZY SEARCH IMPACT DEMONSTRATION
-        ═══════════════════════════════════════════════
         Query: "keybord" (typo)
-        
-        WITHOUT fuzzy: ${beforeResult.hits.length} results ❌
-        WITH fuzzy:    ${afterResult.hits.length} results ✅
-        
-        Improvement: Fuzzy search rescued a failed query!
-        ═══════════════════════════════════════════════
+        WITHOUT fuzzy: ${beforeResult.hits.length} results
+        WITH fuzzy:    ${afterResult.hits.length} results
       `);
     });
   });

@@ -18,17 +18,17 @@ export const POST = async (
     const elasticsearchService: ElasticsearchModuleService =
       req.scope.resolve(ELASTICSEARCH_MODULE);
 
-    // Step 1: Delete existing index
+    // Delete existing index
     logger.info("[Reindex] Deleting existing index...");
     await elasticsearchService.deleteIndex();
     logger.info("[Reindex] Index deleted successfully");
 
-    // Step 2: Recreate index with correct dimensions
+    // Recreate index with correct dimensions
     logger.info("[Reindex] Recreating index with current embedding dimensions...");
     await elasticsearchService.initializeIndex();
     logger.info("[Reindex] Index recreated successfully");
 
-    // Step 3: Queue all products for embedding using bulk workflow
+    // Queue all products for embedding using bulk workflow
     logger.info("[Reindex] Queueing products for embedding...");
     
     const { result } = await bulkEmbedProductsWorkflow(req.scope).run({

@@ -1,5 +1,3 @@
-// Filters Sidebar component (desktop)
-
 import type {
   BrandFacet,
   CategoryFacet,

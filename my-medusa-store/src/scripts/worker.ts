@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { ELASTICSEARCH_MODULE } from "../modules/elasticsearch";
 import ElasticsearchModuleService from "../modules/elasticsearch/services/main";
 
-console.log("🚀 Product Embedding Worker Starting...");
+console.log("[INFO] Product Embedding Worker Starting...");
 
 let elasticsearchService: ElasticsearchModuleService;
 
@@ -18,15 +18,15 @@ let elasticsearchService: ElasticsearchModuleService;
     // Start the worker
     elasticsearchService.startWorker();
     
-    console.log("✅ Worker initialized and running");
+    console.log("[INFO] Worker initialized and running");
   } catch (error) {
-    console.error("❌ Failed to initialize worker:", error);
+    console.error("[ERROR] Failed to initialize worker:", error);
     process.exit(1);
   }
 })();
 
 const shutdown = async () => {
-  console.log("👋 Shutting down worker...");
+  console.log("[INFO] Shutting down worker...");
   if (elasticsearchService) {
     await elasticsearchService.stopWorker();
   }

@@ -1,5 +1,3 @@
-// Filter Section wrapper component
-
 interface FilterSectionProps {
   title: string
   count?: number

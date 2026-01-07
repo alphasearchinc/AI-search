@@ -1,5 +1,3 @@
-// Filter Pill component (for mobile filters)
-
 interface FilterPillProps {
   label: string
   count: number

@@ -1,5 +1,3 @@
-// Pagination component
-
 import { ChevronLeftIcon, ChevronRightIcon } from "./icons"
 
 interface PaginationProps {

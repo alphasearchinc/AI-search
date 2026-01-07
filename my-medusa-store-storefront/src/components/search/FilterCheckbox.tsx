@@ -1,5 +1,3 @@
-// Filter Checkbox component
-
 interface FilterCheckboxProps {
   label: string
   count: number

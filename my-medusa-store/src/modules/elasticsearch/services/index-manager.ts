@@ -42,7 +42,7 @@ export class IndexManager {
 
       const currentDims = await detectEmbeddingDimensions();
       console.log(
-        `[ELASTICSEARCH MODULE] 🔍 Detected embedding dimensions: ${currentDims}`
+        `[ELASTICSEARCH MODULE] [INFO] Detected embedding dimensions: ${currentDims}`
       );
 
       if (!exists) {
@@ -72,19 +72,19 @@ export class IndexManager {
         });
 
         console.log(
-          `[ELASTICSEARCH MODULE] ✅ Index "${this.indexName}" created with ${currentDims} dimensions`
+          `[ELASTICSEARCH MODULE] [INFO] Index "${this.indexName}" created with ${currentDims} dimensions`
         );
       } else {
         const indexDims = await this.getIndexDimensions();
 
         if (indexDims === null) {
           console.warn(
-            `[ELASTICSEARCH MODULE] ⚠️ Unable to determine index embedding dimensions for "${this.indexName}". ` +
+            `[ELASTICSEARCH MODULE] [WARN] Unable to determine index embedding dimensions for "${this.indexName}". ` +
               `Consider running 'npm run reindex' to recreate the index.`
           );
         } else if (indexDims !== currentDims) {
           console.error(
-            `\n[ELASTICSEARCH MODULE] ❌ Dimension mismatch:\n` +
+            `\n[ELASTICSEARCH MODULE] [ERROR] Dimension mismatch:\n` +
               `  - Index: ${indexDims}D\n` +
               `  - Current model: ${currentDims}D\n\n` +
               `Fix: npm run reindex\n`
@@ -97,13 +97,13 @@ export class IndexManager {
 
         if (indexDims !== null) {
           console.log(
-            `[ELASTICSEARCH MODULE] ✅ Index exists with ${indexDims}D dimensions`
+            `[ELASTICSEARCH MODULE] [INFO] Index exists with ${indexDims}D dimensions`
           );
         }
       }
     } catch (error) {
       console.error(
-        `[ELASTICSEARCH MODULE] ❌ Failed to initialize index:`,
+        `[ELASTICSEARCH MODULE] [ERROR] Failed to initialize index:`,
         error
       );
       throw error;
@@ -134,7 +134,7 @@ export class IndexManager {
     });
 
     console.log(
-      `[ELASTICSEARCH MODULE] ✅ Indexed embedding for product ${product_id}`
+      `[ELASTICSEARCH MODULE] [INFO] Indexed embedding for product ${product_id}`
     );
   }
 
@@ -148,7 +148,7 @@ export class IndexManager {
         index: this.indexName,
       });
       console.log(
-        `[ELASTICSEARCH MODULE] 🗑️ Index "${this.indexName}" deleted`
+        `[ELASTICSEARCH MODULE] [INFO] Index "${this.indexName}" deleted`
       );
     }
   }

@@ -20,7 +20,7 @@ export const generateEmbeddingStep = createStep(
       : "OpenAI API";
 
     console.log(
-      `🔗 Calling ${embeddingSource} to embed product text...`
+      `[INFO] Calling ${embeddingSource} to embed product text...`
     );
 
     const startTime = Date.now();
@@ -33,7 +33,7 @@ export const generateEmbeddingStep = createStep(
       success = true;
 
       console.log(
-        `✅ Generated semantic embedding with ${embedding.dimensions} dimensions`
+        `[INFO] Generated semantic embedding with ${embedding.dimensions} dimensions`
       );
 
       return new StepResponse({
@@ -44,7 +44,7 @@ export const generateEmbeddingStep = createStep(
       errorMessage = error.message;
 
       console.error(
-        `❌ Failed to generate embedding from ${embeddingSource}:`,
+        `[ERROR] Failed to generate embedding from ${embeddingSource}:`,
         error.message
       );
 

@@ -10,7 +10,7 @@ export default async function productEmbeddingSubscriber({
   const logger = container.resolve("logger") as any;
 
   try {
-    logger.info(`🔄 Starting embedding generation for product: ${data.id}`);
+    logger.info(`[INFO] Starting embedding generation for product: ${data.id}`);
 
     // Execute the embedding workflow for the product
     const { result } = await embedProductWorkflow(container).run({
@@ -19,10 +19,10 @@ export default async function productEmbeddingSubscriber({
       },
     });
 
-    logger.info(`✅ Successfully generated embedding for product: ${data.id}`);
+    logger.info(`[INFO] Successfully generated embedding for product: ${data.id}`);
   } catch (error) {
     logger.error(
-      `❌ Failed to generate embedding for product: ${data.id}`,
+      `[ERROR] Failed to generate embedding for product: ${data.id}`,
       error
     );
   }

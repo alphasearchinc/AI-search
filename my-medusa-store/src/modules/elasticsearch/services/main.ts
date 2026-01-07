@@ -129,10 +129,9 @@ export default class ElasticsearchModuleService extends MedusaService({}) {
   }
 
   /**
-   * Get a product's embedding vector by ID
-   * Uses search with term query for reliability
-   * Note: dense_vector fields are not stored in _source by default in Elasticsearch,
-   * so we must use the fields parameter to retrieve them
+   * Get a product's embedding vector by ID.
+   * Uses search with term query for reliability.
+   * Dense vector fields require the fields parameter for retrieval.
    */
   async getProductEmbedding(productId: string): Promise<number[]> {
     const result = await this.client.search({
