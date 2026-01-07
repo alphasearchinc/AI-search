@@ -1,5 +1,3 @@
-// Search-related icons
-
 export const SearchIcon = ({ size = 16 }: { size?: number }) => (
   <svg
     width={size}

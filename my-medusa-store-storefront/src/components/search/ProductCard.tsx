@@ -1,5 +1,3 @@
-// Product Card component for search results
-
 import type { SemanticSearchHit } from "@lib/search"
 
 interface ProductCardProps {

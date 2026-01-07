@@ -11,7 +11,7 @@ export default async function reindexAllEmbeddings({ container }: ExecArgs) {
     ELASTICSEARCH_MODULE
   );
 
-  // Step 1: Delete existing index
+  // Delete existing index
   try {
     console.log(`[INFO] Deleting existing index...`);
     await elasticsearchService.deleteIndex();
@@ -21,7 +21,7 @@ export default async function reindexAllEmbeddings({ container }: ExecArgs) {
     throw error;
   }
 
-  // Step 2: Recreate index with correct dimensions
+  // Recreate index with correct dimensions
   try {
     console.log(`[INFO] Recreating index with current embedding dimensions...`);
     await elasticsearchService.initializeIndex();
@@ -31,7 +31,7 @@ export default async function reindexAllEmbeddings({ container }: ExecArgs) {
     throw error;
   }
 
-  // Step 3: Get all products and queue embeddings
+  // Get all products and queue embeddings
   try {
     console.log(`[INFO] Fetching all products...`);
     
