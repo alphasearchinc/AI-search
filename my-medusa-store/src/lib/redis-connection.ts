@@ -13,11 +13,11 @@ export function createRedisConnection(label: string): Redis {
   });
 
   connection.on("connect", () => {
-    console.log(`[${label}] ✅ Redis connected to ${DEFAULT_REDIS_URL}`);
+    console.log(`[${label}] [INFO] Redis connected to ${DEFAULT_REDIS_URL}`);
   });
 
   connection.on("error", (err) => {
-    console.error(`[${label}] ❌ Redis error:`, err);
+    console.error(`[${label}] [ERROR] Redis error:`, err);
   });
 
   return connection;

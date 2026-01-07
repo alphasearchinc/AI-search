@@ -22,14 +22,14 @@ export class ElasticsearchQueue {
       },
     });
     console.log(
-      `[ELASTICSEARCH MODULE] 📦 Queue "${this.queueName}" initialized`
+      `[ELASTICSEARCH MODULE] [INFO] Queue "${this.queueName}" initialized`
     );
   }
 
   async add(data: ProductEmbeddingJobData): Promise<void> {
     await this.queue.add("embed", data);
     console.log(
-      `[ELASTICSEARCH MODULE] 📦 Queued embedding for product ${data.product_id}`
+      `[ELASTICSEARCH MODULE] [INFO] Queued embedding for product ${data.product_id}`
     );
   }
 

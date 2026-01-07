@@ -17,7 +17,7 @@ export class ElasticsearchWorker {
 
   start(): void {
     if (this.worker) {
-      console.log(`[ELASTICSEARCH MODULE] ⚠️ Worker already running`);
+      console.log(`[ELASTICSEARCH MODULE] [WARN] Worker already running`);
       return;
     }
 
@@ -29,12 +29,12 @@ export class ElasticsearchWorker {
         const { product_id, text_to_embed, metadata } = job.data;
 
         console.log(
-          `[ELASTICSEARCH MODULE WORKER] 🔍 Processing job ${job.id} for product ${product_id}`
+          `[ELASTICSEARCH MODULE WORKER] [INFO] Processing job ${job.id} for product ${product_id}`
         );
 
         // Generate embedding
         console.log(
-          `[ELASTICSEARCH MODULE WORKER] 🔗 Generating embedding for product ${product_id}...`
+          `[ELASTICSEARCH MODULE WORKER] [INFO] Generating embedding for product ${product_id}...`
         );
         
         let embedding;
@@ -46,12 +46,12 @@ export class ElasticsearchWorker {
           embedding = await embedText(text_to_embed);
           success = true;
           console.log(
-            `[ELASTICSEARCH MODULE WORKER] ✅ Generated ${embedding.dimensions}D embedding`
+            `[ELASTICSEARCH MODULE WORKER] [INFO] Generated ${embedding.dimensions}D embedding`
           );
         } catch (error: any) {
           errorMessage = error.message;
           console.error(
-            `[ELASTICSEARCH MODULE WORKER] ❌ Failed to generate embedding for product ${product_id}: ${error.message}`
+            `[ELASTICSEARCH MODULE WORKER] [ERROR] Failed to generate embedding for product ${product_id}: ${error.message}`
           );
           throw error;
         } finally {
@@ -80,7 +80,7 @@ export class ElasticsearchWorker {
         });
 
         console.log(
-          `[ELASTICSEARCH MODULE WORKER] ✅ Indexed embedding for product ${product_id} (job ${job.id})`
+          `[ELASTICSEARCH MODULE WORKER] [INFO] Indexed embedding for product ${product_id} (job ${job.id})`
         );
       },
       {
@@ -90,27 +90,27 @@ export class ElasticsearchWorker {
     );
 
     this.worker.on("ready", () => {
-      console.log(`[ELASTICSEARCH MODULE WORKER] ✅ Worker ready`);
+      console.log(`[ELASTICSEARCH MODULE WORKER] [INFO] Worker ready`);
     });
 
     this.worker.on("completed", (job) => {
-      console.log(`[ELASTICSEARCH MODULE WORKER] ✅ Job ${job.id} completed`);
+      console.log(`[ELASTICSEARCH MODULE WORKER] [INFO] Job ${job.id} completed`);
     });
 
     this.worker.on("failed", (job, err) => {
       console.error(
-        `[ELASTICSEARCH MODULE WORKER] ❌ Job ${job?.id} failed: ${err.message}`
+        `[ELASTICSEARCH MODULE WORKER] [ERROR] Job ${job?.id} failed: ${err.message}`
       );
     });
 
-    console.log(`[ELASTICSEARCH MODULE] ✅ Worker started`);
+    console.log(`[ELASTICSEARCH MODULE] [INFO] Worker started`);
   }
 
   async stop(): Promise<void> {
     if (this.worker) {
       await this.worker.close();
       this.worker = null;
-      console.log(`[ELASTICSEARCH MODULE] ✅ Worker stopped`);
+      console.log(`[ELASTICSEARCH MODULE] [INFO] Worker stopped`);
     }
   }
 }

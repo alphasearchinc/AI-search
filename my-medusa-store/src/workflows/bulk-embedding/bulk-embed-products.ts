@@ -16,15 +16,7 @@ type BulkEmbedProductsOutput = {
 };
 
 /**
- * Workflow for bulk embedding all products in the database.
- *
- * This workflow:
- * 1. Fetches all products with pagination
- * 2. Enqueues embedding jobs for each product via embedProductWorkflow
- * 3. Tracks success/failure counts and errors
- *
- * The workflow handles pagination internally and processes products in batches
- * to avoid memory issues with large product catalogs.
+ * Fetches all products and enqueues embedding jobs with pagination support.
  */
 export const bulkEmbedProductsWorkflow = createWorkflow(
   "bulk-embed-products",
