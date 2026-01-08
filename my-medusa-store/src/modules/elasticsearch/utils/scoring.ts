@@ -32,9 +32,17 @@ export const calculateScore = (
       normalizedBm25 * availableBm25Weight) /
     availableWeightSum;
 
-  const combinedScore =
-    (data.vector_score ?? 0) * vectorWeight +
-    (data.bm25_score ?? 0) * bm25Weight;
+  // DEBUG: Log score details
+  console.log('[SCORING DEBUG]', {
+    raw_bm25: data.bm25_score,
+    raw_vector: data.vector_score,
+    max_bm25: maxBm25Score,
+    max_vector: maxVectorScore,
+    normalized_bm25: normalizedBm25.toFixed(3),
+    normalized_vector: normalizedVector.toFixed(3),
+    confidence: confidence.toFixed(3),
+    weights: `${vectorWeight}/${bm25Weight}`
+  });
 
-  return { confidence, combinedScore };
+  return { confidence };
 };

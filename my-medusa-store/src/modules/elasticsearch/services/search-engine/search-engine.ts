@@ -102,12 +102,13 @@ export class SearchEngine {
     );
 
     // Filter out low-relevance results (minimum score threshold)
-    // Score is weighted: (vector_score × 0.7) + (bm25_score × 0.3)
-    // Threshold of 1 ensures only relevant products are shown
+    // Score = confidence: normalized weighted average of vector (70%) and BM25 (30%) scores
+    // Both scores are normalized to 0-1 scale before weighting to ensure proper contribution
+    // Threshold of 0.8 filters out irrelevant products (tuned empirically)
     // Skip score filtering when query is empty (browse mode) - show all products
     const isEmptyQuery =
       !options.query || options.query === "*" || options.query.trim() === "";
-    const MIN_SCORE_THRESHOLD = 1;
+    const MIN_SCORE_THRESHOLD = 0.8;
     const scoreFilteredHits = isEmptyQuery
       ? confidenceFilteredHits
       : filterByMinScore(confidenceFilteredHits, MIN_SCORE_THRESHOLD);

@@ -68,7 +68,7 @@ export function mergeAndScoreHits(
   } = context;
 
   return Array.from(hitsMap.entries()).map(([id, data]) => {
-    const { confidence, combinedScore } = calculateScore(
+    const { confidence } = calculateScore(
       data,
       maxBm25Score,
       maxVectorScore,
@@ -79,7 +79,7 @@ export function mergeAndScoreHits(
     return {
       id,
       product_id: data.source?.product_id,
-      score: combinedScore,
+      score: confidence,
       bm25_score: data.bm25_score,
       vector_score: data.vector_score,
       confidence,

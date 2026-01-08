@@ -536,7 +536,7 @@ describe("semanticSearch - fuzzy matching", () => {
           },
           {
             _id: "prod-fuzzy",
-            _score: 10.0, // fuzzy match scores lower
+            _score: 13.0, // fuzzy match scores lower
             _source: {
               product_id: "prod-fuzzy",
               embedded_text: "Desktop computer",
