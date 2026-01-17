@@ -55,7 +55,7 @@ export function processElasticsearchHits(
 /**
  * Merge raw hits from BM25 and vector searches into scored SearchHit objects.
  */
-export function mergeAndScoreHits(
+export function mergeAndScoreHitsBm25(
   hitsMap: Map<string, RawHitData>,
   context: MergeContext
 ): SearchHit[] {
@@ -68,7 +68,7 @@ export function mergeAndScoreHits(
   } = context;
 
   return Array.from(hitsMap.entries()).map(([id, data]) => {
-    const { confidence, combinedScore } = calculateScore(
+    const { confidence } = calculateScore(
       data,
       maxBm25Score,
       maxVectorScore,
@@ -79,7 +79,81 @@ export function mergeAndScoreHits(
     return {
       id,
       product_id: data.source?.product_id,
-      score: combinedScore,
+      score: data.bm25_score ?? 0,
+      bm25_score: data.bm25_score,
+      vector_score: data.vector_score,
+      confidence,
+      embedded_text: data.source?.embedded_text,
+      metadata: data.source?.metadata,
+      generated_at: data.source?.generated_at,
+      embedding:
+        includeEmbedding && data.source?.embedding
+          ? data.source.embedding
+          : undefined,
+    };
+  });
+}
+
+export function mergeAndScoreHitsVector(
+  hitsMap: Map<string, RawHitData>,
+  context: MergeContext
+): SearchHit[] {
+  const {
+    maxBm25Score,
+    maxVectorScore,
+    vectorWeight,
+    bm25Weight,
+    includeEmbedding,
+  } = context;
+
+  return Array.from(hitsMap.entries()).map(([id, data]) => {
+    const { confidence } = calculateScore(
+      data,
+      maxBm25Score,
+      maxVectorScore,
+      vectorWeight,
+      bm25Weight
+    );
+
+    return {
+      id,
+      product_id: data.source?.product_id,
+      score: data.vector_score ?? 0,
+      bm25_score: data.bm25_score,
+      vector_score: data.vector_score,
+      confidence,
+      embedded_text: data.source?.embedded_text,
+      metadata: data.source?.metadata,
+      generated_at: data.source?.generated_at,
+      embedding:
+        includeEmbedding && data.source?.embedding
+          ? data.source.embedding
+          : undefined,
+    };
+  });
+}
+
+export function mergeAndScoreHitsHybridNormalized(
+  hitsMap: Map<string, RawHitData>,
+  context: Pick<MergeContext, "includeEmbedding" | "maxBm25Score" | "maxVectorScore" | "vectorWeight" | "bm25Weight">
+): SearchHit[] {
+  const { includeEmbedding, maxBm25Score, maxVectorScore, vectorWeight, bm25Weight } = context;
+
+  return Array.from(hitsMap.entries()).map(([id, data]) => {
+    const { confidence } = calculateScore(
+      data,
+      maxBm25Score,
+      maxVectorScore,
+      vectorWeight,
+      bm25Weight
+    );
+
+    return {
+      id,
+      product_id: data.source?.product_id,
+      // Hybrid score: weighted normalized combination (scale-safe).
+      // calculateScore().confidence is already the weighted average of normalized scores.
+      score: confidence,
       bm25_score: data.bm25_score,
       vector_score: data.vector_score,
       confidence,

@@ -33,7 +33,9 @@ import {
 } from "./query-builder";
 import {
   processElasticsearchHits,
-  mergeAndScoreHits,
+  mergeAndScoreHitsHybridNormalized,
+  mergeAndScoreHitsBm25,
+  mergeAndScoreHitsVector,
   filterByConfidence,
   filterByMinScore,
   sortByScore,
@@ -88,13 +90,19 @@ export class SearchEngine {
       });
 
     // Merge, score, and filter hits
-    const mergedHits = mergeAndScoreHits(hitsMap, {
+    const mergeContext = {
       maxBm25Score,
       maxVectorScore,
       vectorWeight,
       bm25Weight,
       includeEmbedding: options.includeEmbedding ?? false,
-    });
+    };
+    const mergedHits =
+      resolvedMode === "hybrid"
+        ? mergeAndScoreHitsHybridNormalized(hitsMap, mergeContext)
+        : resolvedMode === "vector"
+          ? mergeAndScoreHitsVector(hitsMap, mergeContext)
+          : mergeAndScoreHitsBm25(hitsMap, mergeContext);
 
     const confidenceFilteredHits = filterByConfidence(
       mergedHits,
@@ -102,15 +110,15 @@ export class SearchEngine {
     );
 
     // Filter out low-relevance results (minimum score threshold)
-    // Score is weighted: (vector_score × 0.7) + (bm25_score × 0.3)
-    // Threshold of 1 ensures only relevant products are shown
     // Skip score filtering when query is empty (browse mode) - show all products
     const isEmptyQuery =
       !options.query || options.query === "*" || options.query.trim() === "";
     const MIN_SCORE_THRESHOLD = 1;
-    const scoreFilteredHits = isEmptyQuery
-      ? confidenceFilteredHits
-      : filterByMinScore(confidenceFilteredHits, MIN_SCORE_THRESHOLD);
+    // Hybrid scores are normalized (0..1). Use minConfidence for hybrid filtering.
+    const shouldFilterByScore = !isEmptyQuery && resolvedMode !== "hybrid";
+    const scoreFilteredHits = shouldFilterByScore
+      ? filterByMinScore(confidenceFilteredHits, MIN_SCORE_THRESHOLD)
+      : confidenceFilteredHits;
 
     const sortedHits = sortByScore(scoreFilteredHits);
 

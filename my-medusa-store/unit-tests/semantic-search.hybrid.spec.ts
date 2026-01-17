@@ -44,7 +44,7 @@ describe("semanticSearch - hybrid ranking", () => {
     });
   });
 
-  it("combines BM25 and vector scores with default weights", async () => {
+  it("combines BM25 and vector using normalized weighted hybrid score", async () => {
     mockSearch
       // BM25 query
       .mockResolvedValueOnce({
@@ -80,7 +80,7 @@ describe("semanticSearch - hybrid ranking", () => {
           hits: [
             {
               _id: "prod-1",
-              _score: 1.2, // cosineSimilarity + 1
+              _score: 1.4, // cosineSimilarity + 1
               _source: {
                 product_id: "prod-1",
                 embedded_text: "Laptop with 4K display",
@@ -89,7 +89,7 @@ describe("semanticSearch - hybrid ranking", () => {
             },
             {
               _id: "prod-3",
-              _score: 1.3,
+              _score: 1.2,
               _source: {
                 product_id: "prod-3",
                 embedded_text: "Mechanical keyboard",
@@ -117,17 +117,25 @@ describe("semanticSearch - hybrid ranking", () => {
 
     const [first, second, third] = result.hits;
     expect(first.id).toBe("prod-1");
-    expect(first.vector_score).toBeCloseTo(1.2);
+    expect(first.vector_score).toBeCloseTo(1.4);
     expect(first.bm25_score).toBeCloseTo(3);
-    expect(first.score).toBeCloseTo(1.74); // 1.2 * 0.7 + 3 * 0.3
+    // Hybrid score is scale-safe: weighted normalized combination.
+    // maxBm25=3 => normBm25(prod-1)=1
+    // maxVector=1.4 => normVector(prod-1)=1
+    // score = 0.7*1 + 0.3*1 = 1
+    expect(first.score).toBeCloseTo(1);
 
     expect(second.id).toBe("prod-3");
-    expect(second.vector_score).toBeCloseTo(1.3);
+    expect(second.vector_score).toBeCloseTo(1.2);
     expect(second.bm25_score).toBeUndefined();
+    // Only vector contributes when bm25 is missing: score = normVector = 1.2/1.4
+    expect(second.score).toBeCloseTo(1.2 / 1.4);
 
     expect(third.id).toBe("prod-2");
     expect(third.bm25_score).toBeCloseTo(2);
     expect(third.vector_score).toBeUndefined();
+    // Only bm25 contributes when vector is missing: score = normBm25 = 2/3
+    expect(third.score).toBeCloseTo(2 / 3);
   });
 
   it("runs BM25-only when requested without embeddings", async () => {
@@ -160,5 +168,6 @@ describe("semanticSearch - hybrid ranking", () => {
     expect(result.hits[0]?.id).toBe("prod-bm25");
     expect(result.hits[0]?.bm25_score).toBeCloseTo(4);
     expect(result.hits[0]?.vector_score).toBeUndefined();
+    expect(result.hits[0]?.score).toBeCloseTo(4);
   });
 });
