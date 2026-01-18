@@ -7,6 +7,7 @@ import type {
  * GET /admin/deployment-info
  *
  * Simple hello world endpoint for CI/CD deployment demonstration.
+ * Will be beautiful
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   res.json({
